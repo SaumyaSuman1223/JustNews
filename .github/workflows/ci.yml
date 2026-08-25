@@ -1,0 +1,10 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO(session 0.4): set up uv + pnpm, cache them, run lint and tests.
+      # Build this with Claude Code, then explain every line before merging.
+      - run: echo "no checks yet"

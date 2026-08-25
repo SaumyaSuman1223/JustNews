@@ -1,0 +1,29 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+# node
+node_modules/
+.next/
+dist/
+.turbo/
+.expo/
+# env & secrets  (NEVER commit real secrets)
+.env
+.env.*
+!.env.example
+*.pem
+# data & models — too big for git, and licensed
+ml/data/*
+!ml/data/.gitkeep
+ml/export/*.onnx
+*.ckpt
+*.pt
+# scaffold backups (delete once merged)
+*.bak
+# os / editor
+.DS_Store
+.idea/
+.vscode/
