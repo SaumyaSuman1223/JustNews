@@ -42,6 +42,19 @@ class Settings(BaseSettings):
             "postgresql+asyncpg://justnews:change_me_locally@localhost:5432/justnews"
         )
     )
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _default_to_asyncpg(cls, value: object) -> object:
+        """Supabase's dashboard hands out a bare ``postgresql://`` connection
+        string - there is no async driver in it, and no reason every place
+        that pastes one in (Render, GitHub Actions secrets, a teammate's
+        `.env`) has to remember to add ``+asyncpg`` by hand. ``sync_database_url``
+        below depends on this always being present to swap in ``+psycopg``."""
+        if isinstance(value, str) and value.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + value.removeprefix("postgresql://")
+        return value
+
     db_pool_size: int = 5
     db_max_overflow: int = 5
     db_command_timeout_seconds: float = 10.0
