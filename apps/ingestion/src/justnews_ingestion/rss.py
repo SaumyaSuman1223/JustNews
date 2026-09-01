@@ -42,6 +42,12 @@ class ParsedEntry:
     language: str
     published_at: datetime
     raw_categories: list[str] = field(default_factory=list)
+    # An RSS entry's source is fixed for the whole feed batch (the caller
+    # already knows which Feed/Source it came from). A GNews response
+    # aggregates many publishers in one call, so those entries carry their
+    # own source identity instead - see justnews_ingestion.gnews.
+    source_name: str | None = None
+    source_url: str | None = None
 
 
 @dataclass(slots=True)
