@@ -56,7 +56,12 @@ jobs:
           path: ~/.cache/huggingface
           key: sentence-transformer-${{ env.SENTENCE_TRANSFORMER_MODEL }}
 
-      - run: uv sync --frozen --all-extras --dev
+      - name: Install the ingestion CLI and its embeddings extra
+        # `--all-extras` only expands extras of the *root* project; the
+        # sentence-transformers dependency is declared as `justnews-ingestion`'s
+        # own optional "embeddings" extra (apps/ingestion/pyproject.toml), so it
+        # has to be requested by package name or it silently never installs.
+        run: uv sync --frozen --package justnews-ingestion --extra embeddings --dev
 
       - name: Run ingestion
         run: uv run justnews-ingest ${{ inputs.command || 'run' }}
