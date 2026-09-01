@@ -23,7 +23,14 @@ import { createApiClient } from "@justnews/api-client";
 import type { components } from "@justnews/api-client";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
-const TIMEOUT_MS = 4000;
+// Render's free tier spins the API down after 15 minutes idle and cold-starts
+// on the next request - measured around 22s. Nothing pings it to stay warm
+// (ingestion talks to Supabase directly, never through the API - ADR 0010),
+// so the first visitor after any quiet period is a cold start. A shorter
+// timeout here doesn't fail faster, it fails *wrongly*: every such request
+// would silently degrade to an empty page instead of waiting the extra
+// seconds for real data.
+const TIMEOUT_MS = 30000;
 
 export type Article = components["schemas"]["ArticleOut"];
 export type ArticlePage = components["schemas"]["ArticlePageOut"];
