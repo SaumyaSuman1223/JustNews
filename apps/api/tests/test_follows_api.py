@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from httpx import AsyncClient
-from justnews_testing.auth import make_access_token
+from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_topic
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,21 +13,17 @@ class TestFollows:
         topic = await make_topic(session)
         await session.commit()
 
-        token = make_access_token()
-        response = await client.post(
-            "/v1/follows",
-            json={"topic_id": topic.id},
-            headers={"authorization": f"Bearer {token}"},
-        )
+        headers = await make_beta_headers(session)
+        response = await client.post("/v1/follows", json={"topic_id": topic.id}, headers=headers)
         assert response.status_code == 201
         assert response.json()["topic_id"] == topic.id
 
-    async def test_following_an_unknown_topic_is_404(self, client: AsyncClient) -> None:
-        token = make_access_token()
+    async def test_following_an_unknown_topic_is_404(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        headers = await make_beta_headers(session)
         response = await client.post(
-            "/v1/follows",
-            json={"topic_id": "medtop:does-not-exist"},
-            headers={"authorization": f"Bearer {token}"},
+            "/v1/follows", json={"topic_id": "medtop:does-not-exist"}, headers=headers
         )
         assert response.status_code == 404
 
@@ -37,7 +33,7 @@ class TestFollows:
         topic = await make_topic(session)
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         await client.post("/v1/follows", json={"topic_id": topic.id}, headers=headers)
         delete = await client.delete(f"/v1/follows/{topic.id}", headers=headers)
         assert delete.status_code == 204
@@ -50,8 +46,6 @@ class TestFollows:
     ) -> None:
         topic = await make_topic(session)
         await session.commit()
-        token = make_access_token()
-        response = await client.delete(
-            f"/v1/follows/{topic.id}", headers={"authorization": f"Bearer {token}"}
-        )
+        headers = await make_beta_headers(session)
+        response = await client.delete(f"/v1/follows/{topic.id}", headers=headers)
         assert response.status_code == 404

@@ -37,6 +37,13 @@ export type SaveOut = components["schemas"]["SaveOut"];
 export type SavePage = components["schemas"]["SavePageOut"];
 export type FollowOut = components["schemas"]["FollowOut"];
 export type HistoryPage = components["schemas"]["HistoryPageOut"];
+export type SourceHealth = components["schemas"]["SourceHealthOut"];
+export type IngestRunSummary = components["schemas"]["IngestRunOut"];
+export type AdminUser = components["schemas"]["UserOut"];
+export type AnalyticsOverview = components["schemas"]["AnalyticsOverviewOut"];
+export type AuditLogEntry = components["schemas"]["AuditLogEntryOut"];
+export type Invite = components["schemas"]["InviteOut"];
+export type MeExport = components["schemas"]["MeExportOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -161,6 +168,20 @@ export async function updateMe(
   return data ?? null;
 }
 
+export async function exportMe(auth: AuthContext): Promise<MeExport | null> {
+  const { data } = await authedClient(auth).GET("/v1/me/export", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? null;
+}
+
+export async function deleteMe(auth: AuthContext): Promise<boolean> {
+  const { error } = await authedClient(auth).DELETE("/v1/me", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
 export async function getSaves(
   auth: AuthContext,
   cursor?: string,
@@ -248,4 +269,118 @@ export async function reportNotInterested(
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return !error;
+}
+
+export interface RedeemResult {
+  ok: boolean;
+  message?: string;
+}
+
+export async function redeemInvite(auth: AuthContext, code: string): Promise<RedeemResult> {
+  const { error } = await authedClient(auth).POST("/v1/invites/redeem", {
+    body: { code },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!error) return { ok: true };
+  // The standard error envelope ({error: {code, message}}) is not part of
+  // FastAPI's declared OpenAPI response shape - it comes from exception
+  // handlers, which aren't schema-visible - so this reads it defensively.
+  const body = error as { error?: { message?: string } };
+  return { ok: false, message: body.error?.message ?? "That code did not work." };
+}
+
+// --- admin console --------------------------------------------------------
+
+export async function getSourceHealth(auth: AuthContext): Promise<SourceHealth[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/sources", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getIngestRuns(auth: AuthContext): Promise<IngestRunSummary[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/ingest-runs", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getRemovedArticles(auth: AuthContext): Promise<Article[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/articles/removed", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function takedownArticle(
+  auth: AuthContext,
+  articleId: number,
+  reason: string,
+): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/admin/articles/{article_id}/takedown", {
+    params: { path: { article_id: articleId } },
+    body: { reason },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+export async function restoreArticle(auth: AuthContext, articleId: number): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/admin/articles/{article_id}/restore", {
+    params: { path: { article_id: articleId } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+export async function getAdminUsers(auth: AuthContext): Promise<AdminUser[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/users", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function setUserRole(
+  auth: AuthContext,
+  userId: string,
+  role: string,
+): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/admin/users/{user_id}/role", {
+    params: { path: { user_id: userId } },
+    body: { role },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+export async function getAnalyticsOverview(auth: AuthContext): Promise<AnalyticsOverview | null> {
+  const { data } = await authedClient(auth).GET("/v1/admin/analytics/overview", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? null;
+}
+
+export async function getAuditLog(auth: AuthContext): Promise<AuditLogEntry[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/audit-log", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getInvites(auth: AuthContext): Promise<Invite[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/invites", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function createInvite(
+  auth: AuthContext,
+  params: { note?: string; maxUses: number },
+): Promise<Invite | null> {
+  const { data } = await authedClient(auth).POST("/v1/admin/invites", {
+    body: { note: params.note || null, max_uses: params.maxUses },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? null;
 }

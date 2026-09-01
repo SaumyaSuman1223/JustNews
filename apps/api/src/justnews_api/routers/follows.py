@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.auth import require_user
-from justnews_api.core.db import get_user_session
+from justnews_api.core.db import get_beta_session
 from justnews_api.services import follows as service
 from justnews_api.services.auth import Principal
 
@@ -31,7 +31,7 @@ def _to_out(followed: service.FollowedTopic) -> FollowOut:
 async def create_follow(
     body: FollowIn,
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
 ) -> FollowOut:
     followed = await service.follow_topic(session, principal.user_id, body.topic_id)
     return _to_out(followed)
@@ -41,7 +41,7 @@ async def create_follow(
 async def delete_follow(
     topic_id: str,
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
 ) -> None:
     await service.unfollow_topic(session, principal.user_id, topic_id)
 
@@ -49,7 +49,7 @@ async def delete_follow(
 @router.get("/follows", response_model=list[FollowOut])
 async def list_follows(
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
 ) -> list[FollowOut]:
     followed = await service.list_followed(session, principal.user_id)
     return [_to_out(item) for item in followed]

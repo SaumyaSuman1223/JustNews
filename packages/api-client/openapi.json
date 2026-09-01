@@ -1,6 +1,49 @@
 {
   "components": {
     "schemas": {
+      "AnalyticsOverviewOut": {
+        "properties": {
+          "active_users": {
+            "title": "Active Users",
+            "type": "integer"
+          },
+          "ctr_by_surface": {
+            "items": {
+              "$ref": "#/components/schemas/SurfaceCtrOut"
+            },
+            "title": "Ctr By Surface",
+            "type": "array"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "top_articles": {
+            "items": {
+              "$ref": "#/components/schemas/TopArticleOut"
+            },
+            "title": "Top Articles",
+            "type": "array"
+          },
+          "top_sources": {
+            "items": {
+              "$ref": "#/components/schemas/TopSourceOut"
+            },
+            "title": "Top Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "since",
+          "active_users",
+          "ctr_by_surface",
+          "top_articles",
+          "top_sources"
+        ],
+        "title": "AnalyticsOverviewOut",
+        "type": "object"
+      },
       "ArticleOut": {
         "properties": {
           "id": {
@@ -108,6 +151,72 @@
           "items"
         ],
         "title": "ArticlePageOut",
+        "type": "object"
+      },
+      "AuditLogEntryOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "admin_user_id": {
+            "title": "Admin User Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Type"
+          }
+        },
+        "required": [
+          "id",
+          "admin_user_id",
+          "action",
+          "target_type",
+          "target_id",
+          "details",
+          "created_at"
+        ],
+        "title": "AuditLogEntryOut",
         "type": "object"
       },
       "ClickIn": {
@@ -286,12 +395,251 @@
         "title": "HistoryPageOut",
         "type": "object"
       },
+      "IngestRunOut": {
+        "properties": {
+          "articles_clustered": {
+            "title": "Articles Clustered",
+            "type": "integer"
+          },
+          "articles_duplicate": {
+            "title": "Articles Duplicate",
+            "type": "integer"
+          },
+          "articles_enriched": {
+            "title": "Articles Enriched",
+            "type": "integer"
+          },
+          "articles_new": {
+            "title": "Articles New",
+            "type": "integer"
+          },
+          "deadline_reached": {
+            "title": "Deadline Reached",
+            "type": "boolean"
+          },
+          "entries_seen": {
+            "title": "Entries Seen",
+            "type": "integer"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "feeds_failed": {
+            "title": "Feeds Failed",
+            "type": "integer"
+          },
+          "feeds_not_modified": {
+            "title": "Feeds Not Modified",
+            "type": "integer"
+          },
+          "feeds_ok": {
+            "title": "Feeds Ok",
+            "type": "integer"
+          },
+          "feeds_total": {
+            "title": "Feeds Total",
+            "type": "integer"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "gnews_calls": {
+            "title": "Gnews Calls",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "started_at",
+          "finished_at",
+          "trigger",
+          "feeds_total",
+          "feeds_ok",
+          "feeds_not_modified",
+          "feeds_failed",
+          "entries_seen",
+          "articles_new",
+          "articles_duplicate",
+          "articles_clustered",
+          "articles_enriched",
+          "gnews_calls",
+          "deadline_reached",
+          "error"
+        ],
+        "title": "IngestRunOut",
+        "type": "object"
+      },
+      "InviteCreateIn": {
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "max_uses": {
+            "default": 1,
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Max Uses",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "InviteCreateIn",
+        "type": "object"
+      },
+      "InviteOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "max_uses": {
+            "title": "Max Uses",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "uses": {
+            "title": "Uses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "note",
+          "max_uses",
+          "uses",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "InviteOut",
+        "type": "object"
+      },
+      "MeExportOut": {
+        "properties": {
+          "follows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Follows",
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "profile": {
+            "additionalProperties": true,
+            "title": "Profile",
+            "type": "object"
+          },
+          "saves": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Saves",
+            "type": "array"
+          }
+        },
+        "required": [
+          "profile",
+          "saves",
+          "follows",
+          "history"
+        ],
+        "title": "MeExportOut",
+        "type": "object"
+      },
       "MeOut": {
         "properties": {
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "has_beta_access": {
+            "title": "Has Beta Access",
+            "type": "boolean"
           },
           "id": {
             "title": "Id",
@@ -303,11 +651,17 @@
             },
             "title": "Preferred Languages",
             "type": "array"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "preferred_languages",
+          "role",
+          "has_beta_access",
           "created_at"
         ],
         "title": "MeOut",
@@ -385,6 +739,19 @@
           "database"
         ],
         "title": "Readiness",
+        "type": "object"
+      },
+      "RedeemIn": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "RedeemIn",
         "type": "object"
       },
       "SaveIn": {
@@ -470,6 +837,80 @@
           "items"
         ],
         "title": "SearchPageOut",
+        "type": "object"
+      },
+      "SetRoleIn": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "SetRoleIn",
+        "type": "object"
+      },
+      "SourceHealthOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "failing_feed_count": {
+            "title": "Failing Feed Count",
+            "type": "integer"
+          },
+          "feed_count": {
+            "title": "Feed Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "language",
+          "active",
+          "feed_count",
+          "failing_feed_count",
+          "last_success_at",
+          "article_count"
+        ],
+        "title": "SourceHealthOut",
         "type": "object"
       },
       "StatsOut": {
@@ -559,6 +1000,93 @@
         "title": "StoryOut",
         "type": "object"
       },
+      "SurfaceCtrOut": {
+        "properties": {
+          "clicks": {
+            "title": "Clicks",
+            "type": "integer"
+          },
+          "impressions": {
+            "title": "Impressions",
+            "type": "integer"
+          },
+          "surface": {
+            "title": "Surface",
+            "type": "string"
+          }
+        },
+        "required": [
+          "surface",
+          "impressions",
+          "clicks"
+        ],
+        "title": "SurfaceCtrOut",
+        "type": "object"
+      },
+      "TakedownIn": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "TakedownIn",
+        "type": "object"
+      },
+      "TopArticleOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "impressions": {
+            "title": "Impressions",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "language",
+          "impressions"
+        ],
+        "title": "TopArticleOut",
+        "type": "object"
+      },
+      "TopSourceOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "impressions": {
+            "title": "Impressions",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "impressions"
+        ],
+        "title": "TopSourceOut",
+        "type": "object"
+      },
       "TopicOut": {
         "properties": {
           "id": {
@@ -580,6 +1108,51 @@
           "label"
         ],
         "title": "TopicOut",
+        "type": "object"
+      },
+      "UserOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "invite_redeemed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Redeemed At"
+          },
+          "preferred_languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Preferred Languages",
+            "type": "array"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "preferred_languages",
+          "invite_redeemed_at",
+          "created_at"
+        ],
+        "title": "UserOut",
         "type": "object"
       },
       "ValidationError": {
@@ -676,6 +1249,573 @@
         "summary": "Readiness",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/admin/analytics/overview": {
+      "get": {
+        "operationId": "analytics_overview_v1_admin_analytics_overview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "window_days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Window Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsOverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Analytics Overview",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/articles/removed": {
+      "get": {
+        "operationId": "list_removed_articles_v1_admin_articles_removed_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleOut"
+                  },
+                  "title": "Response List Removed Articles V1 Admin Articles Removed Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Removed Articles",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/articles/{article_id}/restore": {
+      "post": {
+        "operationId": "restore_article_v1_admin_articles__article_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Restore Article",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/articles/{article_id}/takedown": {
+      "post": {
+        "operationId": "takedown_article_v1_admin_articles__article_id__takedown_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TakedownIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Takedown Article",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/audit-log": {
+      "get": {
+        "operationId": "list_audit_log_v1_admin_audit_log_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogEntryOut"
+                  },
+                  "title": "Response List Audit Log V1 Admin Audit Log Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Audit Log",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/ingest-runs": {
+      "get": {
+        "operationId": "list_ingest_runs_v1_admin_ingest_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IngestRunOut"
+                  },
+                  "title": "Response List Ingest Runs V1 Admin Ingest Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Ingest Runs",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/invites": {
+      "get": {
+        "operationId": "list_invites_v1_admin_invites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InviteOut"
+                  },
+                  "title": "Response List Invites V1 Admin Invites Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Invites",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_invite_v1_admin_invites_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Invite",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/sources": {
+      "get": {
+        "operationId": "list_source_health_v1_admin_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceHealthOut"
+                  },
+                  "title": "Response List Source Health V1 Admin Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Source Health",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_v1_admin_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserOut"
+                  },
+                  "title": "Response List Users V1 Admin Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{user_id}/role": {
+      "post": {
+        "operationId": "set_user_role_v1_admin_users__user_id__role_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRoleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set User Role",
+        "tags": [
+          "admin"
         ]
       }
     },
@@ -1170,7 +2310,63 @@
         ]
       }
     },
+    "/v1/invites/redeem": {
+      "post": {
+        "operationId": "redeem_invite_v1_invites_redeem_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Redeem Invite",
+        "tags": [
+          "invites"
+        ]
+      }
+    },
     "/v1/me": {
+      "delete": {
+        "operationId": "delete_me_v1_me_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Me",
+        "tags": [
+          "me"
+        ]
+      },
       "get": {
         "operationId": "get_me_v1_me_get",
         "responses": {
@@ -1235,6 +2431,32 @@
           }
         ],
         "summary": "Update Me",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/export": {
+      "get": {
+        "operationId": "export_me_v1_me_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeExportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Me",
         "tags": [
           "me"
         ]

@@ -46,7 +46,14 @@ class ArticleRow:
 
 
 def _base_query() -> Select[tuple[Article, Source]]:
-    return select(Article, Source).join(Source, Article.source_id == Source.id)
+    # The one choke point every read path shares: a taken-down article stops
+    # existing for readers here, without the row itself being deleted (the
+    # admin console and the audit log both need it to still be there).
+    return (
+        select(Article, Source)
+        .join(Source, Article.source_id == Source.id)
+        .where(Article.removed_at.is_(None))
+    )
 
 
 async def list_articles(
@@ -94,6 +101,24 @@ async def list_articles(
 async def get_article(session: AsyncSession, article_id: int) -> ArticleRow | None:
     result = await session.execute(_base_query().where(Article.id == article_id))
     row = result.first()
+    if row is None:
+        return None
+    article, source = row
+    return ArticleRow.from_pair(article, source)
+
+
+async def get_article_including_removed(
+    session: AsyncSession, article_id: int
+) -> ArticleRow | None:
+    """For the admin console only - every other caller must go through
+    ``get_article``, which is what makes a takedown actually take an article
+    down everywhere else."""
+    query = (
+        select(Article, Source)
+        .join(Source, Article.source_id == Source.id)
+        .where(Article.id == article_id)
+    )
+    row = (await session.execute(query)).first()
     if row is None:
         return None
     article, source = row

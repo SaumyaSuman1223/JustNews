@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from httpx import AsyncClient
-from justnews_testing.auth import make_access_token
+from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,7 @@ class TestReportClick:
         article = await make_article(session, source, title="Read me")
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         report = await client.post(
             "/v1/history",
             json={"article_id": article.id, "surface": "feed", "position": 0},
@@ -27,8 +27,8 @@ class TestReportClick:
         history = (await client.get("/v1/history", headers=headers)).json()
         assert [item["article"]["title"] for item in history["items"]] == ["Read me"]
 
-    async def test_unknown_article_is_404(self, client: AsyncClient) -> None:
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+    async def test_unknown_article_is_404(self, client: AsyncClient, session: AsyncSession) -> None:
+        headers = await make_beta_headers(session)
         response = await client.post(
             "/v1/history",
             json={"article_id": 999999, "surface": "feed"},
@@ -43,7 +43,7 @@ class TestReportClick:
         article = await make_article(session, source)
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         response = await client.post(
             "/v1/history",
             json={"article_id": article.id, "surface": "homepage"},
@@ -58,8 +58,8 @@ class TestReportClick:
         article = await make_article(session, source)
         await session.commit()
 
-        alice = {"authorization": f"Bearer {make_access_token()}"}
-        bob = {"authorization": f"Bearer {make_access_token()}"}
+        alice = await make_beta_headers(session)
+        bob = await make_beta_headers(session)
         await client.post(
             "/v1/history", json={"article_id": article.id, "surface": "feed"}, headers=alice
         )
@@ -76,7 +76,7 @@ class TestNotInterested:
         article = await make_article(session, source)
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         response = await client.post(
             "/v1/not-interested",
             json={"article_id": article.id, "surface": "feed"},
@@ -84,8 +84,8 @@ class TestNotInterested:
         )
         assert response.status_code == 204
 
-    async def test_unknown_article_is_404(self, client: AsyncClient) -> None:
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+    async def test_unknown_article_is_404(self, client: AsyncClient, session: AsyncSession) -> None:
+        headers = await make_beta_headers(session)
         response = await client.post(
             "/v1/not-interested",
             json={"article_id": 999999, "surface": "feed"},

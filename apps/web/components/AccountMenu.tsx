@@ -9,9 +9,11 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 export function AccountMenu({
   locale,
   email,
+  hasBetaAccess,
 }: {
   locale: string;
   email: string | null;
+  hasBetaAccess: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -45,6 +47,11 @@ export function AccountMenu({
       </button>
       {open && (
         <div className="account-menu__panel" role="menu">
+          {!hasBetaAccess && (
+            <Link role="menuitem" href={`/${locale}/invite`} onClick={() => setOpen(false)}>
+              Enter invite code
+            </Link>
+          )}
           <Link role="menuitem" href={`/${locale}/saved`} onClick={() => setOpen(false)}>
             Saved
           </Link>

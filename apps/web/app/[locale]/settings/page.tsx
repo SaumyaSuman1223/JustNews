@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { SignInRequired } from "@/components/SignInRequired";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
@@ -57,6 +59,19 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           Save
         </button>
       </form>
+
+      <div className="page-header" style={{ marginBlockStart: "var(--space-8)" }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem" }}>Your data</h2>
+        <p>
+          Read what this applies to in the <Link href="/privacy">privacy policy</Link>.
+        </p>
+      </div>
+      <p>
+        <a className="button button--secondary" href="/api/export" download="justnews-data.json">
+          Download your data
+        </a>
+      </p>
+      <DeleteAccountButton locale={active.code} />
     </div>
   );
 }

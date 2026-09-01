@@ -78,3 +78,24 @@ export async function completeOnboardingAction(locale: string, formData: FormDat
   }
   redirect(`/${locale}`);
 }
+
+export async function redeemInviteAction(code: string): Promise<api.RedeemResult> {
+  const auth = await authOrNull();
+  if (!auth) return { ok: false, message: "Sign in first." };
+  const result = await api.redeemInvite(auth, code);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+/**
+ * Deletes this system's record of the reader (saves, follows; impressions
+ * and interaction events are anonymised, not deleted - see
+ * services.users.delete_account). Does not sign them out - Supabase's
+ * session lives in the browser, so the client component calling this also
+ * calls supabase.auth.signOut() itself right after.
+ */
+export async function deleteAccountAction(): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  return api.deleteMe(auth);
+}

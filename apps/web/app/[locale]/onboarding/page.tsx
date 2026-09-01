@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 
 import { completeOnboardingAction } from "@/lib/actions";
 import { getFollows, getTopics } from "@/lib/api";
-import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
-import { getSession } from "@/lib/session";
+import { requireBetaAccess } from "@/lib/guards";
 
 export const metadata: Metadata = { title: "Choose your topics" };
 
@@ -18,16 +17,13 @@ export default async function OnboardingPage({
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  const session = await getSession();
+
+  const access = await requireBetaAccess(active.code, `/${active.code}/onboarding`);
+  if (!access.ok) return access.element;
 
   const [topics, followed] = await Promise.all([
     getTopics(active.code),
-    session
-      ? getFollows({
-          accessToken: session.accessToken,
-          sessionId: await getBrowsingSessionId(),
-        }).then((rows) => new Set(rows.map((row) => row.topic_id)))
-      : Promise.resolve(new Set<string>()),
+    getFollows(access.auth).then((rows) => new Set(rows.map((row) => row.topic_id))),
   ]);
 
   const action = completeOnboardingAction.bind(null, active.code);

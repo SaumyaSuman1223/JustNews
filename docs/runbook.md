@@ -87,5 +87,52 @@ Not applicable until Stage 6. When it is: model versions are registered and
 promoted from the admin console, and article embeddings are unaffected because
 the news encoder is frozen (ADR 0004, ADR 0005).
 
+## Operating the private beta
+
+### Making the first account an admin
+No signup flow grants `admin` - it has to be set directly, once, before an
+admin console session exists to do it any other way:
+```sql
+update user_profiles set role = 'admin' where id = '<supabase-auth-uuid>';
+```
+The row must already exist, which means that reader has signed in and hit any
+authenticated endpoint at least once (profile creation is lazy - ADR 0007).
+Every promotion after this first one goes through `/admin/users` and is
+audit-logged; this one, by construction, cannot be.
+
+### Inviting a beta reader
+`/admin/invites` creates a code (`POST /v1/admin/invites`, `max_uses`,
+optional `expires_at`). Send the code to the reader outside this system -
+there is no invite-sending email flow yet, only redemption
+(`POST /v1/invites/redeem`, or `/invite` in the web app). A reader who has
+signed up but not redeemed sees `has_beta_access: false` on `/v1/me` and a
+403 from `/v1/feed`, `/v1/saves`, `/v1/follows` and `/v1/history` - `/v1/me`
+itself always stays reachable, since it is how they find out and fix it.
+
+### A reader reports a problem you cannot reproduce
+There is no session-replay yet (deferred - see Stage 4 status in README).
+What you have: `/admin/audit-log` for anything an admin did, and direct SQL
+against `interaction_events`/`impressions` filtered by `user_id` for what the
+reader themselves did (position, surface, propensity, timestamp on every
+row). Ask for their reader id from `/v1/me` rather than an email - this
+system does not store one.
+
+### Taking an article down
+`/admin/articles`, or `POST /v1/admin/articles/{id}/takedown` with a reason.
+This sets `removed_at`/`removed_reason` - the row survives (moderation
+history, the audit log entry references it), but
+`repositories.content._base_query()` is the one choke point every read path
+shares, so it stops appearing anywhere on the site immediately. Restore from
+`/admin/articles` or `POST /v1/admin/articles/{id}/restore`.
+
+### A reader asks to be deleted
+Point them at Settings → "Delete my account" (or `DELETE /v1/me` directly).
+This removes their `user_profiles` row, cascading to saves and follows, and
+sets `user_id` to `NULL` on their impressions and interaction events -
+anonymised, not deleted, since those rows also represent aggregate product
+measurement once identity is stripped. It does **not** delete their Supabase
+auth account - no service-role key is wired up for that yet, so tell them
+that step is separate and currently manual.
+
 ## Who to wake up
 (you)

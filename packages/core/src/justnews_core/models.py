@@ -289,6 +289,13 @@ class Article(Base):
     search_vector: Mapped[Any | None] = mapped_column(TSVECTOR)
     quality_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
 
+    # A takedown hides an article from every read path (repositories.content's
+    # _base_query is the one choke point that filters it) without deleting the
+    # row - moderation history and the audit log both depend on it still
+    # existing.
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    removed_reason: Mapped[str | None] = mapped_column(Text)
+
     __table_args__ = (
         Index("ix_articles_published_at_desc", published_at.desc()),
         Index("ix_articles_lang_published", "language", published_at.desc()),
@@ -422,12 +429,25 @@ class UserProfile(Base):
     preferred_languages: Mapped[list[str]] = mapped_column(
         ARRAY(String(12)), nullable=False, default=list
     )
+    # 'admin' bypasses the beta invite gate and can reach /v1/admin/*. There is
+    # no third role yet - reviewer/moderator tiers are a real future need, not
+    # a speculative one, but nothing in this system distinguishes them from
+    # 'admin' today, so adding them now would be an unused abstraction.
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="reader")
+    # NULL until redeemed - the private beta gate. Checked by
+    # core/auth.require_beta_access, not by RLS: this is a product rule
+    # ("you need an invite to use the personalised parts of the site"), not a
+    # data-ownership boundary, so it belongs in application logic.
+    invite_redeemed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    redeemed_invite_code: Mapped[str | None] = mapped_column(String(40))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow()
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow(), onupdate=_utcnow()
     )
+
+    __table_args__ = (CheckConstraint("role in ('reader', 'admin')", name="ck_user_profiles_role"),)
 
 
 class UserSave(Base):
@@ -558,3 +578,52 @@ class InteractionEvent(Base):
         ),
         Index("ix_interaction_events_article", "article_id"),
     )
+
+
+# --------------------------------------------------------------------------
+# Admin and beta gate (Stage 4)
+# --------------------------------------------------------------------------
+
+
+class InviteCode(Base):
+    """A private-beta invite. Redemption is atomic (``uses < max_uses`` in the
+    same UPDATE that increments it) so two readers racing on one code cannot
+    both squeeze through - see ``repositories.invites.redeem``."""
+
+    __tablename__ = "invite_codes"
+
+    code: Mapped[str] = mapped_column(String(40), primary_key=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    max_uses: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    uses: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[Any | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (CheckConstraint("uses <= max_uses", name="ck_invite_codes_uses_bound"),)
+
+
+class AdminAuditLog(Base):
+    """Every admin action, append-only. "Admin access is audit-logged" is a
+    rule from CLAUDE.md's data & privacy section, not a nice-to-have - this
+    table is the only place that promise is kept."""
+
+    __tablename__ = "admin_audit_log"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    admin_user_id: Mapped[Any] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="RESTRICT"), nullable=False
+    )
+    action: Mapped[str] = mapped_column(String(60), nullable=False)
+    target_type: Mapped[str | None] = mapped_column(String(40))
+    target_id: Mapped[str | None] = mapped_column(String(80))
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (Index("ix_admin_audit_log_created", created_at.desc()),)

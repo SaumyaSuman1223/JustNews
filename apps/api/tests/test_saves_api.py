@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from httpx import AsyncClient
-from justnews_testing.auth import make_access_token
+from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,12 +14,8 @@ class TestCreateSave:
         article = await make_article(session, source, title="Save me")
         await session.commit()
 
-        token = make_access_token()
-        response = await client.post(
-            "/v1/saves",
-            json={"article_id": article.id},
-            headers={"authorization": f"Bearer {token}"},
-        )
+        headers = await make_beta_headers(session)
+        response = await client.post("/v1/saves", json={"article_id": article.id}, headers=headers)
         assert response.status_code == 201
         assert response.json()["article"]["id"] == article.id
 
@@ -30,16 +26,14 @@ class TestCreateSave:
         article = await make_article(session, source)
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         first = await client.post("/v1/saves", json={"article_id": article.id}, headers=headers)
         second = await client.post("/v1/saves", json={"article_id": article.id}, headers=headers)
         assert first.status_code == second.status_code == 201
 
-    async def test_unknown_article_is_404(self, client: AsyncClient) -> None:
-        token = make_access_token()
-        response = await client.post(
-            "/v1/saves", json={"article_id": 999999}, headers={"authorization": f"Bearer {token}"}
-        )
+    async def test_unknown_article_is_404(self, client: AsyncClient, session: AsyncSession) -> None:
+        headers = await make_beta_headers(session)
+        response = await client.post("/v1/saves", json={"article_id": 999999}, headers=headers)
         assert response.status_code == 404
 
 
@@ -49,7 +43,7 @@ class TestDeleteSave:
         article = await make_article(session, source)
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         await client.post("/v1/saves", json={"article_id": article.id}, headers=headers)
         delete = await client.delete(f"/v1/saves/{article.id}", headers=headers)
         assert delete.status_code == 204
@@ -57,9 +51,11 @@ class TestDeleteSave:
         listed = await client.get("/v1/saves", headers=headers)
         assert listed.json()["items"] == []
 
-    async def test_unsaving_something_never_saved_is_404(self, client: AsyncClient) -> None:
-        token = make_access_token()
-        response = await client.delete("/v1/saves/1", headers={"authorization": f"Bearer {token}"})
+    async def test_unsaving_something_never_saved_is_404(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        headers = await make_beta_headers(session)
+        response = await client.delete("/v1/saves/1", headers=headers)
         assert response.status_code == 404
 
 
@@ -70,7 +66,7 @@ class TestListSaves:
         second = await make_article(session, source, title="Second")
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         await client.post("/v1/saves", json={"article_id": first.id}, headers=headers)
         await client.post("/v1/saves", json={"article_id": second.id}, headers=headers)
 
@@ -85,8 +81,8 @@ class TestListSaves:
         article = await make_article(session, source)
         await session.commit()
 
-        alice = {"authorization": f"Bearer {make_access_token()}"}
-        bob = {"authorization": f"Bearer {make_access_token()}"}
+        alice = await make_beta_headers(session)
+        bob = await make_beta_headers(session)
         await client.post("/v1/saves", json={"article_id": article.id}, headers=alice)
 
         bob_saves = (await client.get("/v1/saves", headers=bob)).json()

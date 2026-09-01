@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.auth import require_user
-from justnews_api.core.db import get_user_session
+from justnews_api.core.db import get_beta_session
 from justnews_api.routers.content import ArticleOut
 from justnews_api.services import interactions as service
 from justnews_api.services.auth import Principal
@@ -42,7 +42,7 @@ class HistoryPageOut(BaseModel):
 async def report_click(
     body: ClickIn,
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
     x_session_id: str | None = Header(default=None, alias="x-session-id"),
 ) -> None:
     await service.report_click(
@@ -59,7 +59,7 @@ async def report_click(
 @router.get("/history", response_model=HistoryPageOut)
 async def list_history(
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=20, ge=1, le=50),
 ) -> HistoryPageOut:
@@ -79,7 +79,7 @@ async def list_history(
 async def report_not_interested(
     body: NotInterestedIn,
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
     x_session_id: str | None = Header(default=None, alias="x-session-id"),
 ) -> None:
     await service.report_not_interested(

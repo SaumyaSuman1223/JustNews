@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ArticleCard } from "@/components/ArticleCard";
-import { SignInRequired } from "@/components/SignInRequired";
 import { getSaves } from "@/lib/api";
-import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
-import { getSession } from "@/lib/session";
+import { requireBetaAccess } from "@/lib/guards";
 
 export const metadata: Metadata = { title: "Saved" };
 
@@ -14,14 +12,11 @@ export default async function SavedPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  const session = await getSession();
 
-  if (!session) return <SignInRequired locale={active.code} path={`/${active.code}/saved`} />;
+  const access = await requireBetaAccess(active.code, `/${active.code}/saved`);
+  if (!access.ok) return access.element;
 
-  const page = await getSaves({
-    accessToken: session.accessToken,
-    sessionId: await getBrowsingSessionId(),
-  });
+  const page = await getSaves(access.auth);
 
   return (
     <>

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.auth import require_user
-from justnews_api.core.db import get_user_session
+from justnews_api.core.db import get_beta_session
 from justnews_api.routers.content import ArticleOut
 from justnews_api.services import saves as service
 from justnews_api.services.auth import Principal
@@ -37,7 +37,7 @@ def _to_out(saved: service.SavedArticle) -> SaveOut:
 async def create_save(
     body: SaveIn,
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
 ) -> SaveOut:
     saved = await service.save_article(session, principal.user_id, body.article_id)
     return _to_out(saved)
@@ -47,7 +47,7 @@ async def create_save(
 async def delete_save(
     article_id: int,
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
 ) -> None:
     await service.unsave_article(session, principal.user_id, article_id)
 
@@ -55,7 +55,7 @@ async def delete_save(
 @router.get("/saves", response_model=SavePageOut)
 async def list_saves(
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=20, ge=1, le=50),
 ) -> SavePageOut:

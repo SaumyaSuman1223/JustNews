@@ -6,6 +6,7 @@ and one importing the other is a circular import.
 """
 
 from justnews_testing.auth import make_access_token
+from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source, make_topic
 from justnews_testing.fixtures import client, database, engine, session, truncate
 
@@ -15,6 +16,7 @@ __all__ = [
     "engine",
     "make_access_token",
     "make_article",
+    "make_beta_headers",
     "make_source",
     "make_topic",
     "session",

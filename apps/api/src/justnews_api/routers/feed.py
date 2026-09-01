@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.auth import require_user
-from justnews_api.core.db import get_user_session
+from justnews_api.core.db import get_beta_session
 from justnews_api.routers.content import ArticleOut
 from justnews_api.services import feed as service
 from justnews_api.services.auth import Principal
@@ -26,7 +26,7 @@ class FeedPageOut(BaseModel):
 @router.get("/feed", response_model=FeedPageOut)
 async def get_feed(
     principal: Principal = Depends(require_user),
-    session: AsyncSession = Depends(get_user_session),
+    session: AsyncSession = Depends(get_beta_session),
     languages: str | None = Query(
         default=None,
         examples=["en,es"],

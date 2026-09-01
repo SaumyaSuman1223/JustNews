@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 from httpx import AsyncClient
-from justnews_testing.auth import make_access_token
+from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,8 +24,8 @@ class TestFeed:
         await make_article(session, source, title="Newest", minutes_ago=1)
         await session.commit()
 
-        token = make_access_token()
-        body = (await client.get("/v1/feed", headers={"authorization": f"Bearer {token}"})).json()
+        headers = await make_beta_headers(session)
+        body = (await client.get("/v1/feed", headers=headers)).json()
         assert [item["title"] for item in body["items"]] == ["Newest", "Oldest"]
 
     async def test_every_served_item_logs_an_impression_with_propensity(
@@ -37,11 +37,9 @@ class TestFeed:
         await session.commit()
 
         user_id = str(uuid.uuid4())
-        token = make_access_token(user_id=user_id)
-        await client.get(
-            "/v1/feed",
-            headers={"authorization": f"Bearer {token}", "x-session-id": "sess-1"},
-        )
+        headers = await make_beta_headers(session, user_id=user_id)
+        headers["x-session-id"] = "sess-1"
+        await client.get("/v1/feed", headers=headers)
 
         # RLS on impressions is FORCE-enabled - even this test session must
         # identify as the reader whose rows it wants to see.
@@ -61,7 +59,7 @@ class TestFeed:
         hide = await make_article(session, source, title="Hide")
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         await client.post(
             "/v1/not-interested",
             json={"article_id": hide.id, "surface": "feed"},
@@ -80,7 +78,7 @@ class TestFeed:
         await make_article(session, source, title="Español", language="es")
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         await client.patch("/v1/me", json={"preferred_languages": ["es"]}, headers=headers)
 
         body = (await client.get("/v1/feed", headers=headers)).json()
@@ -94,7 +92,7 @@ class TestFeed:
         await make_article(session, source, title="Español", language="es")
         await session.commit()
 
-        headers = {"authorization": f"Bearer {make_access_token()}"}
+        headers = await make_beta_headers(session)
         await client.patch("/v1/me", json={"preferred_languages": ["es"]}, headers=headers)
 
         body = (await client.get("/v1/feed?languages=en", headers=headers)).json()

@@ -106,6 +106,7 @@ working.
 - [0005](docs/decisions/0005-global-multilingual.md) — a global audience, and what it does to the model
 - [0006](docs/decisions/0006-iptc-taxonomy.md) — IPTC Media Topics as the topic taxonomy
 - [0007](docs/decisions/0007-auth-and-rls.md) — application-verified JWTs, and RLS keyed off a session GUC
+- [0008](docs/decisions/0008-beta-gate-and-admin-rls.md) — a beta gate separate from sign-in, and an RLS bypass for admin
 
 ## Content policy
 

@@ -12,11 +12,13 @@ from justnews_api.core.errors import install_error_handlers
 from justnews_api.core.middleware import RequestContextMiddleware
 from justnews_api.core.ratelimit import RateLimitMiddleware
 from justnews_api.routers import (
+    admin,
     content,
     feed,
     follows,
     health,
     interactions,
+    invites,
     me,
     saves,
     search,
@@ -80,6 +82,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(interactions.router)
     app.include_router(topics.router)
     app.include_router(search.router)
+    app.include_router(invites.router)
+    app.include_router(admin.router)
     return app
 
 

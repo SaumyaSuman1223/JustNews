@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ArticleCard } from "@/components/ArticleCard";
-import { SignInRequired } from "@/components/SignInRequired";
 import { getHistory, getSaves } from "@/lib/api";
-import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
-import { getSession } from "@/lib/session";
+import { requireBetaAccess } from "@/lib/guards";
 
 export const metadata: Metadata = { title: "History" };
 
@@ -14,11 +12,11 @@ export default async function HistoryPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  const session = await getSession();
 
-  if (!session) return <SignInRequired locale={active.code} path={`/${active.code}/history`} />;
+  const access = await requireBetaAccess(active.code, `/${active.code}/history`);
+  if (!access.ok) return access.element;
 
-  const auth = { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
+  const { auth } = access;
   const [page, saves] = await Promise.all([getHistory(auth), getSaves(auth)]);
   const savedIds = new Set(saves.data.items.map((item) => item.article.id));
 

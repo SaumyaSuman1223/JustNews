@@ -1,9 +1,11 @@
+import { notFound } from "next/navigation";
+
 import { ArticleCard } from "@/components/ArticleCard";
-import { getArticles, getFeed, getSaves, getStats } from "@/lib/api";
+import { BetaGateNotice } from "@/components/BetaGateNotice";
+import { getArticles, getFeed, getMe, getSaves, getStats } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
-import { notFound } from "next/navigation";
 
 export default async function FeedPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -11,26 +13,29 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
   const active = getLocale(locale);
   const session = await getSession();
 
+  const auth = session
+    ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
+    : null;
+  const profile = auth ? await getMe(auth) : null;
+  const hasBetaAccess = profile?.has_beta_access ?? false;
+
   const [feed, stats, savedIds] = await Promise.all([
-    session
-      ? getFeed(
-          { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() },
-          { locale: active.code, pageSize: 24 },
-        )
+    auth && hasBetaAccess
+      ? getFeed(auth, { locale: active.code, pageSize: 24 })
       : getArticles({ languages: active.code, pageSize: 24 }),
     getStats(),
-    session
-      ? getSaves({ accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }).then(
-          (page) => new Set(page.data.items.map((item) => item.article.id)),
-        )
+    auth && hasBetaAccess
+      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
   ]);
 
   return (
     <>
+      {session && !hasBetaAccess && <BetaGateNotice locale={active.code} />}
+
       {feed.degraded && (
         <p className="notice" role="status">
-          {session
+          {hasBetaAccess
             ? "Your feed is unavailable right now, so this page may be out of date."
             : "Live headlines are unavailable right now, so this page may be out of date."}{" "}
           Everything else still works.
@@ -72,7 +77,7 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
               locale={active.code}
               surface="feed"
               position={index}
-              signedIn={Boolean(session)}
+              signedIn={hasBetaAccess}
               saved={savedIds.has(article.id)}
               revalidatePath={`/${active.code}`}
             />

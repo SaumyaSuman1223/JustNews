@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import { AccountMenu } from "@/components/AccountMenu";
 import { SearchBox } from "@/components/SearchBox";
+import { getMe } from "@/lib/api";
+import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode, locales } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -43,6 +45,10 @@ export default async function LocaleLayout({
   // layout request-dynamic rather than static. That is the correct trade for
   // a header that has to show a real account state instead of a generic one.
   const session = await getSession();
+  const hasBetaAccess = session
+    ? ((await getMe({ accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }))
+        ?.has_beta_access ?? false)
+    : false;
 
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
@@ -69,7 +75,11 @@ export default async function LocaleLayout({
                 )}
               </ul>
               <SearchBox locale={active.code} />
-              <AccountMenu locale={active.code} email={session?.email ?? null} />
+              <AccountMenu
+                locale={active.code}
+                email={session?.email ?? null}
+                hasBetaAccess={hasBetaAccess}
+              />
             </nav>
             <nav aria-label="Language">
               <ul className="locale-switcher">
@@ -88,6 +98,9 @@ export default async function LocaleLayout({
             </nav>
           </header>
           <main id="main">{children}</main>
+          <footer className="site-footer">
+            <Link href="/privacy">Privacy</Link>
+          </footer>
         </div>
       </body>
     </html>
