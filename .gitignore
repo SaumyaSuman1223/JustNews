@@ -34,3 +34,6 @@ resources/
 # local dev database (scripts/devdb.py)
 .cache/
 pgdata/
+
+# md files 
+CLAUDE.md
