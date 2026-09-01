@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -71,3 +72,16 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
             raise
         else:
             await session.commit()
+
+
+async def set_current_user(session: AsyncSession, user_id: str | None) -> None:
+    """Set the ``app.user_id`` RLS policies check, for this transaction only.
+
+    ``set_config(..., true)`` - not a bare ``SET LOCAL`` string - because it
+    takes a bound parameter. A user ID interpolated into raw SQL is exactly
+    the kind of string this system otherwise never builds queries with.
+    """
+    await session.execute(
+        text("SELECT set_config('app.user_id', :user_id, true)"),
+        {"user_id": str(user_id) if user_id else ""},
+    )

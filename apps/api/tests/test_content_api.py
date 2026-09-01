@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from httpx import AsyncClient
 from justnews_testing.factories import make_article, make_source
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from justnews_core.models import StoryCluster
 
 
 class TestHealth:
@@ -153,6 +157,39 @@ class TestGetArticle:
         error = response.json()["error"]
         assert error["code"] == "not_found"
         assert error["request_id"]
+
+
+class TestGetStory:
+    async def test_returns_every_member_article_cross_lingual(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        now = datetime.now(UTC)
+        cluster = StoryCluster(
+            title="A shared event",
+            first_seen_at=now,
+            last_seen_at=now,
+            article_count=2,
+            source_count=1,
+            language_count=2,
+        )
+        session.add(cluster)
+        await session.flush()
+        en = await make_article(session, source, title="English take", language="en")
+        es = await make_article(session, source, title="Toma en español", language="es")
+        en.story_cluster_id = cluster.id
+        es.story_cluster_id = cluster.id
+        await session.commit()
+
+        response = await client.get(f"/v1/stories/{cluster.id}")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["story"]["id"] == cluster.id
+        assert {a["language"] for a in body["articles"]} == {"en", "es"}
+
+    async def test_unknown_id_is_404(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/stories/99999999")
+        assert response.status_code == 404
 
 
 class TestStats:

@@ -95,10 +95,18 @@ async def client(engine: object, database: str) -> AsyncIterator[AsyncClient]:
     test database."""
     from justnews_api.main import create_app
     from justnews_api.routers import content
+    from justnews_testing.auth import FakeJWKSProvider
 
     settings = Settings(database_url=database)  # type: ignore[arg-type]
     factory = async_sessionmaker(engine, expire_on_commit=False)  # type: ignore[arg-type]
     app = create_app(settings)
+    # The real provider is built in the app's lifespan, which this fixture
+    # never runs (see the get_session override just below - the same reason
+    # applies: nothing here should reach a real network or database except
+    # through this test's own engine). A fake keyed the same way lets
+    # authenticated-route tests sign a real, verifiable token with no
+    # Supabase project involved.
+    app.state.jwks_provider = FakeJWKSProvider()
 
     async def override() -> AsyncIterator[AsyncSession]:
         async with factory() as db_session:

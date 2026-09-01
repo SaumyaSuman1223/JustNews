@@ -87,6 +87,32 @@ class Settings(BaseSettings):
 
     article_retention_days: int = 90
 
+    # --- auth (Supabase JWT verification via JWKS) ---
+    # The API verifies JWTs itself; it never relies on Supabase's own
+    # ``auth.uid()`` since browsers never talk to Postgres directly (ADR 0007).
+    supabase_url: str | None = None
+    supabase_jwt_audience: str = "authenticated"
+    jwks_cache_seconds: float = 600.0
+    auth_http_timeout_seconds: float = 5.0
+
+    # --- rate limiting (Upstash Redis REST API - no persistent connection,
+    # which is what makes it viable on Cloud Run's scale-to-zero) ---
+    upstash_redis_rest_url: str | None = None
+    upstash_redis_rest_token: str | None = None
+    rate_limit_requests_per_minute: int = 120
+
+    @property
+    def supabase_jwks_url(self) -> str | None:
+        if self.supabase_url is None:
+            return None
+        return f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+
+    @property
+    def supabase_jwt_issuer(self) -> str | None:
+        if self.supabase_url is None:
+            return None
+        return f"{self.supabase_url.rstrip('/')}/auth/v1"
+
     @field_validator("log_level")
     @classmethod
     def _lower(cls, value: str) -> str:

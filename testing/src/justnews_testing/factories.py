@@ -6,10 +6,12 @@ from __future__ import annotations
 import itertools
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.embedding import HashingEmbedder, embed_article_text
-from justnews_core.models import Article, Source
+from justnews_core.language import tsvector_config
+from justnews_core.models import Article, Source, Topic
 from justnews_core.text import canonicalise_url, simhash64
 
 _embedder = HashingEmbedder()
@@ -56,7 +58,17 @@ async def make_article(
         fetched_at=datetime.now(UTC),
         simhash=simhash64(title),
         embedding=embed_article_text(_embedder, title, snippet),
+        search_vector=func.to_tsvector(tsvector_config(language), f"{title} {snippet or ''}"),
     )
     session.add(article)
     await session.flush()
     return article
+
+
+async def make_topic(
+    session: AsyncSession, topic_id: str = "medtop:99000001", slug: str = "test-topic"
+) -> Topic:
+    topic = Topic(id=topic_id, level=1, path=[topic_id], slug=slug)
+    session.add(topic)
+    await session.flush()
+    return topic

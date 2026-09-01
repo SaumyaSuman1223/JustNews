@@ -36,7 +36,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from justnews_core.settings import get_settings
@@ -388,3 +388,173 @@ class ApiQuotaUsage(Base):
     provider: Mapped[str] = mapped_column(String(40), primary_key=True)
     usage_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     calls: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+# --------------------------------------------------------------------------
+# Users and interactions (Stage 2)
+# --------------------------------------------------------------------------
+#
+# RLS on these tables checks a plain session-local setting, ``app.user_id``,
+# rather than Supabase's ``auth.uid()``. Browsers in this system never talk to
+# Postgres directly - every request goes through the API, which verifies the
+# JWT itself - so RLS here is defence in depth against a repository query that
+# forgets a ``WHERE user_id = ...`` filter, not the primary authorization
+# boundary. A plain session variable does that job identically in local dev,
+# CI and Supabase, with no dependency on Supabase's auth schema (ADR 0007).
+# ``core/db.py``'s ``session_scope_for_user`` is what sets it, once, at the
+# start of an authenticated request's transaction.
+
+CURRENT_USER_ID_EXPR = "NULLIF(current_setting('app.user_id', true), '')::uuid"
+
+
+class UserProfile(Base):
+    """The row Supabase's ``auth.users`` does not give us room to extend.
+
+    Created lazily on a user's first authenticated request rather than via a
+    trigger on ``auth.users`` - simpler, and this schema has no FK into an
+    ``auth`` schema it does not own, so it works identically against Supabase
+    and a local Postgres with no Supabase extension installed at all.
+    """
+
+    __tablename__ = "user_profiles"
+
+    id: Mapped[Any] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    preferred_languages: Mapped[list[str]] = mapped_column(
+        ARRAY(String(12)), nullable=False, default=list
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow(), onupdate=_utcnow()
+    )
+
+
+class UserSave(Base):
+    """A bookmark. Declarative, idempotent state - not an event log."""
+
+    __tablename__ = "user_saves"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    article_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "article_id", name="uq_user_saves_user_article"),
+        Index("ix_user_saves_user_created", "user_id", created_at.desc()),
+    )
+
+
+class UserFollow(Base):
+    """A followed topic. Declarative state, same reasoning as ``UserSave``."""
+
+    __tablename__ = "user_follows"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    topic_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("topics.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "topic_id", name="uq_user_follows_user_topic"),
+        Index("ix_user_follows_user", "user_id"),
+    )
+
+
+class Impression(Base):
+    """One item shown to one reader. The propensity column is the whole point:
+    the probability the serving policy had of showing this item, written at
+    serve time by the policy that made the decision. It cannot be
+    reconstructed later, so nothing here is optional.
+
+    ``user_id`` is nullable - an exploring, logged-out reader still generates
+    impressions, keyed by ``session_id`` alone.
+    """
+
+    __tablename__ = "impressions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL")
+    )
+    session_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    article_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False
+    )
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    surface: Mapped[str] = mapped_column(String(16), nullable=False)
+    locale: Mapped[str] = mapped_column(String(12), nullable=False)
+    propensity: Mapped[float] = mapped_column(Float, nullable=False)
+    served_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (
+        CheckConstraint("propensity between 0 and 1", name="ck_impressions_propensity_range"),
+        CheckConstraint(
+            "surface in ('feed', 'explore', 'search', 'topic')", name="ck_impressions_surface"
+        ),
+        Index("ix_impressions_user_served", "user_id", served_at.desc()),
+        Index("ix_impressions_session_served", "session_id", served_at.desc()),
+    )
+
+
+class InteractionEvent(Base):
+    """Something a reader did about an item they were shown: clicked it,
+    saved it, marked it not interesting, or lingered without clicking.
+
+    ``impression_id`` links the action back to the exact impression - same
+    position, same propensity - that produced it, which is what makes the
+    Stage 6 offline evaluators (IPS, doubly robust) exact rather than
+    approximately joined after the fact.
+    """
+
+    __tablename__ = "interaction_events"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL")
+    )
+    session_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    article_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False
+    )
+    impression_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("impressions.id", ondelete="SET NULL")
+    )
+    event_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    position: Mapped[int | None] = mapped_column(SmallInteger)
+    surface: Mapped[str] = mapped_column(String(16), nullable=False)
+    locale: Mapped[str] = mapped_column(String(12), nullable=False)
+    dwell_ms: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "event_type in ('click', 'save', 'unsave', 'share', 'not_interested', 'dwell')",
+            name="ck_interaction_events_type",
+        ),
+        CheckConstraint(
+            "surface in ('feed', 'explore', 'search', 'topic')",
+            name="ck_interaction_events_surface",
+        ),
+        Index(
+            "ix_interaction_events_user_type_created", "user_id", "event_type", created_at.desc()
+        ),
+        Index("ix_interaction_events_article", "article_id"),
+    )

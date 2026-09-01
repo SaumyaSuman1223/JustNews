@@ -1,8 +1,7 @@
-"""Read-side content service.
+"""Public, unauthenticated content service.
 
-Provisional: this is the thin slice that makes the Stage 1 pipeline visible
-over HTTP. Ranking, personalisation and interaction logging arrive in Stage 2
-and Stage 5 - there is deliberately no scoring here yet.
+Anonymous browsing over the corpus - no ranking, no personalisation. That is
+``services/feed.py``, which requires a signed-in reader.
 """
 
 from __future__ import annotations
@@ -15,6 +14,7 @@ from justnews_api.repositories import content as repo
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_core.errors import NotFoundError, ValidationError
 from justnews_core.language import normalise_language_code
+from justnews_core.models import StoryCluster
 
 MAX_PAGE_SIZE = 50
 DEFAULT_PAGE_SIZE = 20
@@ -77,3 +77,17 @@ async def get_article(session: AsyncSession, article_id: int) -> repo.ArticleRow
     if article is None:
         raise NotFoundError(f"No article with id {article_id}.")
     return article
+
+
+@dataclass(frozen=True, slots=True)
+class StoryDetail:
+    cluster: StoryCluster
+    articles: list[repo.ArticleRow]
+
+
+async def get_story(session: AsyncSession, story_id: int) -> StoryDetail:
+    cluster = await repo.get_story_cluster(session, story_id)
+    if cluster is None:
+        raise NotFoundError(f"No story with id {story_id}.")
+    articles = await repo.list_articles_in_cluster(session, story_id)
+    return StoryDetail(cluster=cluster, articles=articles)

@@ -104,3 +104,38 @@ jobs:
           trap 'kill $server' EXIT
           timeout 60 bash -c 'until curl -sf http://127.0.0.1:3000/en > /dev/null; do sleep 1; done'
           bash scripts/smoke-web.sh
+
+  api-client:
+    # The typed client is generated, not hand-written - this regenerates it
+    # from the current API and fails if that differs from what's committed,
+    # the same shape as `alembic check` for migrations. A route that changes
+    # without `make generate-client` being run and committed is caught here,
+    # not by whatever broke silently in the web app three stages from now.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync --all-extras --dev
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - run: uv run python scripts/generate_openapi.py
+      - run: pnpm --filter @justnews/api-client generate
+
+      - name: No client drift
+        run: |
+          git diff --exit-code -- packages/api-client/openapi.json packages/api-client/src/schema.ts || {
+            echo "::error::packages/api-client is stale. Run 'make generate-client' and commit the result."
+            exit 1
+          }
+
+      - run: pnpm --filter @justnews/api-client typecheck

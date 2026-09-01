@@ -18,7 +18,7 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** for the plan of record.
 **Arc I — build the newspaper**
 - [x] Stage 0 — Foundations & continuous deployment
 - [x] Stage 1 — Multilingual content pipeline
-- [ ] Stage 2 — API core + auth
+- [x] Stage 2 — API core + auth
 - [ ] Stage 3 — Web app, internationalised from the start
 - [ ] Stage 4 — Publisher & ops layer · **private beta opens**
 
@@ -105,6 +105,7 @@ working.
 - [0004](docs/decisions/0004-no-inference-in-hot-path.md) — no model inference inside a user request
 - [0005](docs/decisions/0005-global-multilingual.md) — a global audience, and what it does to the model
 - [0006](docs/decisions/0006-iptc-taxonomy.md) — IPTC Media Topics as the topic taxonomy
+- [0007](docs/decisions/0007-auth-and-rls.md) — application-verified JWTs, and RLS keyed off a session GUC
 
 ## Content policy
 

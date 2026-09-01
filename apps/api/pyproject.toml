@@ -8,6 +8,11 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "psycopg[binary]>=3.2",
+    # JWT verification against Supabase's JWKS (RS256/ES256). Replaces
+    # nothing - Stage 1 had no auth. python-jose was the alternative; PyJWT
+    # has a smaller dependency footprint and the same JWK support.
+    "pyjwt[crypto]>=2.9",
+    "httpx>=0.27",
 ]
 
 [project.scripts]

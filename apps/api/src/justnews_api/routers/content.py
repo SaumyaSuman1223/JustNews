@@ -1,29 +1,24 @@
-"""Provisional read-only content routes (Stage 1 visibility).
+"""Public, unauthenticated content browsing.
 
-Stage 2 replaces these with the real feed surface: authentication, interaction
-logging with propensity, and explicit cache policies per route.
+No login, no personalisation, no interaction logging - anonymous, cacheable
+reads over the corpus. The personalised, logged surface is ``/v1/feed``
+(``routers/feed.py``), which requires a signed-in reader.
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from justnews_api.core.db import get_session
 from justnews_api.repositories import content as repo
 from justnews_api.services import content as service
-from justnews_core.db import get_session_factory
+from justnews_core.models import StoryCluster
 
 router = APIRouter(prefix="/v1", tags=["content"])
-
-
-async def get_session() -> AsyncIterator[AsyncSession]:
-    factory = get_session_factory()
-    async with factory() as session:
-        yield session
 
 
 class ArticleOut(BaseModel):
@@ -69,6 +64,22 @@ class StoryOut(BaseModel):
     language_count: int
     last_seen_at: datetime
 
+    @classmethod
+    def from_cluster(cls, cluster: StoryCluster) -> StoryOut:
+        return cls(
+            id=cluster.id,
+            title=cluster.title,
+            article_count=cluster.article_count,
+            source_count=cluster.source_count,
+            language_count=cluster.language_count,
+            last_seen_at=cluster.last_seen_at,
+        )
+
+
+class StoryDetailOut(BaseModel):
+    story: StoryOut
+    articles: list[ArticleOut]
+
 
 class StatsOut(BaseModel):
     articles: int
@@ -105,17 +116,16 @@ async def list_stories(
     min_sources: int = Query(default=2, ge=1, le=50),
 ) -> list[StoryOut]:
     clusters = await repo.list_story_clusters(session, limit=limit, min_sources=min_sources)
-    return [
-        StoryOut(
-            id=cluster.id,
-            title=cluster.title,
-            article_count=cluster.article_count,
-            source_count=cluster.source_count,
-            language_count=cluster.language_count,
-            last_seen_at=cluster.last_seen_at,
-        )
-        for cluster in clusters
-    ]
+    return [StoryOut.from_cluster(cluster) for cluster in clusters]
+
+
+@router.get("/stories/{story_id}", response_model=StoryDetailOut)
+async def get_story(story_id: int, session: AsyncSession = Depends(get_session)) -> StoryDetailOut:
+    detail = await service.get_story(session, story_id)
+    return StoryDetailOut(
+        story=StoryOut.from_cluster(detail.cluster),
+        articles=[ArticleOut.from_row(row) for row in detail.articles],
+    )
 
 
 @router.get("/stats", response_model=StatsOut)

@@ -10,7 +10,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from justnews_api.core.errors import install_error_handlers
 from justnews_api.core.middleware import RequestContextMiddleware
-from justnews_api.routers import content, health
+from justnews_api.core.ratelimit import RateLimitMiddleware
+from justnews_api.routers import (
+    content,
+    feed,
+    follows,
+    health,
+    interactions,
+    me,
+    saves,
+    search,
+    topics,
+)
+from justnews_api.services.auth import SupabaseJWKSProvider
 from justnews_core.db import dispose_engine, init_engine
 from justnews_core.logging import configure_logging, get_logger
 from justnews_core.settings import Settings, get_settings
@@ -20,8 +32,9 @@ log = get_logger(__name__)
 
 def _lifespan(settings: Settings):  # type: ignore[no-untyped-def]
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         init_engine(settings)
+        app.state.jwks_provider = SupabaseJWKSProvider(settings)
         log.info("api_started", environment=settings.app_env)
         try:
             yield
@@ -44,6 +57,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url="/docs" if settings.app_env != "production" else None,
     )
 
+    # Innermost first: RateLimit sits inside RequestContext, so a 429 still
+    # gets a request id and an access log line, and inside CORS, so a 429
+    # still carries the headers a browser needs to read it.
+    app.add_middleware(RateLimitMiddleware, settings=settings)
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -56,6 +73,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(content.router)
+    app.include_router(feed.router)
+    app.include_router(me.router)
+    app.include_router(saves.router)
+    app.include_router(follows.router)
+    app.include_router(interactions.router)
+    app.include_router(topics.router)
+    app.include_router(search.router)
     return app
 
 

@@ -61,6 +61,12 @@ prune: ## apply the retention window and report database size
 stats: ## corpus size, language spread and quota usage
 	uv run justnews-ingest stats
 
+# --- client generation ---------------------------------------------------
+
+generate-client: ## regenerate the typed API client from the live OpenAPI schema
+	uv run python scripts/generate_openapi.py
+	pnpm --filter @justnews/api-client generate
+
 # --- quality ------------------------------------------------------------
 
 test: ## run every test
@@ -89,4 +95,4 @@ bootstrap: ## install every dependency from a cold clone
 	pnpm install
 
 .PHONY: help up down clean logs db-up db-down dev-api dev-web migrate migration \
-        seed ingest prune stats test lint format build smoke bootstrap
+        seed ingest prune stats generate-client test lint format build smoke bootstrap
