@@ -1,78 +1,83 @@
 # CLAUDE.md
 
-Guardrails for AI-assisted work in this repo. Read this at the start of every
-session. The point of this project is that the author learns the system, not
-that the system gets built fast.
+How to work in this repo.
 
 ## Project
 
-A personalised news reader. Ranking uses clustered, interpolated
-personalisation derived from FINDING (CIKM '23). Training runs over simulated
-clients replayed from production logs; serving is centralised. Never describe
-this as federated production serving.
+**JustNews** — a personalised, multilingual news reader with the polish of a
+major publisher's site, for a global audience, ranked by a model derived from
+FINDING (Yu et al., CIKM '23), running entirely on free tiers.
+
+Read `docs/ROADMAP.md` first. It is the plan of record.
 
 ## Stack
 
-- **api** — FastAPI, Python 3.12, Pydantic v2, SQLAlchemy 2 async, Alembic
-- **db** — PostgreSQL 16 + pgvector
-- **cache/queue** — Redis, Celery (or arq)
-- **inference** — PyTorch → ONNX Runtime
-- **web** — Next.js App Router, TypeScript, TanStack Query, Tailwind
-- **mobile** — Expo React Native
+- **web** — Next.js App Router, TypeScript, Tailwind, TanStack Query, i18n + RTL → Vercel
+- **api** — FastAPI, Python 3.12, Pydantic v2, SQLAlchemy 2 async, Alembic → Cloud Run
+- **ingestion** — Python, RSS + GNews + metadata scraping → Cloud Run Job, cron from GitHub Actions
+- **db** — Supabase Postgres 17 + pgvector (`halfvec`)
+- **auth** — Supabase Auth; the API verifies JWTs against Supabase JWKS
+- **cache** — Upstash Redis (rate limiting and hot keys only)
+- **ml** — frozen multilingual sentence encoder (384-dim) + FINDING user tower, PyTorch → ONNX, run offline only
+- **topics** — IPTC Media Topics; concept IDs are the canonical key
+- **mobile** — Expo React Native (Stage 10)
 - **tooling** — `uv` for Python, `pnpm` + Turborepo for JS, Docker Compose locally
-- **infra** — Terraform (Azure first, AWS later)
 
-## How to work with me
+## Working agreement
 
-1. **Plan before code.** Default to a plan. When I ask a design question,
-   give 3 options with trade-offs and failure modes, recommend one, and stop.
-   No code until I say "go".
-2. **One vertical slice per session.** One endpoint plus its model, migration,
-   test, and UI. Then stop so I can review. Do not continue to the next slice
-   unprompted.
-3. **Every code response ends with three sections:**
-   - *Assumptions I made*
-   - *What I did not handle*
-   - *Two most likely ways this breaks in production*
-4. **I write the tests.** When I ask for an implementation, do not also write
-   the test unless I say so. If I give you a failing test, make it pass
-   without changing the test.
-5. **No new dependency without asking.** Name it, say what it replaces, and
-   what removing it later would cost.
-6. **Explain on request, not by default.** Don't prefix answers with summaries
-   of what I asked.
-7. **Small diffs.** If a change touches more than ~5 files, stop and propose
-   a split first.
-8. **Don't fix unrelated things you notice.** List them; I'll decide.
+- Plan before non-trivial work; get the plan approved, then build the whole slice.
+- One stage at a time, in roadmap order. Nothing from a later stage leaks into
+  an earlier one.
+- Small, reviewable diffs. If a change touches more than ~8 files, propose a split.
+- No new dependency without naming what it replaces and what removing it costs.
+- Don't fix unrelated things you notice — list them.
 
 ## Code rules
 
-- Layering: `routers/` → `services/` → `repositories/`. Business logic must
-  not import FastAPI. Repositories must not contain business rules.
-- Raise typed domain errors in services; map to HTTP status only in routers.
-- Every external call gets an explicit timeout and a retry policy. No bare
-  `except`. No silent failure.
-- Every endpoint: Pydantic request and response models, plus at least one
-  integration test hitting a real test database.
-- Pagination is cursor-based. Offset pagination is not allowed on feeds.
-- All money/time in UTC, ISO-8601, timezone-aware. No naive datetimes.
-- Never edit a migration that has already run — write a new one.
-- Prefer explicit, boring code. No metaprogramming, no clever decorators, no
-  dynamic attribute access.
-- `ml/` is never imported by `apps/`. Research code and product code have
-  different standards.
-- Never store full article text from a publisher. Title, snippet, image URL,
-  source, canonical link only.
+- Layering: `routers/ → services/ → repositories/`. Business logic must not
+  import FastAPI. Repositories must not contain business rules.
+- Typed domain errors in services; HTTP status mapping only in routers.
+- Every external call has an explicit timeout and a retry policy. No bare
+  `except`, no silent failure.
+- Every endpoint: Pydantic request and response models, plus an integration
+  test against a real test database.
+- **Cursor pagination only.** Offset pagination is not allowed on feeds.
+- Timezone-aware UTC, ISO-8601. No naive datetimes.
+- Never edit a migration that has run — write a new one.
+- Explicit, boring code. No metaprogramming, no clever decorators.
+- **`apps/` never imports `ml/`.** Only ONNX files and vectors cross that line.
+- **No model inference in a request path** (ADR 0004).
+- **Topics are stored as IPTC concept IDs, never labels.** Labels are a
+  presentation-layer lookup, and the full hierarchical path is stored so the
+  taxonomy can be browsed at any depth (ADR 0006).
+- **Every article carries a language; every user carries chosen languages.**
+  No query returns content in a language the reader did not ask for.
+- **CSS uses logical properties** (`margin-inline-start`, not `margin-left`).
+  RTL is not a later retrofit — Arabic must render correctly with zero
+  locale-specific fixes (ADR 0005).
+- All user-facing strings go through the i18n layer. No hardcoded English.
 
 ## Data & privacy rules
 
-- Interaction logs must record: user, item, position, timestamp, session,
-  surface (feed | explore | search), and **propensity** (the probability the
-  policy had of showing that item). Propensity logging is mandatory — without
-  it, offline evaluation is biased and unfixable retroactively.
-- Any endpoint returning user data must be authorised by owner or admin role;
-  admin access is audit-logged.
+- **Never store full article text.** Title, snippet (≤300 chars), image URL,
+  source, author, canonical link. Always link out to the publisher.
+- Interaction logs record: user, item, position, timestamp, session, surface
+  (`feed` | `explore` | `search` | `topic`), and **propensity** — the probability
+  the policy had of showing that item, written at serve time by the policy that
+  made the decision. This cannot be backfilled. Without it, offline evaluation
+  is permanently biased.
+- Any endpoint returning user data is authorised by owner or admin role; admin
+  access is audit-logged. RLS on every user-owned table as defence in depth.
 - No PII in logs. Log user IDs, never emails.
+- A global audience means the **strictest applicable regime is the design
+  target** — GDPR, UK GDPR, CCPA and India's DPDP all apply.
+
+## Honesty constraint
+
+Training implements FINDING's fine-grained interpolation and dynamic clustering
+over **simulated** clients replayed from production logs. Serving is
+centralised. Do not describe this as a federated production system anywhere —
+README, UI, or commit message — because it is not one.
 
 ## Commands
 
@@ -87,8 +92,8 @@ pnpm exec playwright test
 
 ## Definition of done for a slice
 
-- [ ] Migration written and applied cleanly on a fresh database
+- [ ] Migration applies cleanly on a fresh database
 - [ ] Integration test passing against real Postgres
 - [ ] Error paths return the standard error envelope
-- [ ] I read the whole diff with `git add -p` and can explain every hunk
+- [ ] Cache policy stated for every new endpoint
 - [ ] ADR written if a real decision was made

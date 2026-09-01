@@ -27,3 +27,10 @@ ml/export/*.onnx
 .DS_Store
 .idea/
 .vscode/
+
+# vendored reference code (FINDING clone) — not ours to commit
+resources/
+
+# local dev database (scripts/devdb.py)
+.cache/
+pgdata/

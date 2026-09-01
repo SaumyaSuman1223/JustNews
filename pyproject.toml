@@ -1,0 +1,64 @@
+[project]
+name = "justnews"
+version = "0.1.0"
+description = "JustNews monorepo root (workspace only, not installed)"
+requires-python = ">=3.12"
+dependencies = [
+    "justnews-core",
+    "justnews-api",
+    "justnews-ingestion",
+    "justnews-testing",
+]
+
+[tool.uv.workspace]
+members = ["packages/core", "apps/api", "apps/ingestion", "testing"]
+
+[tool.uv.sources]
+justnews-core = { workspace = true }
+justnews-api = { workspace = true }
+justnews-ingestion = { workspace = true }
+justnews-testing = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "asgi-lifespan>=2.1",
+    # A real PostgreSQL with pgvector, no Docker daemon required. Used by
+    # scripts/devdb.py and by the integration tests on machines without Docker.
+    "pgserver>=0.1.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["packages/core/src", "apps/api/src", "apps/ingestion/src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "T20", "RUF"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["T20"]
+"**/migrations/**" = ["E501", "I001"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+disallow_untyped_defs = true
+plugins = []
+exclude = ["migrations/", "ml/", "\\.venv"]
+
+[[tool.mypy.overrides]]
+module = ["feedparser.*", "py3langid.*", "pgvector.*", "bs4.*", "sentence_transformers.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["packages/core/tests", "apps/api/tests", "apps/ingestion/tests"]
+filterwarnings = ["error::DeprecationWarning:justnews.*"]

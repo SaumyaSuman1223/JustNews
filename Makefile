@@ -1,27 +1,89 @@
 .DEFAULT_GOAL := help
+SHELL := /bin/bash
+
+# Docker Compose is the primary local stack because it matches deployment.
+# scripts/devdb.py is the fallback for machines without a Docker daemon
+# (WSL without Docker Desktop integration, for instance) - it runs a real
+# PostgreSQL with pgvector out of the pgserver wheel.
+COMPOSE := docker compose
 
 help: ## show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	  | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-up: ## start local stack
-	@echo "TODO(session 0.2): docker compose up -d"
+# --- local stack --------------------------------------------------------
 
-down: ## stop local stack
-	@echo "TODO(session 0.2): docker compose down"
+up: ## start the full local stack (docker)
+	$(COMPOSE) up -d --build db redis api web
+	@echo "api  http://localhost:8000/docs"
+	@echo "web  http://localhost:3000"
+
+down: ## stop the local stack, keeping data
+	$(COMPOSE) down
+
+clean: ## stop the local stack and delete its data
+	$(COMPOSE) down -v
 
 logs: ## tail service logs
-	@echo "TODO(session 0.2)"
+	$(COMPOSE) logs -f --tail=100
 
-test: ## run all tests
-	@echo "TODO(session 0.4): uv run pytest -q && pnpm test"
+db-up: ## start postgres without docker (fallback)
+	uv run python scripts/devdb.py start
 
-lint: ## lint + typecheck everything
-	@echo "TODO(session 0.4): uv run ruff check . && pnpm lint"
+db-down: ## stop the docker-free postgres
+	uv run python scripts/devdb.py stop
+
+dev-api: ## run the api on the host with reload
+	uv run uvicorn justnews_api.main:app --reload --port 8000
+
+dev-web: ## run the web app on the host with reload
+	pnpm --filter @justnews/web dev
+
+# --- database -----------------------------------------------------------
 
 migrate: ## apply database migrations
-	@echo "TODO(session 3.1): uv run alembic upgrade head"
+	cd apps/api && uv run alembic upgrade head
 
-seed: ## load development fixtures
-	@echo "TODO(session 3.4)"
+migration: ## generate a migration: make migration m="add x"
+	cd apps/api && uv run alembic revision --autogenerate -m "$(m)"
 
-.PHONY: help up down logs test lint migrate seed
+seed: ## seed IPTC topics, editions, sources and feeds (idempotent)
+	uv run justnews-ingest seed
+
+# --- content ------------------------------------------------------------
+
+ingest: ## one ingestion pass over every due feed
+	uv run justnews-ingest run
+
+prune: ## apply the retention window and report database size
+	uv run justnews-ingest prune
+
+stats: ## corpus size, language spread and quota usage
+	uv run justnews-ingest stats
+
+# --- quality ------------------------------------------------------------
+
+test: ## run every test
+	uv run pytest -q
+	pnpm test --if-present
+
+lint: ## lint and typecheck everything
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy packages/core/src apps/api/src apps/ingestion/src
+	pnpm --filter @justnews/web lint
+	pnpm --filter @justnews/web typecheck
+
+format: ## autoformat
+	uv run ruff check --fix .
+	uv run ruff format .
+
+build: ## production build of the web app
+	pnpm --filter @justnews/web build
+
+bootstrap: ## install every dependency from a cold clone
+	uv sync
+	pnpm install
+
+.PHONY: help up down clean logs db-up db-down dev-api dev-web migrate migration \
+        seed ingest prune stats test lint format build bootstrap

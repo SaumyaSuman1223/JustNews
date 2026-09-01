@@ -1,0 +1,272 @@
+/*
+ * Design tokens.
+ *
+ * Three rules from docs/design/design-system.md are enforced structurally here
+ * rather than left to discipline:
+ *
+ * 1. Every colour is a token. Nothing is defined only inside a media query, so
+ *    a component can never render one theme's text on the other's ground.
+ * 2. Dark is designed, not derived by inverting. It has its own values.
+ * 3. All spacing, alignment and border properties are *logical*
+ *    (`padding-inline`, `border-inline-start`, `text-align: start`), so the
+ *    whole layout mirrors under dir="rtl" with no locale-specific CSS.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --ground: #f7f8f7;
+  --surface: #ffffff;
+  --surface-sub: #eef1ef;
+  --text: #121614;
+  --text-mid: #3d4744;
+  --text-muted: #66746f;
+  --border: #dde3e0;
+  --accent: #0f6b53;
+  --accent-soft: #dcebe5;
+  --danger: #96382c;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  --measure: 68ch;
+  --radius: 6px;
+
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0d1211;
+    --surface: #141b19;
+    --surface-sub: #1a2321;
+    --text: #e7eeeb;
+    --text-mid: #b4c3be;
+    --text-muted: #869591;
+    --border: #253230;
+    --accent: #5cc3a5;
+    --accent-soft: #16302a;
+    --danger: #e08877;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Arabic and Hebrew need slightly looser leading than the Latin default. */
+  line-height: 1.6;
+}
+
+html[dir="rtl"] {
+  line-height: 1.75;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- layout ------------------------------------------------------------ */
+
+.shell {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+  padding-block-end: var(--space-12);
+}
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  padding-block: var(--space-6);
+  border-block-end: 1px solid var(--border);
+  margin-block-end: var(--space-6);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.wordmark span {
+  color: var(--accent);
+}
+
+.locale-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.locale-switcher a {
+  font-size: 0.82rem;
+  padding: 0.15rem var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+}
+
+.locale-switcher a[aria-current="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* --- feed -------------------------------------------------------------- */
+
+.feed {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.card__media {
+  /* Fixed ratio so an image that is slow or missing shifts nothing. */
+  aspect-ratio: 16 / 9;
+  background: var(--surface-sub);
+  object-fit: cover;
+  width: 100%;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.card__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.card__snippet {
+  color: var(--text-mid);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  margin-block-start: auto;
+}
+
+.badge {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding-inline: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- notices ----------------------------------------------------------- */
+
+.notice {
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--danger);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface);
+  color: var(--text-mid);
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-6);
+  font-size: 0.9rem;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-block-end: var(--space-6);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats b {
+  color: var(--text);
+  font-size: 1.1rem;
+  display: block;
+  font-weight: 600;
+}
+
+.empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-muted);
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: -9999px;
+}
+
+.skip-link:focus {
+  position: static;
+  display: inline-block;
+  padding: var(--space-2);
+}

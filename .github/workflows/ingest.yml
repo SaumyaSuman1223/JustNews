@@ -1,0 +1,48 @@
+name: ingest
+
+# Every fifteen minutes. This schedule does two jobs: it keeps the corpus
+# fresh, and it is the Supabase keep-alive - a free project pauses after seven
+# days without database traffic, and a paused database is a dead site
+# (ADR 0003).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Which ingestion command to run
+        type: choice
+        options: [run, prune, stats, seed]
+        default: run
+
+concurrency:
+  # Two overlapping runs would both pass dedup on the same article, because
+  # each checks against a database the other has not written to yet.
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          # Workload identity federation: no long-lived service-account key
+          # anywhere in the repo or its secrets.
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Execute the ingestion job
+        run: |
+          gcloud run jobs execute justnews-ingestion \
+            --region us-east1 \
+            --args="${{ inputs.command || 'run' }}" \
+            --wait

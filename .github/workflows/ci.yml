@@ -1,10 +1,93 @@
 name: ci
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A new push to the same branch cancels the previous run. Without this a
+  # busy branch queues runs it no longer cares about.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Deterministic and independent of the runner's default.
+  UV_FROZEN: "1"
+
 jobs:
-  check:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # pgvector's own image so `halfvec` exists in CI as it does on
+        # Supabase. A plain postgres image would pass the unit tests and fail
+        # every migration.
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: justnews
+          POSTGRES_PASSWORD: justnews
+          POSTGRES_DB: justnews
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U justnews"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://justnews:justnews@127.0.0.1:5432/justnews
+      EMBEDDER: hashing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          # The cache key is the lockfile hash. A dependency change misses and
+          # rebuilds; a source-only change hits. Keying on anything looser
+          # would serve a stale environment that passes CI and fails in prod.
+          cache-dependency-glob: "uv.lock"
+
+      - run: uv sync --all-extras --dev
+
+      - name: Lint
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+
+      - name: Typecheck
+        run: uv run mypy packages/core/src apps/api/src apps/ingestion/src
+
+      - name: Migrations apply cleanly to an empty database
+        working-directory: apps/api
+        run: uv run alembic upgrade head
+
+      - name: Migrations are reversible
+        working-directory: apps/api
+        run: |
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
+      - name: No model drift
+        # Catches a model edited without a matching migration - the change that
+        # passes review and breaks the next deploy.
+        working-directory: apps/api
+        run: uv run alembic check
+
+      - name: Test
+        run: uv run pytest -q
+
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # TODO(session 0.4): set up uv + pnpm, cache them, run lint and tests.
-      # Build this with Claude Code, then explain every line before merging.
-      - run: echo "no checks yet"
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @justnews/web lint
+      - run: pnpm --filter @justnews/web typecheck
+      - run: pnpm --filter @justnews/web build
