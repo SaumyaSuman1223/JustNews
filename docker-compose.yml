@@ -1,0 +1,105 @@
+# Local development stack. Staging runs this same api image on Render
+# against Supabase; only the database differs. Ingestion has no deployed
+# image at all in staging - it runs as a scheduled GitHub Actions step
+# instead (ADR 0010); the ingestion image below exists for local parity.
+#
+# No `version:` key - it has been ignored by Compose v2 for years.
+
+name: justnews
+
+services:
+  db:
+    # pgvector's own image, which pins a Postgres and pgvector pair that are
+    # known to work together. Supabase runs pgvector 0.8.x, so `halfvec` is
+    # available here as it is there.
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-justnews}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_locally}
+      POSTGRES_DB: ${POSTGRES_DB:-justnews}
+    ports:
+      - "5432:5432"
+    volumes:
+      # A named volume, not a bind mount: bind-mounted Postgres data on macOS
+      # and Windows is slow and permission-cursed, and this data is disposable.
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # depends_on alone only waits for the container to *start*, which for
+      # Postgres is well before it accepts connections. This is what makes
+      # service_healthy mean anything.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-justnews} -d ${POSTGRES_DB:-justnews}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      APP_ENV: local
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-justnews}:${POSTGRES_PASSWORD:-change_me_locally}@db:5432/${POSTGRES_DB:-justnews}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # Source is mounted so uvicorn --reload sees edits without a rebuild.
+      - ./apps:/app/apps
+      - ./packages:/app/packages
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: infra/docker/ingestion.Dockerfile
+    environment:
+      APP_ENV: local
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-justnews}:${POSTGRES_PASSWORD:-change_me_locally}@db:5432/${POSTGRES_DB:-justnews}
+      GNEWS_API_KEY: ${GNEWS_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./apps:/app/apps
+      - ./packages:/app/packages
+    # In staging this is a scheduled GitHub Actions step, not a deployed
+    # service (ADR 0010). Locally it idles so `make ingest` can exec into it.
+    profiles: ["tools"]
+    command: ["sleep", "infinity"]
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  db_data:

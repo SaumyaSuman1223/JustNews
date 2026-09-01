@@ -1,0 +1,23 @@
+[project]
+name = "justnews-core"
+version = "0.1.0"
+description = "Shared settings, database models and domain primitives"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "pgvector>=0.3.6",
+    "alembic>=1.14",
+    "structlog>=24.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# py.typed ships the inline annotations, so downstream mypy sees real types
+# instead of falling back to Any at every package boundary.
+[tool.hatch.build.targets.wheel]
+packages = ["src/justnews_core"]

@@ -1,0 +1,62 @@
+name: ingest
+
+# Every fifteen minutes. This schedule does two jobs: it keeps the corpus
+# fresh, and it is the Supabase keep-alive - a free project pauses after seven
+# days without database traffic, and a paused database is a dead site
+# (ADR 0003).
+#
+# Runs the ingestion CLI directly on the runner rather than deploying it
+# anywhere - there is no Render free-tier cron/worker to invoke, and none is
+# needed: this is a plain scheduled Python process against Supabase
+# (ADR 0010).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Which ingestion command to run
+        type: choice
+        options: [run, prune, stats, seed]
+        default: run
+
+concurrency:
+  # Two overlapping runs would both pass dedup on the same article, because
+  # each checks against a database the other has not written to yet.
+  group: ingest
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+  EMBEDDER: sentence-transformers
+  # Mirrors the default in packages/core/src/justnews_core/settings.py, made
+  # explicit here so the cache key below actually tracks it.
+  SENTENCE_TRANSFORMER_MODEL: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Cache the sentence-transformer model
+        # Downloaded fresh, this is the slowest part of a cold run, and there
+        # are 96 of these a day. Keyed on the model name so changing it in
+        # settings.py invalidates the cache rather than serving a stale model.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: sentence-transformer-${{ env.SENTENCE_TRANSFORMER_MODEL }}
+
+      - run: uv sync --frozen --all-extras --dev
+
+      - name: Run ingestion
+        run: uv run justnews-ingest ${{ inputs.command || 'run' }}

@@ -1,0 +1,19 @@
+packages:
+  - "apps/web"
+  - "packages/api-client"
+  - "packages/ui"
+
+allowBuilds:
+  unrs-resolver: set this to true or false
+
+# Postinstall scripts are blocked by default in pnpm 10+. These two are needed
+# and are audited: unrs-resolver builds the native module eslint's resolver
+# uses, sharp builds Next.js's image pipeline. Nothing else may run scripts.
+onlyBuiltDependencies:
+  - unrs-resolver
+  - sharp
+
+# The allowlist above is the decision; this stops pnpm failing the install to
+# ask for it again on every machine and in CI. Adding a package here is a
+# deliberate act - review what its install script does first.
+strictDepBuilds: false
