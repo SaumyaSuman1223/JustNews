@@ -19,12 +19,12 @@ public launch; the audience is **global**; **no comments**; topics use the
 | Area | Choice | Why |
 |---|---|---|
 | Web | **Next.js (App Router) on Vercel** | RSC + edge caching gives the fastest first paint for a read-heavy site, free Hobby tier, preview deploys per PR. Vercel's multi-region edge is now doing more work than before — see §4 |
-| API | **FastAPI on Google Cloud Run** (`us-east1`) | Always-free 2M req/mo, scales to zero, portable Docker. `us-east1` over `us-central1` because it is the free region closest to Europe |
+| API | **FastAPI on Render** (free tier) | No cloud account or Terraform state to stand up — deploys on push to `main` via Render's own git integration, portable Docker either way. See ADR 0010 |
 | Database | **Supabase Postgres 17 + pgvector**, same region as the API | Postgres we would have chosen anyway, plus vector search, auth and storage in one free project |
 | Auth | **Supabase Auth** | OAuth, verification, reset, MFA — solved, in a dozen locales already |
 | Taxonomy | **IPTC Media Topics** | 17 top-level concepts, 1,200+ terms over 5 levels, official translations in 13 languages. The multilingual part is why it wins outright now the audience is global |
 | Cache / rate limit | **Upstash Redis** + HTTP cache headers | The CDN does the caching; Redis does rate limits and hot keys only |
-| Scheduled work | **GitHub Actions cron + Cloud Run Jobs** | No always-on worker on a free tier; the cron also keeps Supabase from auto-pausing |
+| Scheduled work | **GitHub Actions cron**, running the ingestion CLI directly | No always-on worker needed on any tier; the cron also keeps Supabase from auto-pausing |
 | News encoder | **Frozen multilingual sentence encoder** (384-dim) | The decision that makes a global corpus tractable — see §3 and ADR 0005 |
 | Ranker | **FINDING user tower + dynamic clustering**, trained offline | The paper's actual contribution lives in the training procedure, not the news tower |
 | Mobile | **Expo React Native** (Stage 10) | Reuses `packages/api-client` and `packages/schemas` verbatim |
@@ -192,9 +192,11 @@ from Stage 4.
 - Docker Compose: Postgres 17 + pgvector, Redis, api, web; Supabase CLI for
   local auth parity.
 - CI under 90 s: ruff, mypy, pytest, eslint, tsc, a Playwright smoke test.
-- **Terraform for GCP, a real staging environment, and `main` → staging deploy
-  working before any product code exists.** Secrets in GitHub Environments and
-  Secret Manager.
+- **A real staging environment, and `main` → staging deploy working before
+  any product code exists**, on Render (API) and Vercel (web) — both deploy
+  on push to `main` via their own git integration, no custom deploy workflow
+  needed. Secrets live in each platform's own dashboard and in GitHub
+  Actions secrets for the ingestion cron (ADR 0010).
 - Error-envelope, structured logging and request-ID conventions.
 - ADRs 0001 (stack), 0003 (free-tier deployment), 0004 (no inference in hot
   path), 0005 (global/multilingual), 0006 (IPTC taxonomy).

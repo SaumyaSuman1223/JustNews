@@ -21,8 +21,8 @@ becomes an outage.
 ## Common failures
 
 ### An `ingest_runs` row has `finished_at` NULL
-The run was killed rather than finishing — the Cloud Run Job timeout, the next
-cron lapping it, or the platform reclaiming the container. Per-entry
+The run was killed rather than finishing — the GitHub Actions job timeout, the
+next cron lapping it, or the runner being reclaimed. Per-entry
 transactions mean whatever it stored is intact and the next run picks up the
 rest, so this is not data loss. It is a signal that the pass is too slow.
 - Check `error` on that row: `run stopped at its deadline` means the run's own
@@ -30,7 +30,7 @@ rest, so this is not data loss. It is a signal that the pass is too slow.
   with no error means something external killed it, which is not.
 - The usual cause is enrichment. `ingest_max_enrich_per_run` caps it and
   `ingest_run_deadline_seconds` bounds the whole pass; both must stay well
-  under the Cloud Run Job timeout in `infra/terraform`.
+  under the `timeout-minutes` in `.github/workflows/ingest.yml`.
 
 ### The site loads but headlines are hours old
 Ingestion has stopped. Check the most recent `ingest_runs` row.
@@ -77,8 +77,10 @@ Restore from the dashboard into a **new** project, verify, then repoint
 `DATABASE_URL`. Do not restore in place before you have looked at the data.
 
 ## How to roll back a deploy
-Cloud Run keeps every revision. `gcloud run services update-traffic
-justnews-api-production --region us-east1 --to-revisions <REVISION>=100`.
+Render keeps every deploy. In the service's Render dashboard, open the
+Deploys tab and "Rollback" to the previous successful deploy (or redeploy an
+older commit directly). Vercel works the same way from its Deployments tab —
+"Promote to Production" on a prior deployment.
 If the bad deploy included a migration, roll the migration back *first* —
 `alembic downgrade -1` — or the old code meets a schema it does not understand.
 

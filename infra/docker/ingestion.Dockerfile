@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 #
-# Same image shape as the API. Deployed as a Cloud Run *Job*, invoked on a
-# schedule by GitHub Actions - a free tier has nowhere to put an always-on
-# worker (ADR 0003), and the same cron doubles as the Supabase keep-alive.
+# Same image shape as the API. Not deployed anywhere - production ingestion
+# runs this same CLI directly on a scheduled GitHub Actions runner instead
+# (ADR 0010), since a free tier has nowhere to put an always-on worker and
+# the runner needs no long-lived host. This image exists for local
+# `docker compose` parity only.
 
 FROM python:3.12-slim AS base
 ENV PYTHONUNBUFFERED=1 \

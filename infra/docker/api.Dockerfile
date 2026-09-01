@@ -38,5 +38,5 @@ RUN useradd --create-home --uid 10001 app && chown -R app:app /app
 USER app
 
 EXPOSE 8000
-# Cloud Run injects $PORT and it is not always 8000.
+# Render injects $PORT and it is not always 8000.
 CMD ["sh", "-c", "uvicorn justnews_api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -1,7 +1,9 @@
 # 0003 — Deploying on free tiers without pretending the limits do not exist
 
 - **Date:** 2026-09-01
-- **Status:** accepted
+- **Status:** accepted — its Cloud Run specifics are superseded by
+  [0010](0010-render-vercel-not-gcp.md); the free-tier reasoning for GNews,
+  Supabase and retention below still holds.
 
 ## Context
 

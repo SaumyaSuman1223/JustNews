@@ -4,6 +4,11 @@ name: ingest
 # fresh, and it is the Supabase keep-alive - a free project pauses after seven
 # days without database traffic, and a paused database is a dead site
 # (ADR 0003).
+#
+# Runs the ingestion CLI directly on the runner rather than deploying it
+# anywhere - there is no Render free-tier cron/worker to invoke, and none is
+# needed: this is a plain scheduled Python process against Supabase
+# (ADR 0010).
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -21,28 +26,37 @@ concurrency:
   group: ingest
   cancel-in-progress: false
 
+env:
+  UV_FROZEN: "1"
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+  EMBEDDER: sentence-transformers
+  # Mirrors the default in packages/core/src/justnews_core/settings.py, made
+  # explicit here so the cache key below actually tracks it.
+  SENTENCE_TRANSFORMER_MODEL: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+
 jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 
-      - uses: google-github-actions/auth@v2
+      - uses: astral-sh/setup-uv@v5
         with:
-          # Workload identity federation: no long-lived service-account key
-          # anywhere in the repo or its secrets.
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - name: Cache the sentence-transformer model
+        # Downloaded fresh, this is the slowest part of a cold run, and there
+        # are 96 of these a day. Keyed on the model name so changing it in
+        # settings.py invalidates the cache rather than serving a stale model.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: sentence-transformer-${{ env.SENTENCE_TRANSFORMER_MODEL }}
 
-      - name: Execute the ingestion job
-        run: |
-          gcloud run jobs execute justnews-ingestion \
-            --region us-east1 \
-            --args="${{ inputs.command || 'run' }}" \
-            --wait
+      - run: uv sync --frozen --all-extras --dev
+
+      - name: Run ingestion
+        run: uv run justnews-ingest ${{ inputs.command || 'run' }}

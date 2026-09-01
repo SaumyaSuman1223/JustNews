@@ -38,8 +38,8 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** for the plan of record.
 | Tier | Choice | Host |
 |---|---|---|
 | Web | Next.js App Router, TypeScript, Tailwind, i18n + RTL | Vercel |
-| API | FastAPI, Python 3.12, SQLAlchemy 2 async | Google Cloud Run |
-| Ingestion | RSS + GNews + metadata scraping, 8–10 languages | Cloud Run Job, GitHub Actions cron |
+| API | FastAPI, Python 3.12, SQLAlchemy 2 async | Render (free tier) |
+| Ingestion | RSS + GNews + metadata scraping, 8–10 languages | Scheduled GitHub Actions step, no deploy target |
 | Database | Postgres 17 + pgvector | Supabase |
 | Auth | Supabase Auth (JWT verified by the API) | Supabase |
 | Cache | Upstash Redis (rate limits, hot keys) | Upstash |
@@ -108,6 +108,7 @@ working.
 - [0007](docs/decisions/0007-auth-and-rls.md) — application-verified JWTs, and RLS keyed off a session GUC
 - [0008](docs/decisions/0008-beta-gate-and-admin-rls.md) — a beta gate separate from sign-in, and an RLS bypass for admin
 - [0009](docs/decisions/0009-ranked-feed-pagination.md) — a frozen-window cursor for the ranked feed
+- [0010](docs/decisions/0010-render-vercel-not-gcp.md) — Render and Vercel instead of GCP Cloud Run
 
 ## Content policy
 

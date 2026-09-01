@@ -1,5 +1,7 @@
-# Local development stack. Staging and production run the same api and
-# ingestion images on Cloud Run against Supabase; only the database differs.
+# Local development stack. Staging runs this same api image on Render
+# against Supabase; only the database differs. Ingestion has no deployed
+# image at all in staging - it runs as a scheduled GitHub Actions step
+# instead (ADR 0010); the ingestion image below exists for local parity.
 #
 # No `version:` key - it has been ignored by Compose v2 for years.
 
@@ -82,8 +84,8 @@ services:
     volumes:
       - ./apps:/app/apps
       - ./packages:/app/packages
-    # In production this is a Cloud Run Job invoked by cron, not a long-running
-    # service. Locally it idles so `make ingest` can exec into it.
+    # In staging this is a scheduled GitHub Actions step, not a deployed
+    # service (ADR 0010). Locally it idles so `make ingest` can exec into it.
     profiles: ["tools"]
     command: ["sleep", "infinity"]
 

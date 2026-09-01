@@ -1,0 +1,35 @@
+# Render Blueprint for the API. Import this repo as a Blueprint in the
+# Render dashboard and it creates/updates this service from this file.
+#
+# One service, no staging/production split - there is no product traffic
+# yet to justify a second environment (add one before Stage 8's launch
+# gate, not now). Ingestion has no service here at all: it runs as a plain
+# scheduled step in .github/workflows/ingest.yml, since Render's free tier
+# doesn't run cron/background workers and the ingestion CLI doesn't need
+# one - see docs/decisions/0010-render-vercel-not-gcp.md.
+services:
+  - type: web
+    name: justnews-api
+    runtime: docker
+    dockerfilePath: infra/docker/api.Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: EMBEDDER
+        value: sentence-transformers
+      # Everything below is a real secret or environment-specific value -
+      # entered once in the Render dashboard, never committed here.
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
