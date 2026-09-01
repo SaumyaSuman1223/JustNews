@@ -60,6 +60,22 @@ class TestListArticles:
         assert response.status_code == 422
         assert response.json()["error"]["code"] == "validation_error"
 
+    async def test_topic_filter_excludes_untagged_articles(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        from justnews_core.models import ArticleTopic, Topic
+
+        source = await make_source(session)
+        tagged = await make_article(session, source, title="Tagged")
+        await make_article(session, source, title="Untagged")
+        session.add(Topic(id="medtop:99000002", level=1, path=["medtop:99000002"], slug="t"))
+        await session.flush()
+        session.add(ArticleTopic(article_id=tagged.id, topic_id="medtop:99000002"))
+        await session.commit()
+
+        body = (await client.get("/v1/articles?topic=medtop:99000002")).json()
+        assert [item["title"] for item in body["items"]] == ["Tagged"]
+
     async def test_pagination_visits_every_article_exactly_once(
         self, client: AsyncClient, session: AsyncSession
     ) -> None:

@@ -13,7 +13,7 @@ from sqlalchemy import Select, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.language import tsvector_config
-from justnews_core.models import Article, Source, StoryCluster
+from justnews_core.models import Article, ArticleTopic, Source, StoryCluster
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +57,7 @@ async def list_articles(
     before_published_at: datetime | None,
     before_id: int | None,
     exclude_article_ids: set[int] | None = None,
+    topic_id: str | None = None,
 ) -> list[ArticleRow]:
     """Keyset pagination over ``(published_at DESC, id DESC)``.
 
@@ -69,6 +70,10 @@ async def list_articles(
         query = query.where(Article.language.in_(languages))
     if exclude_article_ids:
         query = query.where(Article.id.notin_(exclude_article_ids))
+    if topic_id:
+        query = query.where(
+            Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
+        )
     if before_published_at is not None and before_id is not None:
         # sa.tuple_(), not a Python tuple. Writing
         # ``(Article.published_at, Article.id) < (ts, id)`` looks identical but

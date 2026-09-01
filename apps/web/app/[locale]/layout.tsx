@@ -3,7 +3,10 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
+import { AccountMenu } from "@/components/AccountMenu";
+import { SearchBox } from "@/components/SearchBox";
 import { getLocale, isLocaleCode, locales } from "@/lib/i18n";
+import { getSession } from "@/lib/session";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale: locale.code }));
@@ -16,7 +19,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: "JustNews",
+    title: { default: "JustNews", template: "%s · JustNews" },
     description: "Personalised, multilingual news.",
     // hreflang across every locale, so search engines serve the right one.
     alternates: {
@@ -36,6 +39,10 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  // Reading the session here - once, for the whole shell - is what makes this
+  // layout request-dynamic rather than static. That is the correct trade for
+  // a header that has to show a real account state instead of a generic one.
+  const session = await getSession();
 
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
@@ -50,6 +57,20 @@ export default async function LocaleLayout({
             <Link href={`/${active.code}`} className="wordmark">
               Just<span>News</span>
             </Link>
+            <nav className="masthead-nav" aria-label="Primary">
+              <ul className="masthead-links">
+                <li>
+                  <Link href={`/${active.code}/topics`}>Topics</Link>
+                </li>
+                {session && (
+                  <li>
+                    <Link href={`/${active.code}/saved`}>Saved</Link>
+                  </li>
+                )}
+              </ul>
+              <SearchBox locale={active.code} />
+              <AccountMenu locale={active.code} email={session?.email ?? null} />
+            </nav>
             <nav aria-label="Language">
               <ul className="locale-switcher">
                 {locales.map((option) => (

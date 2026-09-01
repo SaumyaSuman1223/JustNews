@@ -581,6 +581,7 @@ export interface operations {
         parameters: {
             query?: {
                 languages?: string | null;
+                topic?: string | null;
                 cursor?: string | null;
                 page_size?: number;
             };

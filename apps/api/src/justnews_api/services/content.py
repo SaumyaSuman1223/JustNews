@@ -47,6 +47,7 @@ async def get_article_page(
     languages: str | None = None,
     cursor: str | None = None,
     page_size: int = DEFAULT_PAGE_SIZE,
+    topic: str | None = None,
 ) -> ArticlePage:
     if not 1 <= page_size <= MAX_PAGE_SIZE:
         raise ValidationError(f"page_size must be between 1 and {MAX_PAGE_SIZE}.")
@@ -62,6 +63,7 @@ async def get_article_page(
         limit=page_size + 1,
         before_published_at=before_published_at,
         before_id=before_id,
+        topic_id=topic,
     )
 
     has_more = len(rows) > page_size

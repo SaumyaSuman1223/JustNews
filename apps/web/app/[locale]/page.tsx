@@ -1,30 +1,39 @@
-import Image from "next/image";
-
-import { getArticles, getStats } from "@/lib/api";
-import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
+import { ArticleCard } from "@/components/ArticleCard";
+import { getArticles, getFeed, getSaves, getStats } from "@/lib/api";
+import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getSession } from "@/lib/session";
 import { notFound } from "next/navigation";
-
-// Rendered on the server and cached at the edge. Anonymous, cacheable routes
-// like this one never reach Cloud Run, which is what absorbs the transatlantic
-// latency for readers outside North America (ADR 0003).
-export const revalidate = 60;
 
 export default async function FeedPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  const session = await getSession();
 
-  const [feed, stats] = await Promise.all([
-    getArticles({ languages: active.code, pageSize: 24 }),
+  const [feed, stats, savedIds] = await Promise.all([
+    session
+      ? getFeed(
+          { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() },
+          { locale: active.code, pageSize: 24 },
+        )
+      : getArticles({ languages: active.code, pageSize: 24 }),
     getStats(),
+    session
+      ? getSaves({ accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }).then(
+          (page) => new Set(page.data.items.map((item) => item.article.id)),
+        )
+      : Promise.resolve(new Set<number>()),
   ]);
 
   return (
     <>
       {feed.degraded && (
         <p className="notice" role="status">
-          Live headlines are unavailable right now, so this page may be out of date. Everything
-          else still works.
+          {session
+            ? "Your feed is unavailable right now, so this page may be out of date."
+            : "Live headlines are unavailable right now, so this page may be out of date."}{" "}
+          Everything else still works.
         </p>
       )}
 
@@ -56,37 +65,17 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
         </p>
       ) : (
         <ul className="feed">
-          {feed.data.items.map((article) => (
-            <li key={article.id} className="card">
-              {article.image_url && (
-                <Image
-                  className="card__media"
-                  src={article.image_url}
-                  alt=""
-                  width={640}
-                  height={360}
-                  unoptimized
-                />
-              )}
-              <div className="card__body">
-                <h2 className="card__title">
-                  {/* Always link out to the publisher. We store metadata only. */}
-                  <a href={article.url} target="_blank" rel="noopener noreferrer nofollow">
-                    {article.title}
-                  </a>
-                </h2>
-                {article.snippet && <p className="card__snippet">{article.snippet}</p>}
-                <p className="card__meta">
-                  <span>{article.source_name}</span>
-                  <time dateTime={article.published_at}>
-                    {formatRelativeTime(article.published_at, active.code)}
-                  </time>
-                  {article.language !== active.code && (
-                    <span className="badge">{article.language}</span>
-                  )}
-                </p>
-              </div>
-            </li>
+          {feed.data.items.map((article, index) => (
+            <ArticleCard
+              key={article.id}
+              article={article}
+              locale={active.code}
+              surface="feed"
+              position={index}
+              signedIn={Boolean(session)}
+              saved={savedIds.has(article.id)}
+              revalidatePath={`/${active.code}`}
+            />
           ))}
         </ul>
       )}

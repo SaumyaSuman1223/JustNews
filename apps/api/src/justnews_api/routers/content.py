@@ -92,11 +92,12 @@ class StatsOut(BaseModel):
 async def list_articles(
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["en,es"]),
+    topic: str | None = Query(default=None, examples=["medtop:20000724"]),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=service.DEFAULT_PAGE_SIZE, ge=1, le=service.MAX_PAGE_SIZE),
 ) -> ArticlePageOut:
     page = await service.get_article_page(
-        session, languages=languages, cursor=cursor, page_size=page_size
+        session, languages=languages, cursor=cursor, page_size=page_size, topic=topic
     )
     return ArticlePageOut(
         items=[ArticleOut.from_row(row) for row in page.items],
