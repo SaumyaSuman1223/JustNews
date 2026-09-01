@@ -92,6 +92,13 @@ class Settings(BaseSettings):
 
     gnews_api_key: str | None = None
     ingest_max_gnews_calls_per_day: int = 100
+    # `run` fires ~96 times/day; reserve_call's per-day cap is the real
+    # backstop regardless, but spending only this many calls per pass keeps
+    # daily usage comfortably under the cap rather than front-loading it.
+    ingest_max_gnews_calls_per_run: int = 1
+    # How far back thin_languages looks when counting recent articles per
+    # language to decide which ones need a GNews backfill this run.
+    gnews_backfill_window_hours: int = 24
 
     # --- dedup thresholds (ADR: three layers) ---
     dedup_simhash_max_distance: int = 3

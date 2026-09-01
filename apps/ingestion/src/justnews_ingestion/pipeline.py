@@ -32,19 +32,22 @@ import asyncio
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlsplit
 
+import httpx
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.db import session_scope
 from justnews_core.embedding import Embedder, embed_article_text
+from justnews_core.errors import QuotaExceededError, UpstreamError
 from justnews_core.language import tsvector_config
 from justnews_core.logging import get_logger
-from justnews_core.models import Article, ArticleTopic, Author, Feed, IngestRun
+from justnews_core.models import Article, ArticleTopic, Author, Feed, IngestRun, Source
 from justnews_core.settings import Settings
 from justnews_core.text import make_snippet, simhash64, slugify
-from justnews_ingestion import dedup
+from justnews_ingestion import dedup, gnews
 from justnews_ingestion.classify import assign_topics
 from justnews_ingestion.enrich import enrich
 from justnews_ingestion.http import PoliteClient
@@ -133,6 +136,42 @@ async def _get_or_create_author(
         select(Author.id).where(Author.source_id == source_id, Author.slug == slug)
     )
     return int(existing) if existing is not None else None
+
+
+async def _resolve_gnews_source(
+    session: AsyncSession, *, name: str, url: str | None, language: str, fallback_url: str
+) -> int:
+    """Get-or-create the ``Source`` a GNews-backfilled entry actually came from.
+
+    Unlike RSS, one GNews response aggregates many publishers - there is no
+    single source_id the caller can pass in for the whole batch, so this
+    resolves one per entry from GNews' own ``source.name``/``source.url``.
+    ``homepage_url`` is NOT NULL and GNews sometimes omits it, so this falls
+    back to the entry's own article host rather than leaving it empty.
+    """
+    slug = slugify(name)
+    inserted = await session.scalar(
+        insert(Source)
+        .values(
+            slug=slug,
+            name=name[:200],
+            homepage_url=url or fallback_url,
+            language=language,
+            trust_score=0.5,
+        )
+        .on_conflict_do_nothing(index_elements=[Source.slug])
+        .returning(Source.id)
+    )
+    if inserted is not None:
+        return int(inserted)
+
+    existing = await session.scalar(select(Source.id).where(Source.slug == slug))
+    if existing is not None:
+        return int(existing)
+
+    # A slug collision that ON CONFLICT caught but the read-back missed is a
+    # genuine race, not something to paper over with a fabricated id.
+    raise RuntimeError(f"Could not resolve or create a Source for GNews publisher {name!r}")
 
 
 async def store_entry(
@@ -229,6 +268,86 @@ async def store_entry(
     return article
 
 
+async def _run_gnews_backfill(
+    settings: Settings,
+    embedder: Embedder,
+    *,
+    stats: RunStats,
+    deadline: Deadline,
+    recent: dedup.RecentIndex,
+) -> None:
+    """Spend a small slice of today's GNews budget on whichever launch
+    languages have the least recent RSS coverage.
+
+    Best-effort only, by design: RSS is primary and must never be blocked by
+    GNews being unconfigured, rate-limited or down, so every failure here is
+    caught and logged rather than raised.
+    """
+    if not settings.gnews_api_key or deadline.expired:
+        return
+
+    async with session_scope() as session:
+        languages = await gnews.thin_languages(
+            session,
+            since=datetime.now(UTC) - timedelta(hours=settings.gnews_backfill_window_hours),
+            limit=settings.ingest_max_gnews_calls_per_run,
+        )
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for language in languages:
+            if deadline.expired:
+                break
+            try:
+                async with session_scope() as session:
+                    entries = await gnews.top_headlines(
+                        session, client, settings, language=language
+                    )
+                stats.gnews_calls += 1
+            except (UpstreamError, QuotaExceededError) as exc:
+                log.warning("gnews_backfill_call_failed", language=language, error=str(exc))
+                continue
+
+            for entry in entries:
+                if deadline.expired:
+                    break
+                if not entry.source_name:
+                    # Cannot attribute to a real publisher - skip rather than
+                    # fabricate one (ADR-level: source identity matters for
+                    # trust scoring and reader-facing attribution).
+                    continue
+                try:
+                    async with session_scope() as session:
+                        host = urlsplit(entry.url_canonical).netloc
+                        source_id = await _resolve_gnews_source(
+                            session,
+                            name=entry.source_name,
+                            url=entry.source_url,
+                            language=entry.language,
+                            fallback_url=f"https://{host}/" if host else entry.url_canonical,
+                        )
+                        await store_entry(
+                            session,
+                            entry,
+                            source_id=source_id,
+                            feed_id=None,
+                            feed_topic_hint=None,
+                            embedder=embedder,
+                            settings=settings,
+                            stats=stats,
+                            now=datetime.now(UTC),
+                            recent=recent,
+                        )
+                except Exception as exc:
+                    stats.errors.append(
+                        f"gnews entry {entry.url_canonical}: {type(exc).__name__}: {exc}"
+                    )
+                    log.warning(
+                        "gnews_entry_store_failed",
+                        url=entry.url_canonical,
+                        error=type(exc).__name__,
+                    )
+
+
 async def run_ingestion(
     settings: Settings,
     embedder: Embedder,
@@ -304,6 +423,8 @@ async def run_ingestion(
                     deadline=deadline,
                     recent=recent,
                 )
+
+    await _run_gnews_backfill(settings, embedder, stats=stats, deadline=deadline, recent=recent)
 
     async with session_scope() as session:
         await session.execute(
