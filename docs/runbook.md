@@ -20,6 +20,18 @@ becomes an outage.
 
 ## Common failures
 
+### An `ingest_runs` row has `finished_at` NULL
+The run was killed rather than finishing — the Cloud Run Job timeout, the next
+cron lapping it, or the platform reclaiming the container. Per-entry
+transactions mean whatever it stored is intact and the next run picks up the
+rest, so this is not data loss. It is a signal that the pass is too slow.
+- Check `error` on that row: `run stopped at its deadline` means the run's own
+  budget stopped it cleanly, which is working as designed. A NULL `finished_at`
+  with no error means something external killed it, which is not.
+- The usual cause is enrichment. `ingest_max_enrich_per_run` caps it and
+  `ingest_run_deadline_seconds` bounds the whole pass; both must stay well
+  under the Cloud Run Job timeout in `infra/terraform`.
+
 ### The site loads but headlines are hours old
 Ingestion has stopped. Check the most recent `ingest_runs` row.
 - No recent row at all → the GitHub Actions cron is not firing. Check the

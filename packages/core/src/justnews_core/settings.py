@@ -65,6 +65,18 @@ class Settings(BaseSettings):
     ingest_max_entries_per_feed: int = 60
     ingest_snippet_max_chars: int = 300
 
+    # A run must always finish before the next one starts. The cron fires every
+    # 15 minutes and the Cloud Run Job is capped at 600s, so a pass that
+    # overruns is not slow - it is killed, mid-write, by whichever limit it hits
+    # first. The deadline below makes the run stop cleanly and record what it
+    # managed instead.
+    ingest_run_deadline_seconds: float = 540.0
+    # Enrichment is the expensive part: one HTTP fetch per article, throttled
+    # per host. It improves articles that a feed left without an image or
+    # summary; it is never required. Capped so it can never consume the run.
+    ingest_max_enrich_per_run: int = 120
+    ingest_max_enrich_concurrency: int = 6
+
     gnews_api_key: str | None = None
     ingest_max_gnews_calls_per_day: int = 100
 

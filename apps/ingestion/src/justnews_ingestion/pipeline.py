@@ -12,12 +12,26 @@ to prevent is written twice.
 Failure isolation is the other. Every feed and every entry is wrapped: one bad
 feed, one malformed entry, or one publisher that has started returning HTML
 where XML used to be cannot fail the run.
+
+The third is ordering. Entries are screened against known canonical URLs
+*before* anything expensive happens to them. In a steady state almost every
+entry a feed returns has already been ingested - 776 of 787 in one measured
+run - so enriching first meant an HTTP fetch per article we were about to
+discard.
+
+The fourth is the deadline. This runs as a Cloud Run Job on a fifteen-minute
+cron, so a pass that overruns is not merely slow - it is killed mid-write by
+the job timeout or lapped by the next run. The run therefore stops itself
+cleanly and records what it managed, rather than being terminated with a
+half-written picture of why.
 """
 
 from __future__ import annotations
 
+import asyncio
+import time
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -40,6 +54,25 @@ log = get_logger(__name__)
 
 
 @dataclass(slots=True)
+class Deadline:
+    """Wall-clock budget for one run."""
+
+    expires_at: float
+
+    @classmethod
+    def after(cls, seconds: float) -> Deadline:
+        return cls(expires_at=time.monotonic() + seconds)
+
+    @property
+    def expired(self) -> bool:
+        return time.monotonic() >= self.expires_at
+
+    @property
+    def remaining_seconds(self) -> float:
+        return max(0.0, self.expires_at - time.monotonic())
+
+
+@dataclass(slots=True)
 class RunStats:
     feeds_total: int = 0
     feeds_ok: int = 0
@@ -49,7 +82,9 @@ class RunStats:
     articles_new: int = 0
     articles_duplicate: int = 0
     articles_clustered: int = 0
+    articles_enriched: int = 0
     gnews_calls: int = 0
+    deadline_reached: bool = False
     errors: list[str] = field(default_factory=list)
 
 
@@ -111,6 +146,7 @@ async def store_entry(
     settings: Settings,
     stats: RunStats,
     now: datetime,
+    recent: dedup.RecentIndex | None = None,
 ) -> Article | None:
     """Dedup, embed, classify and store one entry. Returns None if dropped."""
     simhash = simhash64(entry.title)
@@ -124,8 +160,11 @@ async def store_entry(
         published_at=entry.published_at,
         settings=settings,
         now=now,
+        recent=recent,
     )
     if not verdict.should_store:
+        # Already counted by the URL screen for the common case; this catches
+        # a URL that appeared twice inside one batch.
         stats.articles_duplicate += 1
         return None
 
@@ -151,6 +190,9 @@ async def store_entry(
     session.add(article)
     await session.flush()
     stats.articles_new += 1
+    if recent is not None:
+        # So that two entries about one event in the same pass still collapse.
+        recent.add(article.id, simhash, article.story_cluster_id)
 
     if verdict.kind == "cluster_member":
         cluster = await dedup.attach_to_cluster(session, article=article, verdict=verdict, now=now)
@@ -198,6 +240,9 @@ async def run_ingestion(
     """One full ingestion pass. Records an ``ingest_runs`` row either way."""
     now = datetime.now(UTC)
     stats = RunStats()
+    deadline = Deadline.after(settings.ingest_run_deadline_seconds)
+    enrich_budget = settings.ingest_max_enrich_per_run if enrich_articles else 0
+    window_start = now - timedelta(hours=settings.dedup_window_hours)
 
     async with session_scope() as session:
         run = IngestRun(started_at=now, trigger=trigger)
@@ -209,6 +254,10 @@ async def run_ingestion(
         feed_meta = {
             feed.id: (feed.source_id, feed.topic_hint_id, feed.url, feed.language) for feed in feeds
         }
+        # Loaded once for the whole run, not once per candidate entry.
+        recent = await dedup.RecentIndex.load(session, since=window_start)
+
+    log.info("dedup_window_loaded", articles=len(recent), hours=settings.dedup_window_hours)
 
     log.info("ingest_run_started", run_id=run_id, feeds_due=stats.feeds_total)
 
@@ -232,8 +281,18 @@ async def run_ingestion(
                 if result.status != "ok" or not result.entries:
                     continue
 
+                if deadline.expired:
+                    stats.deadline_reached = True
+                    log.warning(
+                        "ingest_deadline_reached",
+                        run_id=run_id,
+                        entries_seen=stats.entries_seen,
+                        articles_new=stats.articles_new,
+                    )
+                    break
+
                 source_id, topic_hint, _, _ = feed_meta[result.feed_id]
-                await _store_feed_entries(
+                enrich_budget -= await _store_feed_entries(
                     result,
                     source_id=source_id,
                     topic_hint=topic_hint,
@@ -241,7 +300,9 @@ async def run_ingestion(
                     embedder=embedder,
                     settings=settings,
                     stats=stats,
-                    enrich_articles=enrich_articles,
+                    enrich_budget=enrich_budget,
+                    deadline=deadline,
+                    recent=recent,
                 )
 
     async with session_scope() as session:
@@ -258,6 +319,8 @@ async def run_ingestion(
                 articles_new=stats.articles_new,
                 articles_duplicate=stats.articles_duplicate,
                 articles_clustered=stats.articles_clustered,
+                articles_enriched=stats.articles_enriched,
+                deadline_reached=stats.deadline_reached,
                 gnews_calls=stats.gnews_calls,
                 error="\n".join(stats.errors[:20]) or None,
             )
@@ -279,8 +342,6 @@ async def _fetch_all(
     client: PoliteClient, feeds: list[Feed], settings: Settings
 ) -> list[FeedResult]:
     """Fetch every due feed, bounded concurrency, isolated failures."""
-    import asyncio
-
     semaphore = asyncio.Semaphore(settings.ingest_max_feed_concurrency)
 
     async def one(feed: Feed) -> FeedResult:
@@ -308,25 +369,53 @@ async def _store_feed_entries(
     embedder: Embedder,
     settings: Settings,
     stats: RunStats,
-    enrich_articles: bool,
-) -> None:
-    """Store one feed's entries, one transaction per entry.
+    enrich_budget: int,
+    deadline: Deadline,
+    recent: dedup.RecentIndex,
+) -> int:
+    """Store one feed's entries. Returns how much of the enrich budget it used.
 
-    Per-entry transactions cost a little throughput and buy a lot: a single
-    entry that violates a constraint rolls back alone instead of discarding the
-    fifty good ones fetched alongside it.
+    Order matters more than anything else in this function.
+
+    First, entries whose canonical URL we already hold are dropped. That is a
+    unique-index lookup, and in a steady state it removes almost everything a
+    feed returns - so it must happen before we spend an HTTP request, an
+    embedding or a transaction on them.
+
+    Then the survivors that are missing an image or a summary are enriched,
+    concurrently: ``PoliteClient`` already serialises per host, so doing this
+    inline in the storage loop bought nothing and made a pass take longer than
+    the interval between runs.
+
+    Storage stays serial and one transaction per entry. Serial because dedup
+    compares each candidate against what this run has already accepted; one
+    transaction each because an entry that violates a constraint should roll
+    back alone, not discard the fifty good ones fetched beside it.
     """
-    for entry in result.entries:
-        stats.entries_seen += 1
-        try:
-            if enrich_articles and (not entry.image_url or not entry.snippet):
-                metadata = await enrich(client, entry.url_canonical, settings)
-                if metadata.canonical_url:
-                    entry.url_canonical = metadata.canonical_url
-                entry.image_url = entry.image_url or metadata.image_url
-                entry.snippet = entry.snippet or metadata.description
-                entry.author_name = entry.author_name or metadata.author_name
+    async with session_scope() as session:
+        known = await dedup.filter_known_urls(
+            session, [entry.url_canonical for entry in result.entries]
+        )
 
+    fresh = [entry for entry in result.entries if entry.url_canonical not in known]
+    stats.entries_seen += len(result.entries)
+    stats.articles_duplicate += len(result.entries) - len(fresh)
+    if not fresh:
+        return 0
+
+    to_enrich = [entry for entry in fresh if not entry.image_url or not entry.snippet][
+        : max(0, enrich_budget)
+    ]
+    if to_enrich and not deadline.expired:
+        await _enrich_batch(
+            to_enrich, client=client, settings=settings, stats=stats, deadline=deadline
+        )
+
+    for entry in fresh:
+        if deadline.expired:
+            stats.deadline_reached = True
+            break
+        try:
             async with session_scope() as session:
                 await store_entry(
                     session,
@@ -338,7 +427,46 @@ async def _store_feed_entries(
                     settings=settings,
                     stats=stats,
                     now=datetime.now(UTC),
+                    recent=recent,
                 )
         except Exception as exc:
             stats.errors.append(f"entry {entry.url_canonical}: {type(exc).__name__}: {exc}")
             log.warning("entry_store_failed", url=entry.url_canonical, error=type(exc).__name__)
+
+    return len(to_enrich)
+
+
+async def _enrich_batch(
+    entries: list[ParsedEntry],
+    *,
+    client: PoliteClient,
+    settings: Settings,
+    stats: RunStats,
+    deadline: Deadline,
+) -> None:
+    """Fill in missing images, summaries and canonical URLs, best-effort.
+
+    Never raises and never blocks the run: enrichment improves an article the
+    feed already gave us, so anything that fails is simply left as it was.
+    """
+    semaphore = asyncio.Semaphore(settings.ingest_max_enrich_concurrency)
+
+    async def one(entry: ParsedEntry) -> None:
+        if deadline.expired:
+            return
+        async with semaphore:
+            metadata = await enrich(client, entry.url_canonical, settings)
+        if metadata.canonical_url:
+            entry.url_canonical = metadata.canonical_url
+        entry.image_url = entry.image_url or metadata.image_url
+        entry.snippet = entry.snippet or metadata.description
+        entry.author_name = entry.author_name or metadata.author_name
+        if metadata.image_url or metadata.description:
+            stats.articles_enriched += 1
+
+    try:
+        async with asyncio.timeout(deadline.remaining_seconds):
+            await asyncio.gather(*(one(entry) for entry in entries), return_exceptions=True)
+    except TimeoutError:
+        stats.deadline_reached = True
+        log.warning("enrichment_deadline_reached", pending=len(entries))

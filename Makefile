@@ -81,9 +81,12 @@ format: ## autoformat
 build: ## production build of the web app
 	pnpm --filter @justnews/web build
 
+smoke: ## check every locale is served by a running web app
+	bash scripts/smoke-web.sh
+
 bootstrap: ## install every dependency from a cold clone
 	uv sync
 	pnpm install
 
 .PHONY: help up down clean logs db-up db-down dev-api dev-web migrate migration \
-        seed ingest prune stats test lint format build bootstrap
+        seed ingest prune stats test lint format build smoke bootstrap

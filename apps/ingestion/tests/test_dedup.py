@@ -199,3 +199,85 @@ class TestNoBodyTextIsEverStored:
         # A copyright constraint expressed as a test: we store metadata only.
         columns = set(Article.__table__.columns.keys())
         assert columns & {"body", "content", "full_text", "text", "html"} == set()
+
+
+class TestUrlScreen:
+    async def test_returns_only_urls_already_held(self, session: AsyncSession) -> None:
+        source = await make_source(session)
+        await make_article(session, source, title="Known", url="https://a.com/known")
+        await session.flush()
+
+        known = await dedup.filter_known_urls(
+            session, ["https://a.com/known", "https://a.com/unseen"]
+        )
+        assert known == {"https://a.com/known"}
+
+    async def test_empty_input_does_not_query(self, session: AsyncSession) -> None:
+        assert await dedup.filter_known_urls(session, []) == set()
+
+
+class TestRecentIndex:
+    async def test_loads_only_the_window(self, session: AsyncSession) -> None:
+        from datetime import timedelta
+
+        source = await make_source(session)
+        await make_article(session, source, title="Inside the window", minutes_ago=10)
+        await make_article(
+            session,
+            source,
+            title="Long before",
+            published_at=datetime.now(UTC) - timedelta(days=30),
+        )
+        await session.flush()
+
+        index = await dedup.RecentIndex.load(session, since=datetime.now(UTC) - timedelta(hours=72))
+        assert len(index) == 1
+
+    async def test_holds_three_integers_not_articles(self, session: AsyncSession) -> None:
+        # The point of this class: the window costs kilobytes, not megabytes of
+        # vectors. Loading full rows per candidate is what made a pass overrun.
+        source = await make_source(session)
+        await make_article(session, source, title="Something recent")
+        await session.flush()
+
+        index = await dedup.RecentIndex.load(session, since=datetime.now(UTC) - timedelta(hours=72))
+        assert all(len(row) == 3 for row in index.rows)
+
+    async def test_articles_added_during_a_run_are_matched(self, session: AsyncSession) -> None:
+        # Two entries about the same event arriving in one pass must still
+        # collapse, even though the second was never in the loaded window.
+        index = dedup.RecentIndex()
+        title = "Central bank holds interest rates steady for a third meeting"
+        index.add(article_id=42, simhash=simhash64(title), cluster_id=None)
+
+        match = index.nearest(simhash64(title + "."), max_distance=3)
+        assert match is not None
+        assert match[0] == 42
+
+    async def test_unrelated_titles_do_not_match(self) -> None:
+        index = dedup.RecentIndex()
+        index.add(article_id=1, simhash=simhash64("Volcano erupts in Iceland"), cluster_id=None)
+        assert index.nearest(simhash64("Barcelona sign a teenage striker"), 3) is None
+
+
+class TestEmbeddingLayerUsesTheIndex:
+    async def test_nearest_by_embedding_returns_a_similarity(self, session: AsyncSession) -> None:
+        from datetime import timedelta
+
+        source = await make_source(session)
+        title = "Volcano erupts near Grindavik forcing evacuations in Iceland"
+        await make_article(session, source, title=title, url="https://a.com/v")
+        await session.flush()
+
+        nearest = await dedup._nearest_by_embedding(
+            session,
+            embedding=embed_article_text(EMBEDDER, title, None),
+            since=datetime.now(UTC) - timedelta(hours=72),
+        )
+        assert nearest is not None
+        article, similarity = nearest
+        assert article.title == title
+        # Same text against itself: pgvector's cosine distance must invert to
+        # a similarity near 1, not near 0. Getting this backwards would merge
+        # every unrelated pair in the corpus.
+        assert similarity > 0.99

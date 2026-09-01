@@ -23,6 +23,8 @@ justnews-ingest = "justnews_ingestion.__main__:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# py.typed ships the inline annotations, so downstream mypy sees real types
+# instead of falling back to Any at every package boundary.
 [tool.hatch.build.targets.wheel]
 packages = ["src/justnews_ingestion"]
 

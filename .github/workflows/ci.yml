@@ -91,3 +91,16 @@ jobs:
       - run: pnpm --filter @justnews/web lint
       - run: pnpm --filter @justnews/web typecheck
       - run: pnpm --filter @justnews/web build
+
+      - name: Every locale is actually served
+        # The build reporting N prerendered locales is not the same as the
+        # server returning 200 for them - a stale build cache once produced
+        # exactly that gap, and no source-level test could see it. So this asks
+        # the built server. The API is not running here, so pages render in
+        # their degraded state, which is itself worth exercising.
+        run: |
+          pnpm --filter @justnews/web start &
+          server=$!
+          trap 'kill $server' EXIT
+          timeout 60 bash -c 'until curl -sf http://127.0.0.1:3000/en > /dev/null; do sleep 1; done'
+          bash scripts/smoke-web.sh

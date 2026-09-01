@@ -364,8 +364,12 @@ class IngestRun(Base):
     articles_new: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     articles_duplicate: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     articles_clustered: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    articles_enriched: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     gnews_calls: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    # A run that stopped at its own deadline is healthy; one that was killed is
+    # not, and only a column can tell them apart after the fact.
+    deadline_reached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error: Mapped[str | None] = mapped_column(Text)
 
     __table_args__ = (Index("ix_ingest_runs_started", started_at.desc()),)

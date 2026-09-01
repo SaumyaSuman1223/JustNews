@@ -6,6 +6,11 @@
  * drives `dir` on <html> and therefore every logical CSS property - and the
  * fact that a locale is part of the route, not a cookie. Retrofitting either
  * into a finished layout costs several times what building with them costs.
+ *
+ * This list must match `LAUNCH_LANGUAGES` in justnews_core.language. A language
+ * we ingest but do not list here is content no reader can reach, and a locale
+ * listed here with no source behind it is an empty page. A test on the Python
+ * side reads this file and fails when the two drift apart.
  */
 
 export const locales = [
@@ -16,6 +21,9 @@ export const locales = [
   { code: "pt", label: "Português", dir: "ltr", htmlLang: "pt" },
   { code: "hi", label: "हिन्दी", dir: "ltr", htmlLang: "hi" },
   { code: "zh", label: "中文", dir: "ltr", htmlLang: "zh-Hans" },
+  { code: "sv", label: "Svenska", dir: "ltr", htmlLang: "sv" },
+  { code: "no", label: "Norsk", dir: "ltr", htmlLang: "no" },
+  { code: "da", label: "Dansk", dir: "ltr", htmlLang: "da" },
   { code: "ar", label: "العربية", dir: "rtl", htmlLang: "ar" },
 ] as const;
 

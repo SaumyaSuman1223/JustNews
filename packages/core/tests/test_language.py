@@ -50,3 +50,70 @@ class TestDetectLanguage:
             fallback="de",
         )
         assert result == "en"
+
+
+class TestDetectionAgainstRealMisfiles:
+    """Cases taken from articles this pipeline actually misfiled.
+
+    Each one is a real headline that reached the database under the wrong
+    language, making it invisible to every reader - the language filter is
+    exact, so a misfile is not a cosmetic error.
+    """
+
+    def test_short_english_headline_is_not_read_as_italian(self) -> None:
+        assert (
+            detect_language(
+                "Argentinian footballer Lionel Messi announces his retirement",
+                fallback="en",
+            )
+            == "en"
+        )
+
+    def test_short_english_headline_is_not_read_as_malay(self) -> None:
+        assert (
+            detect_language(
+                "Telangana CM launches Amberpet-Moosarambagh high-level bridge",
+                fallback="en",
+            )
+            == "en"
+        )
+
+    def test_short_arabic_headline_is_not_read_as_pashto(self) -> None:
+        assert detect_language("شاهد البث المباشر لتلفزيون بي بي سي", fallback="ar") == "ar"
+
+    def test_a_genuinely_different_language_still_wins(self) -> None:
+        # El Pais declares "es" and publishes some Catalan. Deferring to the
+        # feed unconditionally would be just as wrong as trusting a weak guess.
+        detected = detect_language(
+            "L'idCAT Mòbil permet accedir a La Meva Salut sense necessitat de contrasenya",
+            fallback="es",
+        )
+        assert detected == "ca"
+
+
+class TestMacrolanguageFolding:
+    def test_bokmal_under_a_norwegian_feed_stays_norwegian(self) -> None:
+        # NRK declares "no" and publishes both written standards. Splitting the
+        # corpus across no, nb and nn leaves a reader who picked "no" with
+        # nothing to read.
+        assert (
+            detect_language(
+                "Strengere EU-regler for ChatGPT, Reddit og Roblox etter nye vedtak i Brussel",
+                fallback="no",
+            )
+            == "no"
+        )
+
+    def test_nynorsk_under_a_norwegian_feed_stays_norwegian(self) -> None:
+        assert (
+            detect_language(
+                "Truls Gulowsen trekker seg som leiar i Naturvernforbundet etter mange år",
+                fallback="no",
+            )
+            == "no"
+        )
+
+    def test_folding_only_applies_when_the_feed_agrees(self) -> None:
+        # An English-declared feed that genuinely publishes Bokmal should keep
+        # the detected code rather than inventing "no".
+        assert detect_language("Kort tekst", fallback="en") == "en"

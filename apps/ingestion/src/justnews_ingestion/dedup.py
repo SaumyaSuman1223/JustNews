@@ -13,17 +13,31 @@ Spanish and Arabic collapses into one cluster (ADR 0005).
 
 The window matters. Without it, an anniversary piece merges with the original
 event a year earlier; every comparison is bounded to the last 72 hours.
+
+Cost matters as much as correctness here. This runs once per candidate entry,
+and a steady-state pass sees several hundred of them, so each layer has to stay
+cheap:
+
+* layer 1 is a unique-index lookup;
+* layer 2 reads ``(id, simhash, cluster)`` for the window **once per run** and
+  keeps it in memory - three integers a row, and Hamming distance needs the bits
+  rather than the article;
+* layer 3 is a single pgvector nearest-neighbour query against the HNSW index.
+
+The first implementation instead loaded every article in the window - full rows,
+384-dimension vector included - for every entry, and compared them in Python.
+That is O(entries x window) row loads per run and it never touched the index
+built for exactly this query.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.embedding import cosine_similarity
 from justnews_core.logging import get_logger
 from justnews_core.models import Article, StoryCluster
 from justnews_core.settings import Settings
@@ -55,16 +69,78 @@ async def find_by_canonical_url(session: AsyncSession, url_canonical: str) -> Ar
     return result.scalar_one_or_none()
 
 
-async def _recent_candidates(
-    session: AsyncSession, *, since: datetime, limit: int = 3000
-) -> list[Article]:
+async def filter_known_urls(session: AsyncSession, urls: list[str]) -> set[str]:
+    """Which of these canonical URLs we already hold.
+
+    One indexed query for a whole feed batch, run before anything expensive
+    touches an entry. In a steady state this is what removes the great majority
+    of what a feed returns.
+    """
+    if not urls:
+        return set()
     result = await session.execute(
-        select(Article)
-        .where(Article.published_at >= since)
-        .order_by(Article.published_at.desc())
-        .limit(limit)
+        select(Article.url_canonical).where(Article.url_canonical.in_(set(urls)))
     )
-    return list(result.scalars().all())
+    return set(result.scalars().all())
+
+
+@dataclass(slots=True)
+class RecentIndex:
+    """SimHashes of everything inside the dedup window, held in memory.
+
+    Loaded once per run rather than once per candidate. Three integers a row,
+    so the whole window costs a few tens of kilobytes - and articles stored
+    during the run are added as they land, so two entries about the same event
+    in one pass still collapse.
+    """
+
+    rows: list[tuple[int, int, int | None]] = field(default_factory=list)
+
+    @classmethod
+    async def load(cls, session: AsyncSession, *, since: datetime) -> RecentIndex:
+        result = await session.execute(
+            select(Article.id, Article.simhash, Article.story_cluster_id)
+            .where(Article.published_at >= since)
+            .order_by(Article.published_at.desc())
+        )
+        return cls(rows=[(int(a), int(b), c) for a, b, c in result.all()])
+
+    def add(self, article_id: int, simhash: int, cluster_id: int | None) -> None:
+        self.rows.append((article_id, simhash, cluster_id))
+
+    def nearest(self, simhash: int, max_distance: int) -> tuple[int, int | None, int] | None:
+        """First row within ``max_distance``, as (article_id, cluster_id, distance)."""
+        for article_id, other, cluster_id in self.rows:
+            distance = hamming_distance(simhash, other)
+            if distance <= max_distance:
+                return article_id, cluster_id, distance
+        return None
+
+    def __len__(self) -> int:
+        return len(self.rows)
+
+
+async def _nearest_by_embedding(
+    session: AsyncSession, *, embedding: list[float], since: datetime
+) -> tuple[Article, float] | None:
+    """Closest article in the window by cosine distance.
+
+    One query, ordered by pgvector's ``<=>`` operator so the HNSW index can
+    serve it, rather than pulling the window into Python.
+    """
+    distance = Article.embedding.cosine_distance(embedding).label("distance")
+    result = await session.execute(
+        select(Article, distance)
+        .where(Article.published_at >= since, Article.embedding.is_not(None))
+        .order_by(distance)
+        .limit(1)
+    )
+    row = result.first()
+    if row is None:
+        return None
+    article, cosine_distance = row
+    # pgvector returns a distance in [0, 2]; similarity is 1 - distance.
+    return article, 1.0 - float(cosine_distance)
 
 
 async def classify_candidate(
@@ -76,8 +152,13 @@ async def classify_candidate(
     published_at: datetime,
     settings: Settings,
     now: datetime | None = None,
+    recent: RecentIndex | None = None,
 ) -> DedupVerdict:
-    """Run all three layers in ascending order of cost."""
+    """Run all three layers in ascending order of cost.
+
+    ``recent`` is the per-run SimHash index. Passing None loads the window for
+    this call alone, which is convenient in tests and wasteful in a loop.
+    """
     now = now or datetime.now(UTC)
 
     existing = await find_by_canonical_url(session, url_canonical)
@@ -90,33 +171,27 @@ async def classify_candidate(
         )
 
     window_start = min(published_at, now) - timedelta(hours=settings.dedup_window_hours)
-    candidates = await _recent_candidates(session, since=window_start)
-    if not candidates:
+    if recent is None:
+        recent = await RecentIndex.load(session, since=window_start)
+    if not recent:
         return DedupVerdict("new", reason="no_candidates")
 
-    for candidate in candidates:
-        distance = hamming_distance(simhash, candidate.simhash)
-        if distance <= settings.dedup_simhash_max_distance:
-            return DedupVerdict(
-                "cluster_member",
-                existing_article_id=candidate.id,
-                story_cluster_id=candidate.story_cluster_id,
-                reason=f"simhash_distance_{distance}",
-            )
+    match = recent.nearest(simhash, settings.dedup_simhash_max_distance)
+    if match is not None:
+        article_id, cluster_id, distance = match
+        return DedupVerdict(
+            "cluster_member",
+            existing_article_id=article_id,
+            story_cluster_id=cluster_id,
+            reason=f"simhash_distance_{distance}",
+        )
 
     if embedding is None:
         return DedupVerdict("new", reason="no_embedding")
 
-    best: tuple[float, Article] | None = None
-    for candidate in candidates:
-        if candidate.embedding is None:
-            continue
-        similarity = cosine_similarity(embedding, [float(x) for x in candidate.embedding])
-        if best is None or similarity > best[0]:
-            best = (similarity, candidate)
-
-    if best is not None and best[0] >= settings.dedup_embedding_min_cosine:
-        similarity, candidate = best
+    nearest = await _nearest_by_embedding(session, embedding=embedding, since=window_start)
+    if nearest is not None and nearest[1] >= settings.dedup_embedding_min_cosine:
+        candidate, similarity = nearest
         return DedupVerdict(
             "cluster_member",
             existing_article_id=candidate.id,

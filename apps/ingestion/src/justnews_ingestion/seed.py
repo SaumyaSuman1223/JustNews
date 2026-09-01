@@ -251,14 +251,19 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         0.8,
         (SeedFeed("https://www.spiegel.de/schlagzeilen/tops/index.rss", "de"),),
     ),
+    # Portuguese. Two candidates were tried and dropped: G1 answers 403 on both
+    # robots.txt and its feed, and DW Brasil's advertised RSS path 500s. Every
+    # URL in this file has been fetched successfully at least once - a source
+    # list is worth exactly what actually responds, and a feed known to be
+    # broken should not ship just because backoff would hide it.
     SeedSource(
-        "g1",
-        "G1",
-        "https://g1.globo.com",
+        "publico",
+        "Público",
+        "https://www.publico.pt",
         "pt",
-        "BR",
-        0.75,
-        (SeedFeed("https://g1.globo.com/rss/g1/", "pt"),),
+        "PT",
+        0.8,
+        (SeedFeed("https://feeds.feedburner.com/PublicoRSS", "pt"),),
     ),
     SeedSource(
         "thehindu",
@@ -439,10 +444,28 @@ async def seed_sources(session: AsyncSession) -> tuple[int, int]:
     return sources_written, feeds_written
 
 
+async def find_orphaned_feeds(session: AsyncSession) -> list[str]:
+    """Active feeds in the database that this seed list no longer contains.
+
+    Seeding is additive on purpose: from Stage 4 the admin console adds sources
+    that were never in this file, and deleting anything absent from the list
+    would take those with it. But a feed dropped from the list stays active and
+    keeps failing forever, so it is reported rather than removed - deactivating
+    it is an operator decision, and the admin console is where that belongs.
+    """
+    seeded = {feed.url for source in SEED_SOURCES for feed in source.feeds}
+    result = await session.execute(select(Feed.url).where(Feed.active.is_(True)))
+    return sorted(url for url in result.scalars().all() if url not in seeded)
+
+
 async def seed_all(session: AsyncSession) -> dict[str, int]:
     topics = await seed_topics(session)
     editions = await seed_editions(session)
     sources, feeds = await seed_sources(session)
+    orphaned = await find_orphaned_feeds(session)
+
     result = {"topics": topics, "editions": editions, "sources": sources, "feeds": feeds}
-    log.info("seed_complete", **result)
-    return result
+    log.info("seed_complete", **result, orphaned_feeds=len(orphaned))
+    if orphaned:
+        log.warning("seed_orphaned_feeds", urls=orphaned[:10])
+    return result | {"orphaned_feeds": len(orphaned)}
