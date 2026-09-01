@@ -66,10 +66,10 @@ class Settings(BaseSettings):
     ingest_snippet_max_chars: int = 300
 
     # A run must always finish before the next one starts. The cron fires every
-    # 15 minutes and the Cloud Run Job is capped at 600s, so a pass that
-    # overruns is not slow - it is killed, mid-write, by whichever limit it hits
-    # first. The deadline below makes the run stop cleanly and record what it
-    # managed instead.
+    # 15 minutes and the GitHub Actions job is capped at 12 minutes (720s), so
+    # a pass that overruns is not slow - it is killed, mid-write, by whichever
+    # limit it hits first. The deadline below makes the run stop cleanly and
+    # record what it managed instead.
     ingest_run_deadline_seconds: float = 540.0
     # Enrichment is the expensive part: one HTTP fetch per article, throttled
     # per host. It improves articles that a feed left without an image or
@@ -96,7 +96,8 @@ class Settings(BaseSettings):
     auth_http_timeout_seconds: float = 5.0
 
     # --- rate limiting (Upstash Redis REST API - no persistent connection,
-    # which is what makes it viable on Cloud Run's scale-to-zero) ---
+    # which is what makes it viable on a free-tier host that scales to zero
+    # or spins down when idle) ---
     upstash_redis_rest_url: str | None = None
     upstash_redis_rest_token: str | None = None
     rate_limit_requests_per_minute: int = 120

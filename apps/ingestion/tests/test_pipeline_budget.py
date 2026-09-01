@@ -1,9 +1,10 @@
 """The run must finish before the next one starts.
 
-Ingestion is a Cloud Run Job on a fifteen-minute cron with a 600s job timeout.
-A pass that overruns is not slow - it is killed mid-write by whichever limit it
-hits first, which is how the first full run with enrichment enabled ended. The
-deadline and the enrichment budget are what make that impossible.
+Ingestion runs on a fifteen-minute GitHub Actions cron with a 12-minute
+(720s) job timeout. A pass that overruns is not slow - it is killed mid-write
+by whichever limit it hits first, which is how the first full run with
+enrichment enabled ended. The deadline and the enrichment budget are what
+make that impossible.
 """
 
 from __future__ import annotations
@@ -38,10 +39,11 @@ class TestDeadline:
 
 class TestBudgets:
     def test_defaults_leave_headroom_under_the_job_timeout(self) -> None:
-        # The Cloud Run Job is capped at 600s in infra/terraform. A deadline at
-        # or above that guarantees the platform kills us first, mid-write,
-        # which is exactly what the deadline exists to prevent.
-        assert Settings().ingest_run_deadline_seconds < 600
+        # `.github/workflows/ingest.yml` caps the job at timeout-minutes: 12
+        # (720s). A deadline comfortably below that guarantees the deadline
+        # itself stops the run cleanly, rather than the runner killing it
+        # mid-write.
+        assert Settings().ingest_run_deadline_seconds < 720
 
     def test_deadline_fits_inside_the_cron_interval(self) -> None:
         # The cron fires every 15 minutes; overlapping runs both pass dedup on

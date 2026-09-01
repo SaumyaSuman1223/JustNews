@@ -95,7 +95,7 @@ Both sets of numbers are recorded, including the gap between them.
   see only the languages they chose.
 - **Compliance targets the strictest applicable regime** — GDPR, UK GDPR, CCPA
   and India's DPDP — because a global audience means all of them apply.
-- **Cloud Run's US-only free region becomes the sharpest constraint in the
+- **The API's US free-tier region becomes the sharpest constraint in the
   system.** A reader in Delhi is ~230 ms away before the API does anything. The
   answer is to edge-render everything cacheable and reduce the personalised path
   to one round trip per session, then measure by region in Stage 8. See ADR 0003.

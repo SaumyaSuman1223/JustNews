@@ -1,7 +1,9 @@
 # 0001 — Initial stack
 
 - **Date:** 2026-09-01
-- **Status:** accepted
+- **Status:** accepted — its Cloud Run choice for the API is superseded by
+  [0010](0010-render-vercel-not-gcp.md); Next.js on Vercel, Supabase Postgres
+  and everything else below stands.
 
 ## Context
 

@@ -94,7 +94,7 @@ request time  →  ANN search + dot product + rerank  →  pure SQL + a little P
 
 - A `/feed` request costs a Postgres query, not a forward pass. p95 **< 200 ms**
   is realistic on a free tier; with ONNX in the loop it is not.
-- Cloud Run's 180,000 free vCPU-seconds/month stop being the binding constraint.
+- The API host's free monthly compute budget stops being the binding constraint.
 - Models upgrade, promote and roll back without an API deploy.
 - Missing or stale vectors fall back to the heuristic ranker, and the feed is
   still good.
@@ -147,17 +147,17 @@ Measured limits, verified September 2026.
 | GNews free tier | 100 req/day, 10 articles/req, **12-hour delay**, non-commercial | GNews cannot be primary. RSS is primary; GNews backfills search and thin languages |
 | Supabase free DB | 500 MB | 90-day retention, `halfvec` embeddings, monthly interaction rollups. Budget ≈ 3 KB/article |
 | Supabase free | pauses after **7 days** with no DB traffic | The 15-minute ingestion cron is also the keep-alive. Non-negotiable |
-| Cloud Run always-free | 2M req/mo, 180k vCPU-s, **US regions only** | **The sharpest constraint now the audience is global.** See below |
-| Vercel Hobby | non-commercial | Migration path is Cloudflare Pages or self-hosted Next.js on Cloud Run |
+| Render free tier | One free web service, spins down after 15 min idle | Cold start on the first request after idle. **The sharpest latency constraint now the audience is global.** See below, and ADR 0010 for what isn't independently re-verified here |
+| Vercel Hobby | non-commercial | Migration path is Cloudflare Pages or a self-hosted Next.js build |
 | IPTC Media Topics | 13 languages | Covers most of Europe, Arabic and Chinese. **No Hindi or other Indian languages** — those need our own labels |
 | Publisher copyright | — | Title, snippet ≤ 300 chars, image URL, source, author, canonical link. **Never full text.** Always link out |
 
-**On the US-only free region, given a global audience.** A reader in Delhi is
-~230 ms from `us-east1` before the API does any work. That is the single
+**On the US-region free tier, given a global audience.** A reader in Delhi is
+~230 ms from a US region before the API does any work. That is the single
 largest latency item in the system and no amount of query tuning touches it.
 The mitigations, in the order we apply them:
 
-1. **Anonymous and cacheable routes never reach Cloud Run.** Home, topic pages,
+1. **Anonymous and cacheable routes never reach the API.** Home, topic pages,
    story pages and article pages render on Vercel with ISR and are served from
    the edge PoP nearest the reader. For a news site this is the large majority
    of pageviews.

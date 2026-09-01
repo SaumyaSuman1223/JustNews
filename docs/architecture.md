@@ -17,8 +17,8 @@ publisher. It never stores or republishes full article text.
 | Service | Responsibility | Runs on | Scales on | Fails how |
 |---|---|---|---|---|
 | `web` | Rendering, routing, edge caching, SEO | Vercel | Requests (edge, automatic) | Falls back to cached pages; API failures render a degraded feed, never a 500 |
-| `api` | Feed, search, saves, history, admin, interaction logging | Cloud Run (`us-east1`) | Requests, scales to zero | 5xx budget; web serves cached content and a stale-data banner |
-| `ingestion` | RSS polling, GNews calls, metadata scraping, dedup, classification, embedding | Cloud Run Job, triggered by GitHub Actions cron every 15 min | Feed count | Per-feed isolation; one dead feed cannot stall a run. Site keeps serving existing articles |
+| `api` | Feed, search, saves, history, admin, interaction logging | Render (free tier) | Requests, scales to zero | 5xx budget; web serves cached content and a stale-data banner |
+| `ingestion` | RSS polling, GNews calls, metadata scraping, dedup, classification, embedding | GitHub Actions cron, every 15 min, no deploy target | Feed count | Per-feed isolation; one dead feed cannot stall a run. Site keeps serving existing articles |
 | `training` | FINDING training, clustering, ONNX export | Local / Colab / GH Actions, offline | Not user-facing | Nothing user-facing breaks; the last good model version stays live |
 | `db` | Everything durable + pgvector + auth + storage | Supabase (same region as `api`) | Vertically only, on the free tier | Hard dependency. This is the single point of failure and we accept that at this scale |
 
@@ -58,7 +58,7 @@ can promote or roll back the version.
 ## Why it is split this way
 
 **`web` / `api`.** If they were one service, every page render would be
-CPU-bound on Cloud Run and we would burn the free vCPU-second budget on HTML.
+CPU-bound on the API host and we would burn its free compute budget on HTML.
 Separating them lets Vercel's edge cache absorb the read traffic — which is
 almost all traffic on a news site — while the API handles only personalised and
 mutating calls.
@@ -78,7 +78,7 @@ things that cross are ONNX files and vectors.
 The two-tower structure means both encoders run offline, so a feed request is a
 database query. This is the decision the whole free-tier latency story rests on.
 
-**Edge / origin.** The API's free Cloud Run region is in the US, and the audience
+**Edge / origin.** The API's free-tier region is in the US, and the audience
 is global — a reader in Delhi is ~230 ms from the origin before it does any work.
 So the boundary is drawn by cacheability, not by feature: everything anonymous or
 cacheable (home, topic pages, story pages, articles) renders on Vercel and is

@@ -9,10 +9,10 @@ The obvious design is a `/rank` endpoint: take a user and a candidate set, run
 the model, return scores. It is how the research code thinks, and it is how
 most tutorials build it.
 
-On our infrastructure it is the wrong shape. ONNX Runtime on a cold Cloud Run
-instance adds container start plus model load to the first request. Every
-subsequent request spends real CPU on forward passes, drawn from a fixed
-180,000 vCPU-seconds per month. And a news feed is exactly the workload where
+On our infrastructure it is the wrong shape. ONNX Runtime on a cold instance
+of a free-tier host adds container start plus model load to the first
+request. Every subsequent request spends real CPU on forward passes, drawn
+from a fixed monthly compute budget. And a news feed is exactly the workload where
 the model's inputs barely change between requests — the same articles are
 scored for many users, and the same user is scored against overlapping
 candidates all day.

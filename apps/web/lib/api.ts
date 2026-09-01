@@ -5,7 +5,7 @@
  *
  * Anonymous, cacheable reads (articles, stats, topics, a story, search) use
  * plain `fetch` with an explicit `revalidate` - Next's fetch cache is how
- * these pages avoid a round trip to Cloud Run on every request (ADR 0003).
+ * these pages avoid a round trip to the API on every request (ADR 0003).
  * Their *types* still come from the generated schema, so a route that
  * changes shape fails `tsc` here too.
  *

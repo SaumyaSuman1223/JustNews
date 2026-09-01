@@ -1,9 +1,10 @@
 """``justnews-ingest`` - the ingestion CLI.
 
-Every subcommand is the entry point for a Cloud Run Job. The ``run`` command is
-also the Supabase keep-alive: a free project pauses after seven idle days, and
-the fifteen-minute cron that fetches feeds is what stops that happening
-(ADR 0003).
+Every subcommand is the entry point for a scheduled GitHub Actions run - see
+``.github/workflows/ingest.yml``; there is no separate deploy target
+(ADR 0010). The ``run`` command is also the Supabase keep-alive: a free
+project pauses after seven idle days, and the fifteen-minute cron that
+fetches feeds is what stops that happening (ADR 0003).
 """
 
 from __future__ import annotations

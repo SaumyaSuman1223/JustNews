@@ -1,8 +1,8 @@
 """Per-minute rate limiting via Upstash's REST API.
 
-Upstash, not a persistent Redis connection: Cloud Run scales to zero between
-requests, so a connection pool has nothing to sit on between them. A REST call
-per request is the shape that actually works here.
+Upstash, not a persistent Redis connection: the free-tier API host spins down
+between requests, so a connection pool has nothing to sit on between them. A
+REST call per request is the shape that actually works here.
 
 Degrades to a no-op when Upstash is not configured - the default in local dev
 and CI, where requiring a paid external dependency just to run `pytest` would

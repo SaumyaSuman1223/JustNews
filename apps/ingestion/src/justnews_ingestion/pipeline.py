@@ -19,7 +19,7 @@ entry a feed returns has already been ingested - 776 of 787 in one measured
 run - so enriching first meant an HTTP fetch per article we were about to
 discard.
 
-The fourth is the deadline. This runs as a Cloud Run Job on a fifteen-minute
+The fourth is the deadline. This runs on a fifteen-minute GitHub Actions
 cron, so a pass that overruns is not merely slow - it is killed mid-write by
 the job timeout or lapped by the next run. The run therefore stops itself
 cleanly and records what it managed, rather than being terminated with a
