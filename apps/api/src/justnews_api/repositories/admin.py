@@ -170,6 +170,47 @@ async def ctr_by_surface(
     ]
 
 
+async def ctr_by_ranking_policy(
+    session: AsyncSession, since: datetime, *, locale: str | None = None
+) -> list[dict[str, Any]]:
+    """The Stage 5 A/B result: CTR for the heuristic ranker against the
+    chronological control. Clicks are attributed to a policy through the
+    exact impression that produced them (``InteractionEvent.impression_id``
+    joined back to ``Impression.ranking_policy``), not through the click's
+    own surface or timestamp - a click with no impression id cannot be
+    attributed and is correctly excluded rather than guessed at.
+    """
+    impressions_query = (
+        select(Impression.ranking_policy, func.count().label("n"))
+        .where(Impression.served_at >= since)
+        .group_by(Impression.ranking_policy)
+    )
+    clicks_query = (
+        select(Impression.ranking_policy, func.count().label("n"))
+        .select_from(InteractionEvent)
+        .join(Impression, Impression.id == InteractionEvent.impression_id)
+        .where(InteractionEvent.event_type == "click", InteractionEvent.created_at >= since)
+        .group_by(Impression.ranking_policy)
+    )
+    if locale:
+        impressions_query = impressions_query.where(Impression.locale == locale)
+        clicks_query = clicks_query.where(InteractionEvent.locale == locale)
+
+    impressions = {
+        row.ranking_policy: row.n for row in (await session.execute(impressions_query)).all()
+    }
+    clicks = {row.ranking_policy: row.n for row in (await session.execute(clicks_query)).all()}
+
+    return [
+        {
+            "ranking_policy": policy,
+            "impressions": impressions.get(policy, 0),
+            "clicks": clicks.get(policy, 0),
+        }
+        for policy in sorted(set(impressions) | set(clicks))
+    ]
+
+
 async def top_articles(
     session: AsyncSession, since: datetime, *, limit: int, locale: str | None = None
 ) -> list[dict[str, Any]]:

@@ -5,7 +5,10 @@ from __future__ import annotations
 from httpx import AsyncClient
 from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source
+from justnews_testing.policy import find_user_id_for_policy
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from justnews_api.services.feed import HEURISTIC_POLICY
 
 
 class TestAdminAccessControl:
@@ -164,6 +167,7 @@ class TestAnalytics:
             "since",
             "active_users",
             "ctr_by_surface",
+            "ctr_by_ranking_policy",
             "top_articles",
             "top_sources",
         }
@@ -181,6 +185,32 @@ class TestAnalytics:
         admin = await make_beta_headers(session, role="admin")
         overview = await client.get("/v1/admin/analytics/overview", headers=admin)
         assert overview.json()["active_users"] >= 1
+
+    async def test_ctr_by_ranking_policy_attributes_a_click_to_its_impression(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        reader = await make_beta_headers(session, user_id=find_user_id_for_policy(HEURISTIC_POLICY))
+        feed = (await client.get("/v1/feed", headers=reader)).json()
+        impression_id = feed["items"][0]["impression_id"]
+        await client.post(
+            "/v1/history",
+            json={
+                "article_id": article.id,
+                "surface": "feed",
+                "position": 0,
+                "impression_id": impression_id,
+            },
+            headers=reader,
+        )
+
+        admin = await make_beta_headers(session, role="admin")
+        overview = await client.get("/v1/admin/analytics/overview", headers=admin)
+        by_policy = {row["ranking_policy"]: row for row in overview.json()["ctr_by_ranking_policy"]}
+        assert by_policy[HEURISTIC_POLICY]["clicks"] >= 1
 
 
 class TestAuditLog:

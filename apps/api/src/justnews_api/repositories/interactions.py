@@ -30,6 +30,7 @@ async def log_impressions(
     session_id: str,
     surface: str,
     locale: str,
+    ranking_policy: str,
     items: list[ImpressionToLog],
 ) -> list[int]:
     """Bulk insert, one row per served item.
@@ -51,6 +52,7 @@ async def log_impressions(
                 "surface": surface,
                 "locale": locale,
                 "propensity": item.propensity,
+                "ranking_policy": ranking_policy,
             }
             for item in items
         ],

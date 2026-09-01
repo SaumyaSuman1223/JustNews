@@ -511,6 +511,8 @@ export interface components {
         AnalyticsOverviewOut: {
             /** Active Users */
             active_users: number;
+            /** Ctr By Ranking Policy */
+            ctr_by_ranking_policy: components["schemas"]["RankingPolicyCtrOut"][];
             /** Ctr By Surface */
             ctr_by_surface: components["schemas"]["SurfaceCtrOut"][];
             /**
@@ -595,10 +597,16 @@ export interface components {
             /** Surface */
             surface: string;
         };
+        /** FeedItemOut */
+        FeedItemOut: {
+            article: components["schemas"]["ArticleOut"];
+            /** Impression Id */
+            impression_id: number;
+        };
         /** FeedPageOut */
         FeedPageOut: {
             /** Items */
-            items: components["schemas"]["ArticleOut"][];
+            items: components["schemas"]["FeedItemOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
         };
@@ -762,6 +770,15 @@ export interface components {
             article_id: number;
             /** Surface */
             surface: string;
+        };
+        /** RankingPolicyCtrOut */
+        RankingPolicyCtrOut: {
+            /** Clicks */
+            clicks: number;
+            /** Impressions */
+            impressions: number;
+            /** Ranking Policy */
+            ranking_policy: string;
         };
         /** Readiness */
         Readiness: {

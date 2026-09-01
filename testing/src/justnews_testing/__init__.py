@@ -9,11 +9,13 @@ from justnews_testing.auth import make_access_token
 from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source, make_topic
 from justnews_testing.fixtures import client, database, engine, session, truncate
+from justnews_testing.policy import find_user_id_for_policy
 
 __all__ = [
     "client",
     "database",
     "engine",
+    "find_user_id_for_policy",
     "make_access_token",
     "make_article",
     "make_beta_headers",

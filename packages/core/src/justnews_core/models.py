@@ -518,6 +518,12 @@ class Impression(Base):
     surface: Mapped[str] = mapped_column(String(16), nullable=False)
     locale: Mapped[str] = mapped_column(String(12), nullable=False)
     propensity: Mapped[float] = mapped_column(Float, nullable=False)
+    # Which serving policy produced this impression - "chronological" (the
+    # Stage 2 fallback and the Stage 5 A/B control) or "heuristic_v1" (the
+    # Stage 5 ranker). This is the experiment variant a reader was bucketed
+    # into, logged once per impression rather than recomputed later, for the
+    # same reason propensity is: it cannot be reconstructed after the fact.
+    ranking_policy: Mapped[str] = mapped_column(String(20), nullable=False)
     served_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow()
     )
@@ -527,8 +533,13 @@ class Impression(Base):
         CheckConstraint(
             "surface in ('feed', 'explore', 'search', 'topic')", name="ck_impressions_surface"
         ),
+        CheckConstraint(
+            "ranking_policy in ('chronological', 'heuristic_v1')",
+            name="ck_impressions_ranking_policy",
+        ),
         Index("ix_impressions_user_served", "user_id", served_at.desc()),
         Index("ix_impressions_session_served", "session_id", served_at.desc()),
+        Index("ix_impressions_policy_served", "ranking_policy", served_at.desc()),
     )
 
 

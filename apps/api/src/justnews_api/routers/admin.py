@@ -171,6 +171,12 @@ class SurfaceCtrOut(BaseModel):
     clicks: int
 
 
+class RankingPolicyCtrOut(BaseModel):
+    ranking_policy: str
+    impressions: int
+    clicks: int
+
+
 class TopArticleOut(BaseModel):
     id: int
     title: str
@@ -188,6 +194,8 @@ class AnalyticsOverviewOut(BaseModel):
     since: datetime
     active_users: int
     ctr_by_surface: list[SurfaceCtrOut]
+    # The Stage 5 A/B result: heuristic ranker vs chronological control.
+    ctr_by_ranking_policy: list[RankingPolicyCtrOut]
     top_articles: list[TopArticleOut]
     top_sources: list[TopSourceOut]
 
@@ -203,6 +211,9 @@ async def analytics_overview(
         since=overview.since,
         active_users=overview.active_users,
         ctr_by_surface=[SurfaceCtrOut(**row) for row in overview.ctr_by_surface],
+        ctr_by_ranking_policy=[
+            RankingPolicyCtrOut(**row) for row in overview.ctr_by_ranking_policy
+        ],
         top_articles=[TopArticleOut(**row) for row in overview.top_articles],
         top_sources=[TopSourceOut(**row) for row in overview.top_sources],
     )

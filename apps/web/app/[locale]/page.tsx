@@ -21,8 +21,18 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
 
   const [feed, stats, savedIds] = await Promise.all([
     auth && hasBetaAccess
-      ? getFeed(auth, { locale: active.code, pageSize: 24 })
-      : getArticles({ languages: active.code, pageSize: 24 }),
+      ? getFeed(auth, { locale: active.code, pageSize: 24 }).then((page) => ({
+          degraded: page.degraded,
+          items: page.data.items,
+          nextCursor: page.data.next_cursor,
+        }))
+      : getArticles({ languages: active.code, pageSize: 24 }).then((page) => ({
+          degraded: page.degraded,
+          // Uniform shape either way - an anonymous read has no impression
+          // to report a click against, so there is nothing to attribute.
+          items: page.data.items.map((article) => ({ article, impression_id: null })),
+          nextCursor: page.data.next_cursor,
+        })),
     getStats(),
     auth && hasBetaAccess
       ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
@@ -63,22 +73,23 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
         </dl>
       )}
 
-      {feed.data.items.length === 0 ? (
+      {feed.items.length === 0 ? (
         <p className="empty">
           Nothing here yet in {active.label}. Run <code>make ingest</code> to fetch headlines, or
           pick another language above.
         </p>
       ) : (
         <ul className="feed">
-          {feed.data.items.map((article, index) => (
+          {feed.items.map((item, index) => (
             <ArticleCard
-              key={article.id}
-              article={article}
+              key={item.article.id}
+              article={item.article}
+              impressionId={item.impression_id}
               locale={active.code}
               surface="feed"
               position={index}
               signedIn={hasBetaAccess}
-              saved={savedIds.has(article.id)}
+              saved={savedIds.has(item.article.id)}
               revalidatePath={`/${active.code}`}
             />
           ))}

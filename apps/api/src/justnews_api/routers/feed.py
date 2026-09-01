@@ -18,8 +18,17 @@ from justnews_core.language import normalise_language_code
 router = APIRouter(prefix="/v1", tags=["feed"])
 
 
+class FeedItemOut(BaseModel):
+    article: ArticleOut
+    # The exact impression this article was served under - hand it back on
+    # POST /v1/history so a later click attributes to the policy (heuristic
+    # vs chronological) that actually served it, not a guess reconstructed
+    # from a surface and a timestamp.
+    impression_id: int
+
+
 class FeedPageOut(BaseModel):
-    items: list[ArticleOut]
+    items: list[FeedItemOut]
     next_cursor: str | None = Field(default=None)
 
 
@@ -51,5 +60,9 @@ async def get_feed(
         page_size=page_size,
     )
     return FeedPageOut(
-        items=[ArticleOut.from_row(row) for row in page.items], next_cursor=page.next_cursor
+        items=[
+            FeedItemOut(article=ArticleOut.from_row(item.article), impression_id=item.impression_id)
+            for item in page.items
+        ],
+        next_cursor=page.next_cursor,
     )

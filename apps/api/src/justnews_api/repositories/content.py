@@ -28,6 +28,10 @@ class ArticleRow:
     source_name: str
     source_slug: str
     story_cluster_id: int | None
+    # Internal only - never exposed on ArticleOut. The Stage 5 ranker's one
+    # use for it; a public API response has no business telling a client how
+    # much we trust the source.
+    source_trust_score: float = 0.5
 
     @classmethod
     def from_pair(cls, article: Article, source: Source) -> ArticleRow:
@@ -42,6 +46,7 @@ class ArticleRow:
             source_name=source.name,
             source_slug=source.slug,
             story_cluster_id=article.story_cluster_id,
+            source_trust_score=source.trust_score,
         )
 
 
@@ -93,6 +98,42 @@ async def list_articles(
         query = query.where(
             tuple_(Article.published_at, Article.id) < (before_published_at, before_id)
         )
+
+    result = await session.execute(query)
+    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+
+
+async def list_articles_window(
+    session: AsyncSession,
+    *,
+    languages: list[str] | None,
+    upper_bound: datetime,
+    exclude_article_ids: set[int] | None,
+    limit: int,
+) -> list[ArticleRow]:
+    """A bounded, reproducible candidate pool for the Stage 5 ranker:
+    everything published at or before ``upper_bound``, most recent first.
+
+    Deliberately not keyset-continued the way ``list_articles`` is. The
+    ranker scores this whole window and reorders it, so "the next page" has
+    no fixed relationship to any one row's ``(published_at, id)`` - what has
+    to stay fixed across pages of *one ranked feed* is the window itself.
+    Freezing it by bounding on ``upper_bound`` is what makes offset slicing
+    into the ranked result safe: nothing published after the bound can enter
+    this query, ever, so the classic offset-pagination bug (a live-growing
+    table shifting rows underneath a fixed offset) cannot occur here - see
+    ``services.ranking``.
+    """
+    query = (
+        _base_query()
+        .where(Article.published_at <= upper_bound)
+        .order_by(Article.published_at.desc(), Article.id.desc())
+        .limit(limit)
+    )
+    if languages:
+        query = query.where(Article.language.in_(languages))
+    if exclude_article_ids:
+        query = query.where(Article.id.notin_(exclude_article_ids))
 
     result = await session.execute(query)
     return [ArticleRow.from_pair(article, source) for article, source in result.all()]

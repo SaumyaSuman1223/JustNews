@@ -107,6 +107,7 @@ working.
 - [0006](docs/decisions/0006-iptc-taxonomy.md) — IPTC Media Topics as the topic taxonomy
 - [0007](docs/decisions/0007-auth-and-rls.md) — application-verified JWTs, and RLS keyed off a session GUC
 - [0008](docs/decisions/0008-beta-gate-and-admin-rls.md) — a beta gate separate from sign-in, and an RLS bypass for admin
+- [0009](docs/decisions/0009-ranked-feed-pagination.md) — a frozen-window cursor for the ranked feed
 
 ## Content policy
 

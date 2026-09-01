@@ -13,6 +13,10 @@ export interface ArticleCardProps {
   /** Where this card was shown - logged with the click, for later analysis. */
   surface: "feed" | "explore" | "search" | "topic";
   position: number;
+  /** The impression this card was served under, if any - lets a click be
+   * attributed to the exact serving policy (Stage 5's A/B split) rather
+   * than guessed at. Anonymous and non-feed surfaces have none. */
+  impressionId?: number | null;
   /** Only a signed-in reader gets save / not-interested controls. */
   signedIn: boolean;
   saved?: boolean;
@@ -27,6 +31,7 @@ export function ArticleCard({
   locale,
   surface,
   position,
+  impressionId,
   signedIn,
   saved = false,
   revalidatePath,
@@ -38,7 +43,12 @@ export function ArticleCard({
     void fetch("/api/click", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ articleId: article.id, surface, position }),
+      body: JSON.stringify({
+        articleId: article.id,
+        surface,
+        position,
+        impressionId: impressionId ?? undefined,
+      }),
       keepalive: true,
     });
   }

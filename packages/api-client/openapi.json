@@ -7,6 +7,13 @@
             "title": "Active Users",
             "type": "integer"
           },
+          "ctr_by_ranking_policy": {
+            "items": {
+              "$ref": "#/components/schemas/RankingPolicyCtrOut"
+            },
+            "title": "Ctr By Ranking Policy",
+            "type": "array"
+          },
           "ctr_by_surface": {
             "items": {
               "$ref": "#/components/schemas/SurfaceCtrOut"
@@ -38,6 +45,7 @@
           "since",
           "active_users",
           "ctr_by_surface",
+          "ctr_by_ranking_policy",
           "top_articles",
           "top_sources"
         ],
@@ -259,11 +267,28 @@
         "title": "ClickIn",
         "type": "object"
       },
+      "FeedItemOut": {
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/ArticleOut"
+          },
+          "impression_id": {
+            "title": "Impression Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "article",
+          "impression_id"
+        ],
+        "title": "FeedItemOut",
+        "type": "object"
+      },
       "FeedPageOut": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/ArticleOut"
+              "$ref": "#/components/schemas/FeedItemOut"
             },
             "title": "Items",
             "type": "array"
@@ -701,6 +726,29 @@
           "surface"
         ],
         "title": "NotInterestedIn",
+        "type": "object"
+      },
+      "RankingPolicyCtrOut": {
+        "properties": {
+          "clicks": {
+            "title": "Clicks",
+            "type": "integer"
+          },
+          "impressions": {
+            "title": "Impressions",
+            "type": "integer"
+          },
+          "ranking_policy": {
+            "title": "Ranking Policy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ranking_policy",
+          "impressions",
+          "clicks"
+        ],
+        "title": "RankingPolicyCtrOut",
         "type": "object"
       },
       "Readiness": {

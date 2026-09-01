@@ -108,6 +108,7 @@ class AnalyticsOverview:
     since: datetime
     active_users: int
     ctr_by_surface: list[dict[str, Any]]
+    ctr_by_ranking_policy: list[dict[str, Any]]
     top_articles: list[dict[str, Any]]
     top_sources: list[dict[str, Any]]
 
@@ -122,6 +123,7 @@ async def get_analytics_overview(
         since=since,
         active_users=await repo.active_user_count(session, since),
         ctr_by_surface=await repo.ctr_by_surface(session, since, locale=locale),
+        ctr_by_ranking_policy=await repo.ctr_by_ranking_policy(session, since, locale=locale),
         top_articles=await repo.top_articles(session, since, limit=10, locale=locale),
         top_sources=await repo.source_performance(session, since, limit=10, locale=locale),
     )

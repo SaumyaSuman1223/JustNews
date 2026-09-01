@@ -65,15 +65,23 @@ export async function updateLanguagesFormAction(formData: FormData): Promise<voi
 }
 
 /**
- * Follows every topic the reader checked, then sends them into their new
- * feed - the onboarding topic picker's one job. Skippable entirely: a reader
- * who follows nothing just gets the unfiltered, reverse-chronological feed
- * until the Stage 7 exploration deck exists to do this by behaviour instead.
+ * Saves the reader's chosen languages and follows every topic they checked,
+ * then sends them into their new feed. Topics are skippable entirely - a
+ * reader who follows none just gets the unfiltered feed until the Stage 7
+ * exploration deck exists to infer interest from behaviour instead.
+ * The API requires at least one language; the form pre-checks the reader's
+ * current locale so there is always one checked by default, but nothing
+ * here stops every box being unchecked - that case is simply a no-op update
+ * (api.updateMe is skipped when the list is empty) rather than a form error.
  */
 export async function completeOnboardingAction(locale: string, formData: FormData): Promise<void> {
   const auth = await authOrNull();
   if (auth) {
+    const languages = formData.getAll("languages").map(String);
     const topicIds = formData.getAll("topics").map(String);
+    if (languages.length > 0) {
+      await api.updateMe(auth, languages);
+    }
     await Promise.all(topicIds.map((topicId) => api.followTopic(auth, topicId)));
   }
   redirect(`/${locale}`);

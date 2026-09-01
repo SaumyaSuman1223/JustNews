@@ -44,3 +44,39 @@ def decode_cursor(cursor: str) -> tuple[datetime, int]:
     if published_at.tzinfo is None:
         raise ValidationError("Cursor timestamp must be timezone-aware.")
     return published_at, article_id
+
+
+_RANK_CURSOR_VERSION = 2
+
+
+def encode_rank_cursor(window_upper_bound: datetime, offset: int) -> str:
+    """For the Stage 5 ranked feed: not a row's sort key, but a position
+    inside one already-scored, frozen candidate window - see
+    ``repositories.content.list_articles_window``."""
+    payload = {
+        "v": _RANK_CURSOR_VERSION,
+        "w": window_upper_bound.astimezone(UTC).isoformat(),
+        "o": offset,
+    }
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def decode_rank_cursor(cursor: str) -> tuple[datetime, int]:
+    padding = "=" * (-len(cursor) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if payload["v"] != _RANK_CURSOR_VERSION:
+            raise ValidationError("Cursor is from an incompatible version.")
+        window_upper_bound = datetime.fromisoformat(payload["w"])
+        offset = int(payload["o"])
+    except ValidationError:
+        raise
+    except (KeyError, ValueError, TypeError, binascii.Error, UnicodeDecodeError) as exc:
+        raise ValidationError("Cursor is not valid.") from exc
+
+    if window_upper_bound.tzinfo is None:
+        raise ValidationError("Cursor timestamp must be timezone-aware.")
+    if offset < 0:
+        raise ValidationError("Cursor is not valid.")
+    return window_upper_bound, offset
