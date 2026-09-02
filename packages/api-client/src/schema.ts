@@ -243,6 +243,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/explore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Explore
+         * @description Latest news, ranked, no sign-in required.
+         *
+         *     Unlike /v1/feed this is not behind the beta gate or `require_user`: a
+         *     signed-out visitor is exactly who explore is for, and their impressions
+         *     are logged against their browsing session rather than a user id.
+         */
+        get: operations["get_explore_v1_explore_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/feed": {
         parameters: {
             query?: never;
@@ -1392,6 +1416,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_explore_v1_explore_get: {
+        parameters: {
+            query?: {
+                languages?: string | null;
+                /** @description UI locale the page was rendered in. */
+                locale?: string;
+                cursor?: string | null;
+                page_size?: number;
+            };
+            header?: {
+                "x-session-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedPageOut"];
                 };
             };
             /** @description Validation Error */

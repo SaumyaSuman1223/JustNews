@@ -22,6 +22,7 @@ impressions this system already served.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -58,13 +59,41 @@ HEURISTIC_POLICY = "heuristic_v1"
 CHRONOLOGICAL_POLICY = "chronological"
 
 
+@dataclass(frozen=True, slots=True)
+class PolicyRequest:
+    """Everything any ranking policy is allowed to ask for.
+
+    One shape for every policy so the serving path never branches on which one
+    is in play. A policy that does not need `user_id` simply ignores it - which
+    is what makes adding a new ranker a matter of writing a function and
+    registering it, rather than editing get_feed_page.
+    """
+
+    user_id: UUID
+    languages: list[str] | None
+    excluded: set[int]
+    cursor: str | None
+    page_size: int
+
+
+RankingPolicy = Callable[[AsyncSession, PolicyRequest], Awaitable["_UnloggedPage"]]
+
+
 def assign_policy(user_id: UUID) -> str:
     """Stable per reader: the same user id always lands in the same bucket,
     which is what makes this an A/B test rather than a coin flip on every
     request. Not stored anywhere - recomputed identically each time from the
-    one thing that never changes, the user's own id."""
+    one thing that never changes, the user's own id.
+
+    Buckets over EXPERIMENT_POLICIES, not POLICIES. Registering a ranker and
+    putting it in front of readers are deliberately separate decisions: a new
+    model gets implemented and tested first, and only joins the split when
+    someone decides it should. Adding one to EXPERIMENT_POLICIES does
+    re-bucket every reader, which ends the running experiment - that is
+    inherent to changing the split, not something to paper over.
+    """
     digest = hashlib.sha256(str(user_id).encode("ascii")).digest()
-    return HEURISTIC_POLICY if digest[0] % 2 == 0 else CHRONOLOGICAL_POLICY
+    return EXPERIMENT_POLICIES[digest[0] % len(EXPERIMENT_POLICIES)]
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,23 +136,16 @@ async def get_feed_page(
     excluded = await interactions_repo.excluded_article_ids(session, user_id)
     policy = assign_policy(user_id)
 
-    if policy == HEURISTIC_POLICY:
-        unlogged = await _get_heuristic_page(
-            session,
+    unlogged = await POLICIES[policy](
+        session,
+        PolicyRequest(
             user_id=user_id,
             languages=requested_languages,
             excluded=excluded,
             cursor=cursor,
             page_size=page_size,
-        )
-    else:
-        unlogged = await _get_chronological_page(
-            session,
-            languages=requested_languages,
-            excluded=excluded,
-            cursor=cursor,
-            page_size=page_size,
-        )
+        ),
+    )
 
     if not unlogged.articles:
         return FeedPage(items=[], next_cursor=unlogged.next_cursor)
@@ -147,46 +169,32 @@ async def get_feed_page(
     return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
 
-async def _get_chronological_page(
-    session: AsyncSession,
-    *,
-    languages: list[str] | None,
-    excluded: set[int],
-    cursor: str | None,
-    page_size: int,
-) -> _UnloggedPage:
+async def _get_chronological_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
     before_published_at, before_id = (None, None)
-    if cursor:
-        before_published_at, before_id = decode_cursor(cursor)
+    if request.cursor:
+        before_published_at, before_id = decode_cursor(request.cursor)
 
     rows = await content_repo.list_articles(
         session,
-        languages=languages,
-        limit=page_size + 1,
+        languages=request.languages,
+        limit=request.page_size + 1,
         before_published_at=before_published_at,
         before_id=before_id,
-        exclude_article_ids=excluded,
+        exclude_article_ids=request.excluded,
     )
-    has_more = len(rows) > page_size
-    articles = rows[:page_size]
+    has_more = len(rows) > request.page_size
+    articles = rows[: request.page_size]
     next_cursor = (
         encode_cursor(articles[-1].published_at, articles[-1].id) if has_more and articles else None
     )
     return _UnloggedPage(articles=articles, next_cursor=next_cursor)
 
 
-async def _get_heuristic_page(
-    session: AsyncSession,
-    *,
-    user_id: UUID,
-    languages: list[str] | None,
-    excluded: set[int],
-    cursor: str | None,
-    page_size: int,
-) -> _UnloggedPage:
+async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
+    languages, page_size = request.languages, request.page_size
     now = datetime.now(UTC)
-    if cursor:
-        window_upper_bound, offset = decode_rank_cursor(cursor)
+    if request.cursor:
+        window_upper_bound, offset = decode_rank_cursor(request.cursor)
     else:
         window_upper_bound, offset = now, 0
 
@@ -194,7 +202,7 @@ async def _get_heuristic_page(
         session,
         languages=languages,
         upper_bound=window_upper_bound,
-        exclude_article_ids=excluded,
+        exclude_article_ids=request.excluded,
         limit=CANDIDATE_POOL_SIZE,
     )
     candidate_ids = [row.id for row in candidates]
@@ -205,8 +213,10 @@ async def _get_heuristic_page(
     click_counts = await ranking_repo.recent_click_counts(
         session, candidate_ids, since=now - POPULARITY_WINDOW
     )
-    followed_topic_ids = await follows_repo.list_followed_topic_ids(session, user_id)
-    seen_ids = await ranking_repo.seen_article_ids(session, user_id, since=now - SEEN_WINDOW)
+    followed_topic_ids = await follows_repo.list_followed_topic_ids(session, request.user_id)
+    seen_ids = await ranking_repo.seen_article_ids(
+        session, request.user_id, since=now - SEEN_WINDOW
+    )
 
     scored = ranking.score_candidates(
         candidates,
@@ -223,3 +233,24 @@ async def _get_heuristic_page(
     has_more = len(ranked) > offset + page_size
     next_cursor = encode_rank_cursor(window_upper_bound, offset + page_size) if has_more else None
     return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+
+
+# --- the ranking registry -------------------------------------------------
+#
+# The seam this whole module is shaped around. Adding a ranker - Stage 6's
+# FINDING model, or anything after it - means writing one function with the
+# RankingPolicy signature and adding one entry here. get_feed_page does not
+# change, impression logging does not change, and the A/B attribution built in
+# Stage 5 keeps working because `ranking_policy` is just this key.
+#
+# Defined at the bottom because the values are the functions above; the names
+# are resolved when a request is served, not at import.
+POLICIES: dict[str, RankingPolicy] = {
+    HEURISTIC_POLICY: _get_heuristic_page,
+    CHRONOLOGICAL_POLICY: _get_chronological_page,
+}
+
+# Which of them are currently in front of readers. Deliberately a separate
+# list: a new ranker should be registered, exercised and measured offline
+# before it is added here, and adding it re-buckets every reader.
+EXPERIMENT_POLICIES: tuple[str, ...] = (HEURISTIC_POLICY, CHRONOLOGICAL_POLICY)

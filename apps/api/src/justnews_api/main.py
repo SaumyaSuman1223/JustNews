@@ -14,6 +14,7 @@ from justnews_api.core.ratelimit import RateLimitMiddleware
 from justnews_api.routers import (
     admin,
     content,
+    explore,
     feed,
     follows,
     health,
@@ -76,6 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(content.router)
     app.include_router(feed.router)
+    app.include_router(explore.router)
     app.include_router(me.router)
     app.include_router(saves.router)
     app.include_router(follows.router)

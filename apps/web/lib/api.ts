@@ -157,6 +157,39 @@ export async function getFeed(
   return { data, degraded: false };
 }
 
+/**
+ * Explore works signed-out - that is who it is for - so `auth` is nullable.
+ * The browsing session id is still sent either way: an anonymous reader's
+ * impressions are keyed by it alone, which is what lets a click from explore
+ * be attributed at all before anyone has an account.
+ *
+ * Not cached, unlike the other anonymous reads in this file. Each request
+ * logs the impressions it served, so a shared cached response would attribute
+ * one visitor's page to everyone who got the same cache entry.
+ */
+export async function getExplore(
+  auth: AuthContext | null,
+  params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
+): Promise<Degradable<FeedPage>> {
+  const client = createApiClient(API_URL, {
+    accessToken: auth?.accessToken,
+    sessionId: auth?.sessionId,
+  });
+  const { data, error } = await client.GET("/v1/explore", {
+    params: {
+      query: {
+        languages: params.languages,
+        locale: params.locale,
+        cursor: params.cursor,
+        page_size: params.pageSize ?? 20,
+      },
+    },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (error || !data) return { data: EMPTY_FEED, degraded: true };
+  return { data, degraded: false };
+}
+
 export async function getMe(auth: AuthContext): Promise<MeProfile | null> {
   const { data } = await authedClient(auth).GET("/v1/me", {
     signal: AbortSignal.timeout(TIMEOUT_MS),
