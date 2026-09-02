@@ -34,6 +34,10 @@ export async function generateMetadata({
     title: article.title,
     description: article.snippet ?? undefined,
     alternates: { canonical: `/${(await params).locale}/a/${article.id}` },
+    // The publisher's own photo, used as-is - it isn't ours to alter. Falls
+    // through to the generated default (opengraph-image.tsx) when an
+    // article has none.
+    ...(article.image_url && { openGraph: { images: [{ url: article.image_url }] } }),
   };
 }
 

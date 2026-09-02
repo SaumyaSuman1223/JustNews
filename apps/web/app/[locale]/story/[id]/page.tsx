@@ -27,9 +27,13 @@ export async function generateMetadata({
   const { locale, id } = await params;
   const detail = await loadStory(id);
   if (!detail) return { title: "Not found" };
+  const leadImage = detail.articles[0]?.image_url;
   return {
     title: detail.story.title,
     alternates: { canonical: `/${locale}/story/${detail.story.id}` },
+    // The lead article's own photo - same reasoning as the article page:
+    // falls through to the generated default when there isn't one.
+    ...(leadImage && { openGraph: { images: [{ url: leadImage }] } }),
   };
 }
 
