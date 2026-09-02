@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from justnews_core.settings import Settings
 from justnews_ingestion.pipeline import Deadline, RunStats
 
@@ -54,6 +56,44 @@ class TestBudgets:
         settings = Settings()
         assert settings.ingest_max_enrich_per_run > 0
         assert settings.ingest_max_enrich_concurrency > 1
+
+
+class TestGnewsReservation:
+    """RSS has first claim on the run deadline, not the *entire* deadline.
+
+    A feed catalog large enough to fill the whole run on RSS alone - which is
+    what actually happens every run, in steady state - must still leave a
+    reserved slice for GNews backfill, or backfill never runs at all, ever.
+    This is exactly the arithmetic run_ingestion uses to build rss_deadline
+    from the shared deadline.
+    """
+
+    def test_the_reservation_is_smaller_than_the_full_deadline(self) -> None:
+        settings = Settings()
+        assert 0 < settings.gnews_backfill_reserved_seconds < settings.ingest_run_deadline_seconds
+
+    def test_rss_deadline_expires_before_the_overall_deadline_by_the_reserved_amount(
+        self,
+    ) -> None:
+        settings = Settings(ingest_run_deadline_seconds=540.0, gnews_backfill_reserved_seconds=45.0)
+        deadline = Deadline.after(settings.ingest_run_deadline_seconds)
+        rss_deadline = Deadline.after(
+            settings.ingest_run_deadline_seconds - settings.gnews_backfill_reserved_seconds
+        )
+        gap = deadline.expires_at - rss_deadline.expires_at
+        # Not exact equality: real (tiny) time passes between the two
+        # Deadline.after() calls above, same as it would in run_ingestion.
+        assert gap == pytest.approx(settings.gnews_backfill_reserved_seconds, abs=0.01)
+
+    def test_a_reservation_larger_than_the_deadline_never_goes_negative(self) -> None:
+        # max(..., 0) in run_ingestion - a misconfigured reservation must
+        # degrade to "RSS gets no time," never to a negative Deadline budget.
+        settings = Settings(ingest_run_deadline_seconds=30.0, gnews_backfill_reserved_seconds=90.0)
+        budget = max(
+            settings.ingest_run_deadline_seconds - settings.gnews_backfill_reserved_seconds, 0
+        )
+        assert budget == 0
+        assert Deadline.after(budget).expired
 
 
 class TestRunStats:
