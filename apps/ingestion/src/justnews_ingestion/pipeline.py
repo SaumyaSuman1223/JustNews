@@ -360,6 +360,13 @@ async def run_ingestion(
     now = datetime.now(UTC)
     stats = RunStats()
     deadline = Deadline.after(settings.ingest_run_deadline_seconds)
+    # RSS gets first claim on the budget, not the *entire* budget - without
+    # its own, shorter deadline, a feed catalog that fills the full run every
+    # time (it does, in steady state) starves GNews backfill completely,
+    # every run, forever. `deadline` itself still bounds the backfill step.
+    rss_deadline = Deadline.after(
+        max(settings.ingest_run_deadline_seconds - settings.gnews_backfill_reserved_seconds, 0)
+    )
     enrich_budget = settings.ingest_max_enrich_per_run if enrich_articles else 0
     window_start = now - timedelta(hours=settings.dedup_window_hours)
 
@@ -400,7 +407,7 @@ async def run_ingestion(
                 if result.status != "ok" or not result.entries:
                     continue
 
-                if deadline.expired:
+                if rss_deadline.expired:
                     stats.deadline_reached = True
                     log.warning(
                         "ingest_deadline_reached",
@@ -420,7 +427,7 @@ async def run_ingestion(
                     settings=settings,
                     stats=stats,
                     enrich_budget=enrich_budget,
-                    deadline=deadline,
+                    deadline=rss_deadline,
                     recent=recent,
                 )
 

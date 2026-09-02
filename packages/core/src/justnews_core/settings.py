@@ -99,6 +99,13 @@ class Settings(BaseSettings):
     # How far back thin_languages looks when counting recent articles per
     # language to decide which ones need a GNews backfill this run.
     gnews_backfill_window_hours: int = 24
+    # Seconds of the run deadline set aside exclusively for GNews backfill.
+    # Without this, a feed catalog large enough to fill the whole deadline on
+    # RSS alone (measured: it does, every run, in steady state) means
+    # backfill never gets a turn at all - RSS having first claim on the
+    # budget was the intent, RSS having the *entire* budget every single run
+    # was not.
+    gnews_backfill_reserved_seconds: float = 45.0
 
     # --- dedup thresholds (ADR: three layers) ---
     dedup_simhash_max_distance: int = 3

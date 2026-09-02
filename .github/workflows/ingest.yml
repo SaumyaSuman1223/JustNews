@@ -11,7 +11,11 @@ name: ingest
 # (ADR 0010).
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Offset from the hour/quarter-hour marks, not "*/15 * * * *" - GitHub's
+    # own docs single those out as the most congested scheduling windows on
+    # public repos, and it showed: two scheduled runs actually fired in over
+    # 6 hours instead of the ~24 this schedule should have produced.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
       command:
