@@ -11,27 +11,232 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import SourceCategoryMap
+from justnews_core.logging import get_logger
+from justnews_core.models import Article, ArticleTopic, Feed, SourceCategoryMap
 from justnews_core.taxonomy import map_category
 from justnews_core.text import tokenise
+
+log = get_logger(__name__)
 
 # Keyword hints for the classify-from-text fallback. Deliberately small and
 # conservative: a wrong topic is worse than no topic, because it teaches the
 # ranker something false. Replaced by a trained classifier when the volume
 # justifies one.
+#
+# One tuple per language per topic. This used to be English-only, which meant
+# every Spanish and Hindi article that arrived through a general feed - i.e.
+# most of them - fell through all three classification paths and ended up with
+# no topic at all. Terms are surface forms, not stems, because nothing here
+# stems: they have to match tokens as they actually appear in a headline.
 _KEYWORD_HINTS: dict[str, tuple[str, ...]] = {
-    "medtop:15000000": ("goal", "match", "striker", "tournament", "league", "cup", "olympic"),
-    "medtop:04000000": ("shares", "revenue", "inflation", "earnings", "merger", "ipo", "tariff"),
-    "medtop:11000000": ("election", "parliament", "minister", "senate", "coalition", "voters"),
-    "medtop:16000000": ("airstrike", "ceasefire", "troops", "offensive", "militants", "truce"),
-    "medtop:13000000": ("satellite", "algorithm", "startup", "chip", "software", "spacecraft"),
-    "medtop:07000000": ("outbreak", "vaccine", "hospital", "patients", "virus", "disease"),
-    "medtop:17000000": ("storm", "hurricane", "typhoon", "heatwave", "rainfall", "blizzard"),
-    "medtop:03000000": ("earthquake", "wildfire", "flood", "crash", "collapse", "evacuated"),
-    "medtop:06000000": ("emissions", "biodiversity", "deforestation", "pollution", "wildlife"),
-    "medtop:02000000": ("arrested", "convicted", "trial", "lawsuit", "prosecutors", "verdict"),
+    # Sport
+    "medtop:15000000": (
+        "goal",
+        "match",
+        "striker",
+        "tournament",
+        "league",
+        "cup",
+        "olympic",
+        "gol",
+        "partido",
+        "liga",
+        "torneo",
+        "campeonato",
+        "futbolista",
+        "क्रिकेट",
+        "मैच",
+        "टीम",
+        "खिलाड़ी",
+        "टूर्नामेंट",
+        "पारी",
+    ),
+    # Economy, business and finance
+    "medtop:04000000": (
+        "shares",
+        "revenue",
+        "inflation",
+        "earnings",
+        "merger",
+        "ipo",
+        "tariff",
+        "acciones",
+        "inflación",
+        "ingresos",
+        "bolsa",
+        "aranceles",
+        "beneficios",
+        "शेयर",
+        "बाजार",
+        "अर्थव्यवस्था",
+        "महंगाई",
+        "निवेश",
+        "कारोबार",
+    ),
+    # Politics
+    "medtop:11000000": (
+        "election",
+        "parliament",
+        "minister",
+        "senate",
+        "coalition",
+        "voters",
+        "elecciones",
+        "parlamento",
+        "ministro",
+        "senado",
+        "votantes",
+        "diputados",
+        "चुनाव",
+        "संसद",
+        "मंत्री",
+        "सरकार",
+        "विधानसभा",
+        "मतदान",
+    ),
+    # Conflict, war and peace
+    "medtop:16000000": (
+        "airstrike",
+        "ceasefire",
+        "troops",
+        "offensive",
+        "militants",
+        "truce",
+        "bombardeo",
+        "tropas",
+        "ofensiva",
+        "milicianos",
+        "tregua",
+        "युद्ध",
+        "सैनिक",
+        "सेना",
+        "संघर्ष",
+        "हवाई",
+    ),
+    # Science and technology
+    "medtop:13000000": (
+        "satellite",
+        "algorithm",
+        "startup",
+        "chip",
+        "software",
+        "spacecraft",
+        "satélite",
+        "algoritmo",
+        "científicos",
+        "informática",
+        "वैज्ञानिक",
+        "सॉफ्टवेयर",
+        "उपग्रह",
+        "तकनीक",
+    ),
+    # Health
+    "medtop:07000000": (
+        "outbreak",
+        "vaccine",
+        "hospital",
+        "patients",
+        "virus",
+        "disease",
+        "vacuna",
+        "pacientes",
+        "enfermedad",
+        "sanitario",
+        "contagios",
+        "अस्पताल",
+        "वैक्सीन",
+        "मरीज",
+        "बीमारी",
+        "इलाज",
+    ),
+    # Weather
+    "medtop:17000000": (
+        "storm",
+        "hurricane",
+        "typhoon",
+        "heatwave",
+        "rainfall",
+        "blizzard",
+        "tormenta",
+        "huracán",
+        "lluvias",
+        "nevada",
+        "sequía",
+        "तूफान",
+        "बारिश",
+        "मौसम",
+        "लू",
+    ),
+    # Disaster, accident and emergency
+    "medtop:03000000": (
+        "earthquake",
+        "wildfire",
+        "flood",
+        "crash",
+        "collapse",
+        "evacuated",
+        "terremoto",
+        "incendio",
+        "inundación",
+        "derrumbe",
+        "evacuados",
+        "भूकंप",
+        "बाढ़",
+        "हादसा",
+        "दुर्घटना",
+    ),
+    # Environment
+    "medtop:06000000": (
+        "emissions",
+        "biodiversity",
+        "deforestation",
+        "pollution",
+        "wildlife",
+        "emisiones",
+        "contaminación",
+        "biodiversidad",
+        "deforestación",
+        "प्रदूषण",
+        "जलवायु",
+        "पर्यावरण",
+    ),
+    # Crime, law and justice
+    "medtop:02000000": (
+        "arrested",
+        "convicted",
+        "trial",
+        "lawsuit",
+        "prosecutors",
+        "verdict",
+        "detenido",
+        "juicio",
+        "fiscal",
+        "condenado",
+        "tribunal",
+        "गिरफ्तार",
+        "अदालत",
+        "आरोपी",
+        "मुकदमा",
+    ),
+    # Arts, culture, entertainment and media
+    "medtop:01000000": (
+        "album",
+        "festival",
+        "novel",
+        "filmmaker",
+        "soundtrack",
+        "película",
+        "cineasta",
+        "álbum",
+        "estreno",
+        "फिल्म",
+        "अभिनेता",
+        "अभिनेत्री",
+        "बॉलीवुड",
+    ),
 }
 
 
@@ -86,8 +291,15 @@ async def assign_topics(
     feed_topic_hint: str | None,
     title: str,
     snippet: str | None,
+    hint_assigned_by: str = "feed_hint",
 ) -> list[TopicAssignment]:
-    """Return the topics for one article, most confident first."""
+    """Return the topics for one article, most confident first.
+
+    ``hint_assigned_by`` labels where ``feed_topic_hint`` came from. It is a
+    feed's own section by default, but GNews backfill supplies a topic from the
+    category it requested, and recording that distinctly keeps the provenance
+    honest - the two are equally confident but are not the same evidence.
+    """
     mapped = await _mapped_topics(session, source_id, raw_categories)
     if mapped:
         return [
@@ -96,10 +308,69 @@ async def assign_topics(
         ]
 
     if feed_topic_hint:
-        return [TopicAssignment(feed_topic_hint, 0.8, "feed_hint", True)]
+        return [TopicAssignment(feed_topic_hint, 0.8, hint_assigned_by, True)]
 
     keyword_topics = _keyword_topics(title, snippet)
     return [
         TopicAssignment(topic_id, 0.45 if index == 0 else 0.3, "classifier", index == 0)
         for index, topic_id in enumerate(keyword_topics)
     ]
+
+
+async def reclassify_untagged(session: AsyncSession, *, limit: int) -> dict[str, int]:
+    """Assign topics to stored articles that have none.
+
+    Exists because classification quality is a moving target - the keyword
+    hints gained Spanish and Hindi terms long after those articles were
+    ingested - and an article is only classified once, at ingest. Without this,
+    fixing the classifier only helps content that has not arrived yet.
+
+    Only articles with *no* topic at all are touched. Re-running the classifier
+    over already-tagged articles would let a weak keyword match (confidence
+    0.45) overwrite a publisher category mapping (0.95), which is strictly
+    worse information.
+
+    ``raw_categories`` is not stored - it is transient ingest-time data - so
+    this can only use the feed hint and the keyword fallback. That is precisely
+    the gap it exists to close.
+    """
+    untagged = (
+        select(Article.id, Article.source_id, Article.title, Article.snippet, Feed.topic_hint_id)
+        .join(Feed, Article.feed_id == Feed.id, isouter=True)
+        .outerjoin(ArticleTopic, ArticleTopic.article_id == Article.id)
+        .where(ArticleTopic.article_id.is_(None))
+        .limit(limit)
+    )
+    rows = (await session.execute(untagged)).all()
+
+    assigned = 0
+    for article_id, source_id, title, snippet, feed_hint in rows:
+        topics = await assign_topics(
+            session,
+            source_id=source_id,
+            raw_categories=[],
+            feed_topic_hint=feed_hint,
+            title=title,
+            snippet=snippet,
+        )
+        if not topics:
+            continue
+        for topic in topics:
+            await session.execute(
+                insert(ArticleTopic)
+                .values(
+                    article_id=article_id,
+                    topic_id=topic.topic_id,
+                    confidence=topic.confidence,
+                    is_primary=topic.is_primary,
+                    assigned_by=topic.assigned_by,
+                )
+                .on_conflict_do_nothing(
+                    index_elements=[ArticleTopic.article_id, ArticleTopic.topic_id]
+                )
+            )
+        assigned += 1
+
+    result = {"examined": len(rows), "assigned": assigned}
+    log.info("reclassify_untagged", **result)
+    return result

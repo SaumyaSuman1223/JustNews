@@ -186,6 +186,7 @@ async def store_entry(
     stats: RunStats,
     now: datetime,
     recent: dedup.RecentIndex | None = None,
+    hint_assigned_by: str = "feed_hint",
 ) -> Article | None:
     """Dedup, embed, classify and store one entry. Returns None if dropped."""
     simhash = simhash64(entry.title)
@@ -252,6 +253,7 @@ async def store_entry(
         feed_topic_hint=feed_topic_hint,
         title=entry.title,
         snippet=entry.snippet,
+        hint_assigned_by=hint_assigned_by,
     ):
         await session.execute(
             insert(ArticleTopic)
@@ -286,25 +288,30 @@ async def _run_gnews_backfill(
     if not settings.gnews_api_key or deadline.expired:
         return
 
+    since = datetime.now(UTC) - timedelta(hours=settings.gnews_backfill_window_hours)
     async with session_scope() as session:
-        languages = await gnews.thin_languages(
-            session,
-            since=datetime.now(UTC) - timedelta(hours=settings.gnews_backfill_window_hours),
-            limit=settings.ingest_max_gnews_calls_per_run,
+        pairs = await gnews.thin_topics(
+            session, since=since, limit=settings.ingest_max_gnews_calls_per_run
         )
 
     async with httpx.AsyncClient(timeout=15.0) as client:
-        for language in languages:
+        for language, topic_id in pairs:
             if deadline.expired:
                 break
+            category = gnews.GNEWS_CATEGORY_BY_TOPIC[topic_id]
             try:
                 async with session_scope() as session:
                     entries = await gnews.top_headlines(
-                        session, client, settings, language=language
+                        session, client, settings, language=language, category=category
                     )
                 stats.gnews_calls += 1
             except (UpstreamError, QuotaExceededError) as exc:
-                log.warning("gnews_backfill_call_failed", language=language, error=str(exc))
+                log.warning(
+                    "gnews_backfill_call_failed",
+                    language=language,
+                    category=category,
+                    error=str(exc),
+                )
                 continue
 
             for entry in entries:
@@ -330,7 +337,13 @@ async def _run_gnews_backfill(
                             entry,
                             source_id=source_id,
                             feed_id=None,
-                            feed_topic_hint=None,
+                            # The category we asked GNews for is real evidence
+                            # about the subject, not a guess from the text -
+                            # which is exactly what the es/hi general feeds
+                            # lack. Labelled distinctly from a feed's own
+                            # section so the provenance stays honest.
+                            feed_topic_hint=topic_id,
+                            hint_assigned_by="gnews_category",
                             embedder=embedder,
                             settings=settings,
                             stats=stats,

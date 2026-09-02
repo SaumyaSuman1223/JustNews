@@ -338,7 +338,7 @@ class ArticleTopic(Base):
     __table_args__ = (
         CheckConstraint("confidence between 0 and 1", name="ck_article_topics_confidence"),
         CheckConstraint(
-            "assigned_by in ('mapping', 'classifier', 'feed_hint', 'manual')",
+            "assigned_by in ('mapping', 'classifier', 'feed_hint', 'gnews_category', 'manual')",
             name="ck_article_topics_assigned_by",
         ),
         Index("ix_article_topics_topic", "topic_id"),

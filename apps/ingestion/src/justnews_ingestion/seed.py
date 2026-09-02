@@ -10,10 +10,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from justnews_core.language import LAUNCH_LANGUAGES
 from justnews_core.logging import get_logger
 from justnews_core.models import Edition, Feed, Source, Topic, TopicLabel
 from justnews_core.taxonomy import TOP_LEVEL_TOPICS
@@ -46,6 +47,9 @@ T_HEALTH = "medtop:07000000"
 T_LIFE = "medtop:10000000"
 T_POL = "medtop:11000000"
 T_SCI = "medtop:13000000"
+_EP = "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/"
+
+T_SOCIETY = "medtop:14000000"
 T_SPORT = "medtop:15000000"
 
 SEED_SOURCES: tuple[SeedSource, ...] = (
@@ -77,15 +81,6 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         (SeedFeed("https://feeds.bbci.co.uk/mundo/rss.xml", "es"),),
     ),
     SeedSource(
-        "bbc-arabic",
-        "BBC News عربي",
-        "https://www.bbc.com/arabic",
-        "ar",
-        "GB",
-        0.9,
-        (SeedFeed("https://feeds.bbci.co.uk/arabic/rss.xml", "ar"),),
-    ),
-    SeedSource(
         "bbc-hindi",
         "BBC News हिंदी",
         "https://www.bbc.com/hindi",
@@ -93,15 +88,6 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "GB",
         0.9,
         (SeedFeed("https://feeds.bbci.co.uk/hindi/rss.xml", "hi"),),
-    ),
-    SeedSource(
-        "bbc-zhongwen",
-        "BBC News 中文",
-        "https://www.bbc.com/zhongwen",
-        "zh",
-        "GB",
-        0.9,
-        (SeedFeed("https://feeds.bbci.co.uk/zhongwen/simp/rss.xml", "zh"),),
     ),
     SeedSource(
         "guardian",
@@ -186,42 +172,17 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         (SeedFeed("https://www.france24.com/en/rss", "en"),),
     ),
     SeedSource(
-        "france24-fr",
-        "France 24",
-        "https://www.france24.com/fr",
-        "fr",
-        "FR",
-        0.8,
-        (SeedFeed("https://www.france24.com/fr/rss", "fr"),),
-    ),
-    SeedSource(
         "france24-es",
         "France 24 Español",
         "https://www.france24.com/es",
         "es",
         "FR",
         0.8,
-        (SeedFeed("https://www.france24.com/es/rss", "es"),),
-    ),
-    SeedSource(
-        "france24-ar",
-        "France 24 عربي",
-        "https://www.france24.com/ar",
-        "ar",
-        "FR",
-        0.8,
-        (SeedFeed("https://www.france24.com/ar/rss", "ar"),),
-    ),
-    SeedSource(
-        "lemonde",
-        "Le Monde",
-        "https://www.lemonde.fr",
-        "fr",
-        "FR",
-        0.85,
         (
-            SeedFeed("https://www.lemonde.fr/rss/une.xml", "fr"),
-            SeedFeed("https://www.lemonde.fr/economie/rss_full.xml", "fr", T_ECON),
+            SeedFeed("https://www.france24.com/es/rss", "es"),
+            SeedFeed("https://www.france24.com/es/economia/rss", "es", T_ECON),
+            SeedFeed("https://www.france24.com/es/deportes/rss", "es", T_SPORT),
+            SeedFeed("https://www.france24.com/es/cultura/rss", "es", T_ARTS),
         ),
     ),
     SeedSource(
@@ -231,39 +192,16 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "es",
         "ES",
         0.85,
-        (SeedFeed("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada", "es"),),
-    ),
-    SeedSource(
-        "tagesschau",
-        "tagesschau",
-        "https://www.tagesschau.de",
-        "de",
-        "DE",
-        0.85,
-        (SeedFeed("https://www.tagesschau.de/xml/rss2/", "de"),),
-    ),
-    SeedSource(
-        "spiegel",
-        "Der Spiegel",
-        "https://www.spiegel.de",
-        "de",
-        "DE",
-        0.8,
-        (SeedFeed("https://www.spiegel.de/schlagzeilen/tops/index.rss", "de"),),
-    ),
-    # Portuguese. Two candidates were tried and dropped: G1 answers 403 on both
-    # robots.txt and its feed, and DW Brasil's advertised RSS path 500s. Every
-    # URL in this file has been fetched successfully at least once - a source
-    # list is worth exactly what actually responds, and a feed known to be
-    # broken should not ship just because backoff would hide it.
-    SeedSource(
-        "publico",
-        "Público",
-        "https://www.publico.pt",
-        "pt",
-        "PT",
-        0.8,
-        (SeedFeed("https://feeds.feedburner.com/PublicoRSS", "pt"),),
+        (
+            SeedFeed("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada", "es"),
+            SeedFeed(_EP + "economia/portada", "es", T_ECON),
+            SeedFeed(_EP + "deportes/portada", "es", T_SPORT),
+            SeedFeed(_EP + "tecnologia/portada", "es", T_SCI),
+            SeedFeed(_EP + "ciencia/portada", "es", T_SCI),
+            SeedFeed(_EP + "cultura/portada", "es", T_ARTS),
+            SeedFeed(_EP + "sociedad/portada", "es", T_SOCIETY),
+            SeedFeed(_EP + "internacional/portada", "es", T_POL),
+        ),
     ),
     SeedSource(
         "thehindu",
@@ -314,31 +252,59 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         (SeedFeed("https://www.nasa.gov/rss/dyn/breaking_news.rss", "en", T_SCI),),
     ),
     SeedSource(
-        "svt",
-        "SVT Nyheter",
-        "https://www.svt.se/nyheter",
-        "sv",
-        "SE",
-        0.85,
-        (SeedFeed("https://www.svt.se/nyheter/rss.xml", "sv"),),
+        "ndtv-india",
+        "NDTV India",
+        "https://ndtv.in",
+        "hi",
+        "IN",
+        0.8,
+        (
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-latest", "hi"),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-india", "hi"),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-business", "hi", T_ECON),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-cricket", "hi", T_SPORT),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-world", "hi", T_POL),
+        ),
     ),
     SeedSource(
-        "nrk",
-        "NRK",
-        "https://www.nrk.no",
-        "no",
-        "NO",
-        0.85,
-        (SeedFeed("https://www.nrk.no/toppsaker.rss", "no"),),
+        "amar-ujala",
+        "Amar Ujala",
+        "https://www.amarujala.com",
+        "hi",
+        "IN",
+        0.75,
+        (
+            SeedFeed("https://www.amarujala.com/rss/india-news.xml", "hi"),
+            SeedFeed("https://www.amarujala.com/rss/business.xml", "hi", T_ECON),
+            SeedFeed("https://www.amarujala.com/rss/sports.xml", "hi", T_SPORT),
+            SeedFeed("https://www.amarujala.com/rss/technology.xml", "hi", T_SCI),
+            SeedFeed("https://www.amarujala.com/rss/entertainment.xml", "hi", T_ARTS),
+            SeedFeed("https://www.amarujala.com/rss/world.xml", "hi", T_POL),
+        ),
     ),
     SeedSource(
-        "dr",
-        "DR Nyheder",
-        "https://www.dr.dk/nyheder",
-        "da",
-        "DK",
-        0.85,
-        (SeedFeed("https://www.dr.dk/nyheder/service/feeds/allenyheder", "da"),),
+        "aaj-tak",
+        "आज तक",
+        "https://www.aajtak.in",
+        "hi",
+        "IN",
+        0.75,
+        (SeedFeed("https://www.aajtak.in/rssfeeds/?id=home", "hi"),),
+    ),
+    SeedSource(
+        "abp-live",
+        "ABP Live",
+        "https://www.abplive.com",
+        "hi",
+        "IN",
+        0.7,
+        (
+            SeedFeed("https://www.abplive.com/news/india/feed", "hi"),
+            SeedFeed("https://www.abplive.com/business/feed", "hi", T_ECON),
+            SeedFeed("https://www.abplive.com/sports/feed", "hi", T_SPORT),
+            SeedFeed("https://www.abplive.com/technology/feed", "hi", T_SCI),
+            SeedFeed("https://www.abplive.com/entertainment/feed", "hi", T_ARTS),
+        ),
     ),
 )
 
@@ -347,12 +313,8 @@ SEED_EDITIONS: tuple[tuple[str, str, str, str | None, bool], ...] = (
     ("en-GB", "United Kingdom", "en", "GB", False),
     ("en-IN", "India", "en", "IN", False),
     ("es-ES", "España", "es", "ES", False),
-    ("fr-FR", "France", "fr", "FR", False),
-    ("de-DE", "Deutschland", "de", "DE", False),
-    ("pt-BR", "Brasil", "pt", "BR", False),
-    ("ar", "العالم العربي", "ar", None, False),
+    ("es-MX", "México", "es", "MX", False),
     ("hi-IN", "भारत", "hi", "IN", False),
-    ("zh", "中文", "zh", None, False),
 )
 
 
@@ -451,11 +413,60 @@ async def find_orphaned_feeds(session: AsyncSession) -> list[str]:
     that were never in this file, and deleting anything absent from the list
     would take those with it. But a feed dropped from the list stays active and
     keeps failing forever, so it is reported rather than removed - deactivating
-    it is an operator decision, and the admin console is where that belongs.
+    it is an operator decision.
+
+    ``justnews-ingest retire-languages`` is the narrow, deliberate version of
+    that decision: it deactivates only what targets a language this product no
+    longer ships, which is the one case where "absent from the seed list" is
+    unambiguous rather than a judgement call.
     """
     seeded = {feed.url for source in SEED_SOURCES for feed in source.feeds}
     result = await session.execute(select(Feed.url).where(Feed.active.is_(True)))
     return sorted(url for url in result.scalars().all() if url not in seeded)
+
+
+async def retire_unshipped_languages(session: AsyncSession) -> dict[str, int]:
+    """Deactivate every source and feed targeting a language we no longer ship.
+
+    Deactivated, never deleted: ``sources`` cascades to ``articles``, so
+    deleting a dropped source would take its whole archive with it - including
+    the impressions and interaction events that reference those articles, which
+    are the training data Stage 6 depends on. Flipping ``active`` stops the
+    ingestion run from fetching them while leaving all of it intact, and is
+    reversible by re-adding the language.
+
+    Narrower than "anything not in SEED_SOURCES" on purpose: that would also
+    catch admin-added sources and the publishers GNews backfill discovers on
+    its own, which are legitimate content in a language we do ship.
+    """
+    shipped = list(LAUNCH_LANGUAGES)
+
+    feeds = await session.execute(
+        update(Feed)
+        .where(Feed.active.is_(True), Feed.language.not_in(shipped))
+        .values(active=False)
+        .returning(Feed.id)
+    )
+    sources = await session.execute(
+        update(Source)
+        .where(Source.active.is_(True), Source.language.not_in(shipped))
+        .values(active=False)
+        .returning(Source.id)
+    )
+    # Editions are deleted rather than deactivated - they have no `active`
+    # column and, uniquely, nothing references them (no foreign key points at
+    # `editions`), so removing one destroys nothing downstream. A source cannot
+    # be treated this way, which is why the two are handled differently here.
+    editions = await session.execute(
+        delete(Edition).where(Edition.language.not_in(shipped)).returning(Edition.id)
+    )
+    result = {
+        "feeds_deactivated": len(feeds.scalars().all()),
+        "sources_deactivated": len(sources.scalars().all()),
+        "editions_deleted": len(editions.scalars().all()),
+    }
+    log.info("retire_unshipped_languages", **result, shipped=shipped)
+    return result
 
 
 async def seed_all(session: AsyncSession) -> dict[str, int]:
