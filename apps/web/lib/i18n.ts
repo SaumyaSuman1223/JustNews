@@ -7,6 +7,11 @@
  * fact that a locale is part of the route, not a cookie. Retrofitting either
  * into a finished layout costs several times what building with them costs.
  *
+ * Every locale here is currently `ltr`, and the `dir` flag is deliberately
+ * kept anyway: the layout is still written entirely in logical properties, so
+ * adding an RTL language back is an entry in this list rather than a
+ * stylesheet fork. That is the whole point of paying the cost up front.
+ *
  * This list must match `LAUNCH_LANGUAGES` in justnews_core.language. A language
  * we ingest but do not list here is content no reader can reach, and a locale
  * listed here with no source behind it is an empty page. A test on the Python
@@ -16,15 +21,7 @@
 export const locales = [
   { code: "en", label: "English", dir: "ltr", htmlLang: "en" },
   { code: "es", label: "Español", dir: "ltr", htmlLang: "es" },
-  { code: "fr", label: "Français", dir: "ltr", htmlLang: "fr" },
-  { code: "de", label: "Deutsch", dir: "ltr", htmlLang: "de" },
-  { code: "pt", label: "Português", dir: "ltr", htmlLang: "pt" },
   { code: "hi", label: "हिन्दी", dir: "ltr", htmlLang: "hi" },
-  { code: "zh", label: "中文", dir: "ltr", htmlLang: "zh-Hans" },
-  { code: "sv", label: "Svenska", dir: "ltr", htmlLang: "sv" },
-  { code: "no", label: "Norsk", dir: "ltr", htmlLang: "no" },
-  { code: "da", label: "Dansk", dir: "ltr", htmlLang: "da" },
-  { code: "ar", label: "العربية", dir: "rtl", htmlLang: "ar" },
 ] as const;
 
 export type Locale = (typeof locales)[number];

@@ -69,7 +69,7 @@ class TestTopHeadlines:
         async with _mock_client(GNEWS_PAYLOAD) as client:
             await gnews.top_headlines(session, client, settings, language="en")
             with pytest.raises(QuotaExceededError):
-                await gnews.top_headlines(session, client, settings, language="fr")
+                await gnews.top_headlines(session, client, settings, language="hi")
 
     async def test_garbage_response_yields_no_entries_rather_than_raising(
         self, session: AsyncSession
@@ -98,14 +98,14 @@ class TestThinLanguages:
         source = await make_source(session)
         for _ in range(5):
             await make_article(session, source, language="es", minutes_ago=5)
-        await make_article(session, source, language="fr", minutes_ago=5)
+        await make_article(session, source, language="hi", minutes_ago=5)
         await session.flush()
 
         ranked = await gnews.thin_languages(
             session, since=datetime.now(UTC) - timedelta(hours=24), limit=len(LAUNCH_LANGUAGES)
         )
 
-        assert ranked.index("fr") < ranked.index("es")
+        assert ranked.index("hi") < ranked.index("es")
 
     async def test_articles_outside_the_window_do_not_count(self, session: AsyncSession) -> None:
         source = await make_source(session)

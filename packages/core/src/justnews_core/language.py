@@ -57,15 +57,7 @@ UNKNOWN_LANGUAGE = "und"
 LAUNCH_LANGUAGES: tuple[str, ...] = (
     "en",
     "es",
-    "fr",
-    "de",
-    "pt",
-    "ar",
     "hi",
-    "zh",
-    "sv",
-    "no",
-    "da",
 )
 
 # Confidence needed before a detection overrides the language a feed declared.

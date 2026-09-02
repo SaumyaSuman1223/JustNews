@@ -64,8 +64,11 @@ class TestSeedCoverage:
         stray = _seed_languages() - set(LAUNCH_LANGUAGES)
         assert not stray, f"feeds for languages with no locale: {sorted(stray)}"
 
-    @pytest.mark.parametrize("language", ["ar", "hi", "zh"])
+    @pytest.mark.parametrize("language", ["hi"])
     def test_non_latin_scripts_are_covered(self, language: str) -> None:
-        # Arabic is the RTL canary and Hindi and Chinese are the scripts most
-        # likely to break a Latin-first layout or an English-only encoder.
+        # Devanagari is now the only non-Latin script shipping, and it is still
+        # the one most likely to break a Latin-first layout or an English-only
+        # encoder. Arabic and Chinese left the launch set; the logical-CSS
+        # discipline that made Arabic work stays, so re-adding an RTL language
+        # is a locale-registry edit rather than a layout retrofit (ADR 0005).
         assert language in _seed_languages()
