@@ -10,6 +10,8 @@ node_modules/
 dist/
 .turbo/
 .expo/
+test-results/
+playwright-report/
 # env & secrets  (NEVER commit real secrets)
 .env
 .env.*
