@@ -29,6 +29,9 @@ class ArticleOut(BaseModel):
     url: str = Field(description="Canonical publisher URL. Always link out to this.")
     language: str
     published_at: datetime
+    # Exposed so a reader can follow the publisher; unlike source_trust_score
+    # this is a plain identifier, not a judgement.
+    source_id: int
     source_name: str
     source_slug: str
     story_cluster_id: int | None
@@ -43,6 +46,7 @@ class ArticleOut(BaseModel):
             url=row.url_canonical,
             language=row.language,
             published_at=row.published_at,
+            source_id=row.source_id,
             source_name=row.source_name,
             source_slug=row.source_slug,
             story_cluster_id=row.story_cluster_id,
@@ -117,11 +121,22 @@ async def list_articles(
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["en,es"]),
     topic: str | None = Query(default=None, examples=["medtop:20000724"]),
+    country: str | None = Query(
+        default=None,
+        max_length=2,
+        examples=["IN"],
+        description="Publisher country - what makes an edition regional, not just a language.",
+    ),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=service.DEFAULT_PAGE_SIZE, ge=1, le=service.MAX_PAGE_SIZE),
 ) -> ArticlePageOut:
     page = await service.get_article_page(
-        session, languages=languages, cursor=cursor, page_size=page_size, topic=topic
+        session,
+        languages=languages,
+        cursor=cursor,
+        page_size=page_size,
+        topic=topic,
+        country=country,
     )
     return ArticlePageOut(
         items=[ArticleOut.from_row(row) for row in page.items],
@@ -178,6 +193,51 @@ async def blindspots(
             coverage=[LanguageCoverageOut.from_row(entry) for entry in item.coverage],
         )
         for item in found
+    ]
+
+
+@router.get("/trending", response_model=list[ArticleOut])
+async def trending(
+    session: AsyncSession = Depends(get_session),
+    languages: str | None = Query(default=None, examples=["en,hi"]),
+    limit: int = Query(default=6, ge=1, le=20),
+) -> list[ArticleOut]:
+    """What readers are actually clicking, most-clicked first.
+
+    Ranked on behaviour rather than recency - a rail that repeated the feed's
+    own ordering would be decoration. Built from the interaction log that
+    already exists for Stage 6's benefit.
+    """
+    rows = await service.get_trending(
+        session, languages=service.parse_languages(languages), limit=limit
+    )
+    return [ArticleOut.from_row(row) for row in rows]
+
+
+class EditionOut(BaseModel):
+    code: str
+    name: str
+    language: str
+    country: str | None
+    is_default: bool
+
+
+@router.get("/editions", response_model=list[EditionOut])
+async def editions(
+    session: AsyncSession = Depends(get_session),
+    languages: str | None = Query(default=None, examples=["es"]),
+) -> list[EditionOut]:
+    """The regional views on offer - Google News' local-news equivalent."""
+    rows = await service.list_editions(session, languages=service.parse_languages(languages))
+    return [
+        EditionOut(
+            code=row.code,
+            name=row.name,
+            language=row.language,
+            country=row.country,
+            is_default=row.is_default,
+        )
+        for row in rows
     ]
 
 

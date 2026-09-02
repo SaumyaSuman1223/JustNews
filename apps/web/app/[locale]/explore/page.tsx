@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 
 import { ArticleCard } from "@/components/ArticleCard";
 import { BlindspotRail } from "@/components/BlindspotRail";
-import { getBlindspots, getExplore, getSaves } from "@/lib/api";
+import Link from "next/link";
+
+import { getBlindspots, getEditions, getExplore, getSaves } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -27,9 +29,10 @@ export default async function ExplorePage({ params }: { params: Promise<{ locale
     ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
     : null;
 
-  const [page, blindspots, savedIds] = await Promise.all([
+  const [page, blindspots, editions, savedIds] = await Promise.all([
     getExplore(auth, { locale: active.code, languages: active.code, pageSize: 24 }),
     getBlindspots(active.code),
+    getEditions(active.code),
     auth
       ? getSaves(auth).then((saves) => new Set(saves.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
@@ -49,6 +52,20 @@ export default async function ExplorePage({ params }: { params: Promise<{ locale
         <p className="notice" role="status">
           Live headlines are unavailable right now, so this page may be out of date.
         </p>
+      )}
+
+      {editions.data.length > 0 && (
+        <nav aria-label="Editions">
+          <ul className="chip-list">
+            {editions.data.map((edition) => (
+              <li key={edition.code}>
+                <Link className="chip" href={`/${active.code}/edition/${edition.code}`}>
+                  {edition.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       )}
 
       <BlindspotRail blindspots={blindspots.data} locale={active.code} />

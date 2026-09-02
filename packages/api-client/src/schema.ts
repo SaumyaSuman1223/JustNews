@@ -267,6 +267,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/editions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Editions
+         * @description The regional views on offer - Google News' local-news equivalent.
+         */
+        get: operations["editions_v1_editions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/explore": {
         parameters: {
             query?: never;
@@ -321,6 +341,41 @@ export interface paths {
         /** Create Follow */
         post: operations["create_follow_v1_follows_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/follows/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Source Follows */
+        get: operations["list_source_follows_v1_follows_sources_get"];
+        put?: never;
+        /** Create Source Follow */
+        post: operations["create_source_follow_v1_follows_sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/follows/sources/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Source Follow */
+        delete: operations["delete_source_follow_v1_follows_sources__source_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -551,6 +606,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/trending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Trending
+         * @description What readers are actually clicking, most-clicked first.
+         *
+         *     Ranked on behaviour rather than recency - a rail that repeated the feed's
+         *     own ordering would be decoration. Built from the interaction log that
+         *     already exists for Stage 6's benefit.
+         */
+        get: operations["trending_v1_trending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -588,6 +667,8 @@ export interface components {
             published_at: string;
             /** Snippet */
             snippet: string | null;
+            /** Source Id */
+            source_id: number;
             /** Source Name */
             source_name: string;
             /** Source Slug */
@@ -653,6 +734,19 @@ export interface components {
             position?: number | null;
             /** Surface */
             surface: string;
+        };
+        /** EditionOut */
+        EditionOut: {
+            /** Code */
+            code: string;
+            /** Country */
+            country: string | null;
+            /** Is Default */
+            is_default: boolean;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
         };
         /** FeedItemOut */
         FeedItemOut: {
@@ -898,6 +992,25 @@ export interface components {
         SetRoleIn: {
             /** Role */
             role: string;
+        };
+        /** SourceFollowIn */
+        SourceFollowIn: {
+            /** Source Id */
+            source_id: number;
+        };
+        /** SourceFollowOut */
+        SourceFollowOut: {
+            /**
+             * Followed At
+             * Format: date-time
+             */
+            followed_at: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Source Id */
+            source_id: number;
         };
         /** SourceHealthOut */
         SourceHealthOut: {
@@ -1416,6 +1529,8 @@ export interface operations {
             query?: {
                 languages?: string | null;
                 topic?: string | null;
+                /** @description Publisher country - what makes an edition regional, not just a language. */
+                country?: string | null;
                 cursor?: string | null;
                 page_size?: number;
             };
@@ -1496,6 +1611,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BlindspotOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editions_v1_editions_get: {
+        parameters: {
+            query?: {
+                languages?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditionOut"][];
                 };
             };
             /** @description Validation Error */
@@ -1625,6 +1771,88 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["FollowOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_source_follows_v1_follows_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceFollowOut"][];
+                };
+            };
+        };
+    };
+    create_source_follow_v1_follows_sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceFollowIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceFollowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_source_follow_v1_follows_sources__source_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -2115,6 +2343,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TopicOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trending_v1_trending_get: {
+        parameters: {
+            query?: {
+                languages?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleOut"][];
                 };
             };
             /** @description Validation Error */

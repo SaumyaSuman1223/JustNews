@@ -494,6 +494,34 @@ class UserFollow(Base):
     )
 
 
+class UserSourceFollow(Base):
+    """A followed publisher. Same declarative shape as ``UserFollow``.
+
+    Separate table rather than a nullable topic_id/source_id pair on one:
+    the foreign keys point at different tables and both must stay NOT NULL,
+    which a single table cannot express without giving up referential
+    integrity on one of them.
+    """
+
+    __tablename__ = "user_source_follows"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("sources.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "source_id", name="uq_user_source_follows_user_source"),
+        Index("ix_user_source_follows_user", "user_id"),
+    )
+
+
 class Impression(Base):
     """One item shown to one reader. The propensity column is the whole point:
     the probability the serving policy had of showing this item, written at

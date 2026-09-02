@@ -52,6 +52,20 @@ export async function unfollowTopicAction(topicId: string, path: string): Promis
   revalidatePath(path);
 }
 
+export async function followSourceAction(sourceId: number, path: string): Promise<void> {
+  const auth = await authOrNull();
+  if (!auth) return;
+  await api.followSource(auth, sourceId);
+  revalidatePath(path);
+}
+
+export async function unfollowSourceAction(sourceId: number, path: string): Promise<void> {
+  const auth = await authOrNull();
+  if (!auth) return;
+  await api.unfollowSource(auth, sourceId);
+  revalidatePath(path);
+}
+
 export async function updateLanguagesAction(languages: string[]): Promise<void> {
   const auth = await authOrNull();
   if (!auth) return;

@@ -15,7 +15,7 @@ from justnews_api.repositories import content as repo
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_core.errors import NotFoundError, ValidationError
 from justnews_core.language import normalise_language_code
-from justnews_core.models import StoryCluster
+from justnews_core.models import Edition, StoryCluster
 
 MAX_PAGE_SIZE = 50
 DEFAULT_PAGE_SIZE = 20
@@ -49,6 +49,7 @@ async def get_article_page(
     cursor: str | None = None,
     page_size: int = DEFAULT_PAGE_SIZE,
     topic: str | None = None,
+    country: str | None = None,
 ) -> ArticlePage:
     if not 1 <= page_size <= MAX_PAGE_SIZE:
         raise ValidationError(f"page_size must be between 1 and {MAX_PAGE_SIZE}.")
@@ -65,6 +66,7 @@ async def get_article_page(
         before_published_at=before_published_at,
         before_id=before_id,
         topic_id=topic,
+        country=country,
     )
 
     has_more = len(rows) > page_size
@@ -136,3 +138,23 @@ async def get_blindspots(
     return [
         Blindspot(cluster=cluster, coverage=coverage.get(cluster.id, [])) for cluster in clusters
     ]
+
+
+# Long enough that a quiet overnight window still has something in it, short
+# enough that "trending" means now rather than this week.
+TRENDING_WINDOW = timedelta(hours=24)
+
+
+async def get_trending(
+    session: AsyncSession, *, languages: list[str] | None, limit: int = 6
+) -> list[repo.ArticleRow]:
+    return await repo.list_trending(
+        session,
+        languages=languages,
+        since=datetime.now(UTC) - TRENDING_WINDOW,
+        limit=limit,
+    )
+
+
+async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:
+    return await repo.list_editions(session, languages=languages)

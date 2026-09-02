@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 
 import { ArticleCard } from "@/components/ArticleCard";
 import { BetaGateNotice } from "@/components/BetaGateNotice";
-import { getArticles, getFeed, getMe, getSaves, getStats } from "@/lib/api";
+import { TrendingRail } from "@/components/TrendingRail";
+import { getArticles, getFeed, getMe, getSaves, getStats, getTrending } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -19,7 +20,7 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
   const profile = auth ? await getMe(auth) : null;
   const hasBetaAccess = profile?.has_beta_access ?? false;
 
-  const [feed, stats, savedIds] = await Promise.all([
+  const [feed, stats, trending, savedIds] = await Promise.all([
     auth && hasBetaAccess
       ? getFeed(auth, { locale: active.code, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
@@ -34,6 +35,7 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
           nextCursor: page.data.next_cursor,
         })),
     getStats(),
+    getTrending(active.code),
     auth && hasBetaAccess
       ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
@@ -81,6 +83,8 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
           </div>
         </dl>
       )}
+
+      <TrendingRail articles={trending.data} locale={active.code} />
 
       {feed.items.length === 0 ? (
         <p className="empty">

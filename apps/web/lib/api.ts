@@ -40,6 +40,8 @@ export type Story = components["schemas"]["StoryOut"];
 export type StoryDetail = components["schemas"]["StoryDetailOut"];
 export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
 export type Blindspot = components["schemas"]["BlindspotOut"];
+export type Edition = components["schemas"]["EditionOut"];
+export type SourceFollow = components["schemas"]["SourceFollowOut"];
 export type FeedPage = components["schemas"]["FeedPageOut"];
 export type MeProfile = components["schemas"]["MeOut"];
 export type SaveOut = components["schemas"]["SaveOut"];
@@ -81,12 +83,14 @@ async function get<T>(path: string, fallback: T, revalidate: number): Promise<De
 export function getArticles(params: {
   languages?: string;
   topic?: string;
+  country?: string;
   cursor?: string;
   pageSize?: number;
 }): Promise<Degradable<ArticlePage>> {
   const query = new URLSearchParams();
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
+  if (params.country) query.set("country", params.country);
   if (params.cursor) query.set("cursor", params.cursor);
   query.set("page_size", String(params.pageSize ?? 20));
   // 60s: a news feed may be a minute stale; it may not be a minute slow.
@@ -122,6 +126,18 @@ export function getStory(id: number): Promise<Degradable<StoryDetail | null>> {
 export function getBlindspots(languages: string, limit = 4): Promise<Degradable<Blindspot[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });
   return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
+}
+
+/** What readers are actually clicking. Behaviour, not recency. */
+export function getTrending(languages: string, limit = 5): Promise<Degradable<Article[]>> {
+  const query = new URLSearchParams({ languages, limit: String(limit) });
+  // Short cache: a trending rail may lag a minute, it may not lag an hour.
+  return get<Article[]>(`/v1/trending?${query}`, [], 120);
+}
+
+export function getEditions(languages?: string): Promise<Degradable<Edition[]>> {
+  const query = languages ? `?languages=${encodeURIComponent(languages)}` : "";
+  return get<Edition[]>(`/v1/editions${query}`, [], 3600);
 }
 
 export function searchArticles(params: {
@@ -200,6 +216,27 @@ export async function getExplore(
   });
   if (error || !data) return { data: EMPTY_FEED, degraded: true };
   return { data, degraded: false };
+}
+
+export async function getFollowedSources(auth: AuthContext): Promise<SourceFollow[]> {
+  const { data } = await authedClient(auth).GET("/v1/follows/sources", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function followSource(auth: AuthContext, sourceId: number): Promise<void> {
+  await authedClient(auth).POST("/v1/follows/sources", {
+    body: { source_id: sourceId },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+}
+
+export async function unfollowSource(auth: AuthContext, sourceId: number): Promise<void> {
+  await authedClient(auth).DELETE("/v1/follows/sources/{source_id}", {
+    params: { path: { source_id: sourceId } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
 }
 
 export async function getMe(auth: AuthContext): Promise<MeProfile | null> {

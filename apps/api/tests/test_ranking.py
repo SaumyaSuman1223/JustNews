@@ -40,6 +40,9 @@ def _article(
         url_canonical=f"https://example.test/{article_id}",
         language=language,
         published_at=NOW - timedelta(hours=hours_old),
+        # Derived from the slug so two articles from one source share an id,
+        # which is what the diversity tests are actually asserting about.
+        source_id=abs(hash(source_slug)) % 10_000,
         source_name=source_slug,
         source_slug=source_slug,
         story_cluster_id=story_cluster_id,

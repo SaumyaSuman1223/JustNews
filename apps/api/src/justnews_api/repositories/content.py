@@ -13,7 +13,14 @@ from sqlalchemy import Select, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.language import tsvector_config
-from justnews_core.models import Article, ArticleTopic, Source, StoryCluster
+from justnews_core.models import (
+    Article,
+    ArticleTopic,
+    Edition,
+    InteractionEvent,
+    Source,
+    StoryCluster,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +32,7 @@ class ArticleRow:
     url_canonical: str
     language: str
     published_at: datetime
+    source_id: int
     source_name: str
     source_slug: str
     story_cluster_id: int | None
@@ -43,6 +51,7 @@ class ArticleRow:
             url_canonical=article.url_canonical,
             language=article.language,
             published_at=article.published_at,
+            source_id=source.id,
             source_name=source.name,
             source_slug=source.slug,
             story_cluster_id=article.story_cluster_id,
@@ -70,6 +79,7 @@ async def list_articles(
     before_id: int | None,
     exclude_article_ids: set[int] | None = None,
     topic_id: str | None = None,
+    country: str | None = None,
 ) -> list[ArticleRow]:
     """Keyset pagination over ``(published_at DESC, id DESC)``.
 
@@ -86,6 +96,10 @@ async def list_articles(
         query = query.where(
             Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
         )
+    if country:
+        # An edition is a language *and* a place; the place lives on the
+        # publisher, not the article.
+        query = query.where(Source.country == country)
     if before_published_at is not None and before_id is not None:
         # sa.tuple_(), not a Python tuple. Writing
         # ``(Article.published_at, Article.id) < (ts, id)`` looks identical but
@@ -348,4 +362,47 @@ async def list_blindspot_clusters(
         .order_by(StoryCluster.source_count.desc(), StoryCluster.last_seen_at.desc())
         .limit(limit)
     )
+    return list((await session.execute(query)).scalars().all())
+
+
+async def list_trending(
+    session: AsyncSession, *, languages: list[str] | None, since: datetime, limit: int
+) -> list[ArticleRow]:
+    """The most-clicked articles in a window, most-clicked first.
+
+    Ranked on real reader behaviour rather than recency, which is what makes
+    it worth showing beside a feed that is already recency-ordered - a rail
+    that repeated the feed's own ordering would be decoration.
+
+    An inner join on clicks is deliberate: an article nobody has clicked is
+    not trending, and left-joining would rank the whole corpus by zero.
+    """
+    clicks = (
+        select(
+            InteractionEvent.article_id.label("article_id"),
+            func.count().label("clicks"),
+        )
+        .where(InteractionEvent.event_type == "click", InteractionEvent.created_at >= since)
+        .group_by(InteractionEvent.article_id)
+        .subquery()
+    )
+
+    query = (
+        _base_query()
+        .join(clicks, clicks.c.article_id == Article.id)
+        .order_by(clicks.c.clicks.desc(), Article.published_at.desc())
+        .limit(limit)
+    )
+    if languages:
+        query = query.where(Article.language.in_(languages))
+
+    result = await session.execute(query)
+    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+
+
+async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:
+    """The regional views on offer, default first."""
+    query = select(Edition).order_by(Edition.is_default.desc(), Edition.code)
+    if languages:
+        query = query.where(Edition.language.in_(languages))
     return list((await session.execute(query)).scalars().all())
