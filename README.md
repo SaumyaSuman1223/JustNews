@@ -19,7 +19,7 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** for the plan of record.
 - [x] Stage 0 — Foundations & continuous deployment
 - [x] Stage 1 — Multilingual content pipeline
 - [x] Stage 2 — API core + auth
-- [ ] Stage 3 — Web app, internationalised from the start
+- [x] Stage 3 — Web app, internationalised from the start
 - [ ] Stage 4 — Publisher & ops layer · **private beta opens**
 
 **Arc II — make it personal**
