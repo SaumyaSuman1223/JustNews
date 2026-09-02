@@ -600,7 +600,12 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-.stats b {
+.stats dt,
+.stats dd {
+  margin: 0;
+}
+
+.stats dd {
   color: var(--text);
   font-size: 1.1rem;
   display: block;

@@ -92,18 +92,26 @@ jobs:
       - run: pnpm --filter @justnews/web typecheck
       - run: pnpm --filter @justnews/web build
 
-      - name: Every locale is actually served
+      - name: Install the Playwright browser
+        run: pnpm --filter @justnews/web exec playwright install --with-deps chromium
+
+      - name: Every locale is served, and it's accessible and keyboard-navigable
         # The build reporting N prerendered locales is not the same as the
         # server returning 200 for them - a stale build cache once produced
         # exactly that gap, and no source-level test could see it. So this asks
         # the built server. The API is not running here, so pages render in
         # their degraded state, which is itself worth exercising.
+        #
+        # Playwright runs against this same server (playwright.config.ts's
+        # reuseExistingServer, unconditional) rather than building the app a
+        # second time.
         run: |
           pnpm --filter @justnews/web start &
           server=$!
           trap 'kill $server' EXIT
           timeout 60 bash -c 'until curl -sf http://127.0.0.1:3000/en > /dev/null; do sleep 1; done'
           bash scripts/smoke-web.sh
+          pnpm --filter @justnews/web test:e2e
 
   api-client:
     # The typed client is generated, not hand-written - this regenerates it

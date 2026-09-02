@@ -97,7 +97,13 @@ export default async function LocaleLayout({
               </ul>
             </nav>
           </header>
-          <main id="main">{children}</main>
+          {/* tabIndex={-1}: without it, activating the skip link scrolls the
+              viewport but never actually moves keyboard focus here, which
+              defeats what a skip link is for. Not in the tab order itself -
+              only reachable as a fragment-navigation target. */}
+          <main id="main" tabIndex={-1}>
+            {children}
+          </main>
           <footer className="site-footer">
             <Link href="/privacy">Privacy</Link>
           </footer>

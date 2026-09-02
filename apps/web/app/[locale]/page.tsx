@@ -41,6 +41,11 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
 
   return (
     <>
+      {/* The masthead's wordmark is a link, not a heading - axe correctly
+          flags a page with no h1 at all. Visually hidden: the design
+          doesn't need a second, redundant "JustNews" banner under the one
+          already in the header, it just needs a real heading to exist. */}
+      <h1 className="visually-hidden">Feed</h1>
       {session && !hasBetaAccess && <BetaGateNotice locale={active.code} />}
 
       {feed.degraded && (
@@ -53,22 +58,26 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
       )}
 
       {!stats.degraded && (
+        // dt-then-dd per stat, each pair wrapped in its own div - the only
+        // content model <dl> actually allows. <b> stood in for <dd> before,
+        // which axe (rightly) flags: a <dl> whose direct children aren't
+        // dt/dd groups.
         <dl className="stats">
           <div>
-            <b>{stats.data.articles.toLocaleString(active.code)}</b>
             <dt>articles</dt>
+            <dd>{stats.data.articles.toLocaleString(active.code)}</dd>
           </div>
           <div>
-            <b>{stats.data.sources.toLocaleString(active.code)}</b>
             <dt>sources</dt>
+            <dd>{stats.data.sources.toLocaleString(active.code)}</dd>
           </div>
           <div>
-            <b>{stats.data.languages.toLocaleString(active.code)}</b>
             <dt>languages</dt>
+            <dd>{stats.data.languages.toLocaleString(active.code)}</dd>
           </div>
           <div>
-            <b>{stats.data.story_clusters.toLocaleString(active.code)}</b>
             <dt>stories</dt>
+            <dd>{stats.data.story_clusters.toLocaleString(active.code)}</dd>
           </div>
         </dl>
       )}
