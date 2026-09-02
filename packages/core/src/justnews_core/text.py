@@ -44,7 +44,17 @@ _TRACKING_PARAMS = frozenset(
         "partner",
     }
 )
-_WORD_RE = re.compile(r"\w+", re.UNICODE)
+# `\w` matches letters and digits but *not* combining marks (Unicode category
+# Mn), and Devanagari writes most of its vowels as combining marks - so a bare
+# `\w+` splits भारत into ["भ", "रत"] at the matra. That is not only a
+# classification problem: simhash64 shingles these tokens, so dedup layer two
+# was comparing fragments rather than words for every Devanagari headline.
+# Adding the combining ranges for the scripts we ship fixes both at once.
+_COMBINING_MARKS = (
+    "\u0300-\u036f"  # generic diacritics, for any decomposed Latin text
+    "\u0900-\u0903\u093a-\u094f\u0951-\u0957\u0962-\u0963"  # Devanagari
+)
+_WORD_RE = re.compile(rf"[\w{_COMBINING_MARKS}]+", re.UNICODE)
 _WHITESPACE_RE = re.compile(r"\s+")
 _SLUG_STRIP_RE = re.compile(r"[^a-z0-9]+")
 

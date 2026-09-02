@@ -10,13 +10,15 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
+from justnews_testing.factories import make_topic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.db import dispose_engine, init_engine
 from justnews_core.embedding import HashingEmbedder
-from justnews_core.models import Article, Source
+from justnews_core.models import Article, ArticleTopic, Source
 from justnews_core.settings import Settings
+from justnews_ingestion import gnews
 from justnews_ingestion.pipeline import run_ingestion
 from justnews_ingestion.rss import ParsedEntry
 
@@ -31,6 +33,25 @@ async def app_engine(database: str):
     init_engine(Settings(database_url=database))  # type: ignore[arg-type]
     yield
     await dispose_engine()
+
+
+@pytest.fixture
+async def backfill_topics(session: AsyncSession) -> None:
+    """The IPTC concepts GNews categories map onto.
+
+    article_topics.topic_id is a foreign key, so backfill that attributes a
+    topic needs these rows to exist - seeding is what supplies them in
+    production.
+    """
+    for topic_id, slug in [
+        ("medtop:04000000", "economy"),
+        ("medtop:13000000", "sci-tech"),
+        ("medtop:07000000", "health"),
+        ("medtop:15000000", "sport"),
+        ("medtop:01000000", "arts"),
+    ]:
+        await make_topic(session, topic_id=topic_id, slug=slug)
+    await session.commit()
 
 
 class TestGnewsBackfill:
@@ -50,6 +71,7 @@ class TestGnewsBackfill:
         database: str,
         session: AsyncSession,
         app_engine: None,
+        backfill_topics: None,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         entry = ParsedEntry(
@@ -118,3 +140,57 @@ class TestGnewsBackfill:
 
         assert stats.gnews_calls == 1
         assert stats.articles_new == 0
+
+
+class TestGnewsTopicAttribution:
+    async def test_the_requested_category_becomes_the_articles_topic(
+        self,
+        database: str,
+        session: AsyncSession,
+        app_engine: None,
+        backfill_topics: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The whole point of topic backfill: a Spanish health article arrives
+        already knowing it is about health, which is precisely what the general
+        feeds could never tell us."""
+        requested: dict[str, str] = {}
+
+        async def fake_top_headlines(*_args: object, **kwargs: object) -> list[ParsedEntry]:
+            requested["language"] = str(kwargs["language"])
+            requested["category"] = str(kwargs["category"])
+            return [
+                ParsedEntry(
+                    url_canonical="https://example.com/salud",
+                    title="Un titular sobre salud",
+                    snippet="Desde GNews.",
+                    image_url=None,
+                    author_name=None,
+                    language="es",
+                    published_at=datetime.now(UTC),
+                    source_name="Example Salud",
+                    source_url="https://example.com",
+                )
+            ]
+
+        monkeypatch.setattr("justnews_ingestion.pipeline.gnews.top_headlines", fake_top_headlines)
+        settings = Settings(  # type: ignore[call-arg]
+            database_url=database, gnews_api_key="test-key", ingest_max_gnews_calls_per_run=1
+        )
+
+        stats = await run_ingestion(settings, EMBEDDER)
+
+        assert stats.errors == [], stats.errors
+        assert stats.gnews_calls == 1
+        assert requested["category"] in set(gnews.GNEWS_CATEGORY_BY_TOPIC.values())
+
+        article = (
+            await session.execute(select(Article).where(Article.title == "Un titular sobre salud"))
+        ).scalar_one()
+        topic = (
+            await session.execute(select(ArticleTopic).where(ArticleTopic.article_id == article.id))
+        ).scalar_one()
+        # Provenance is recorded distinctly from a feed's own section: equally
+        # confident, but not the same evidence.
+        assert topic.assigned_by == "gnews_category"
+        assert gnews.GNEWS_CATEGORY_BY_TOPIC[topic.topic_id] == requested["category"]

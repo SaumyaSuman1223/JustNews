@@ -21,6 +21,7 @@ from justnews_core.embedding import build_embedder
 from justnews_core.logging import configure_logging, get_logger
 from justnews_core.settings import get_settings
 from justnews_ingestion import retention
+from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.gnews import get_quota, search
 from justnews_ingestion.pipeline import run_ingestion
 from justnews_ingestion.seed import retire_unshipped_languages, seed_all
@@ -38,6 +39,12 @@ def _print(payload: dict[str, Any]) -> None:
 async def _cmd_seed(_: argparse.Namespace) -> int:
     async with session_scope() as session:
         _print(await seed_all(session))
+    return 0
+
+
+async def _cmd_reclassify(args: argparse.Namespace) -> int:
+    async with session_scope() as session:
+        _print(await reclassify_untagged(session, limit=args.limit))
     return 0
 
 
@@ -144,6 +151,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--no-enrich", action="store_true", help="skip metadata scraping")
     run.add_argument("--trigger", default="cron", choices=["cron", "manual", "backfill"])
 
+    reclassify = sub.add_parser(
+        "reclassify", help="assign topics to stored articles that have none"
+    )
+    reclassify.add_argument("--limit", type=int, default=2000)
+
     sub.add_parser(
         "retire-languages",
         help="deactivate sources and feeds for languages this product no longer ships",
@@ -162,6 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
 _COMMANDS = {
     "seed": _cmd_seed,
     "run": _cmd_run,
+    "reclassify": _cmd_reclassify,
     "retire-languages": _cmd_retire_languages,
     "prune": _cmd_prune,
     "stats": _cmd_stats,

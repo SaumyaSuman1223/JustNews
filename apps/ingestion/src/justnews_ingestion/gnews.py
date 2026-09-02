@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from justnews_core.errors import QuotaExceededError, UpstreamError
 from justnews_core.language import LAUNCH_LANGUAGES, detect_language
 from justnews_core.logging import get_logger
-from justnews_core.models import ApiQuotaUsage, Article
+from justnews_core.models import ApiQuotaUsage, Article, ArticleTopic
 from justnews_core.settings import Settings
 from justnews_core.text import canonicalise_url, make_snippet, normalise_text
 from justnews_ingestion.rss import ParsedEntry
@@ -199,6 +199,48 @@ async def top_headlines(
     )
     log.info("gnews_top_headlines", language=language, category=category, returned=len(entries))
     return entries
+
+
+# GNews' own category vocabulary, mapped onto IPTC top-level concepts. Only
+# categories with an unambiguous equivalent are listed: "general", "world" and
+# "nation" are editorial groupings rather than subjects, so an article from
+# them gets no forced topic and falls through to the normal classifier.
+GNEWS_CATEGORY_BY_TOPIC: dict[str, str] = {
+    "medtop:04000000": "business",
+    "medtop:13000000": "technology",
+    "medtop:07000000": "health",
+    "medtop:15000000": "sports",
+    "medtop:01000000": "entertainment",
+}
+
+
+async def thin_topics(
+    session: AsyncSession, *, since: datetime, limit: int
+) -> list[tuple[str, str]]:
+    """The (language, topic) pairs with the fewest articles since ``since``.
+
+    Language-level backfill alone leaves a real gap: a language can look
+    healthy on volume while whole sections of it are empty, which is exactly
+    what happened to Spanish and Hindi health coverage - the publishers we
+    carry have no health section feed, so nothing filled it. Counting per pair
+    rather than per language is what finds that.
+
+    Pairs with no articles at all count as zero and rank first, which is the
+    case this exists to serve. Ties break on the fixed iteration order below,
+    so the result is deterministic.
+    """
+    result = await session.execute(
+        select(Article.language, ArticleTopic.topic_id, func.count())
+        .join(ArticleTopic, ArticleTopic.article_id == Article.id)
+        .where(Article.published_at >= since, Article.language.in_(LAUNCH_LANGUAGES))
+        .group_by(Article.language, ArticleTopic.topic_id)
+    )
+    counts = {(lang, topic): n for lang, topic, n in result.tuples().all()}
+    pairs = [(lang, topic) for lang in LAUNCH_LANGUAGES for topic in GNEWS_CATEGORY_BY_TOPIC]
+    # Tie-break on the original position, captured up front: sorting with a key
+    # that calls pairs.index() reads the very list sort is reordering.
+    ordered = sorted(enumerate(pairs), key=lambda item: (counts.get(item[1], 0), item[0]))
+    return [pair for _, pair in ordered[:limit]]
 
 
 async def thin_languages(session: AsyncSession, *, since: datetime, limit: int) -> list[str]:

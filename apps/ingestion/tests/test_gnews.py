@@ -7,11 +7,12 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
-from justnews_testing.factories import make_article, make_source
+from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.errors import QuotaExceededError, UpstreamError
 from justnews_core.language import LAUNCH_LANGUAGES
+from justnews_core.models import ArticleTopic
 from justnews_core.settings import Settings
 from justnews_ingestion import gnews
 
@@ -121,3 +122,49 @@ class TestThinLanguages:
         # exactly like every other untouched language - the tie goes to
         # whichever comes first in LAUNCH_LANGUAGES, which is "en".
         assert ranked == [LAUNCH_LANGUAGES[0]]
+
+
+class TestThinTopics:
+    """Language-level backfill can leave whole sections of a language empty -
+    which is exactly what happened to Spanish and Hindi health coverage, since
+    no carried publisher has a health section feed."""
+
+    async def test_a_pair_with_no_articles_ranks_first(self, session: AsyncSession) -> None:
+        source = await make_source(session)
+        await make_topic(session, topic_id="medtop:04000000", slug="economy")
+        article = await make_article(session, source, language="en", minutes_ago=5)
+        await session.flush()
+        session.add(
+            ArticleTopic(
+                article_id=article.id,
+                topic_id="medtop:04000000",
+                confidence=0.9,
+                is_primary=True,
+                assigned_by="feed_hint",
+            )
+        )
+        await session.flush()
+
+        pairs = await gnews.thin_topics(
+            session, since=datetime.now(UTC) - timedelta(hours=24), limit=5
+        )
+
+        # ("en", economy) is the only pair with any coverage, so it must not be
+        # among the thinnest.
+        assert ("en", "medtop:04000000") not in pairs
+
+    async def test_every_pair_maps_to_a_real_gnews_category(self, session: AsyncSession) -> None:
+        pairs = await gnews.thin_topics(
+            session, since=datetime.now(UTC) - timedelta(hours=24), limit=99
+        )
+        valid = {"business", "technology", "health", "sports", "entertainment"}
+        assert pairs, "expected candidate pairs even on an empty corpus"
+        for language, topic_id in pairs:
+            assert language in LAUNCH_LANGUAGES
+            assert gnews.GNEWS_CATEGORY_BY_TOPIC[topic_id] in valid
+
+    async def test_is_deterministic(self, session: AsyncSession) -> None:
+        since = datetime.now(UTC) - timedelta(hours=24)
+        first = await gnews.thin_topics(session, since=since, limit=6)
+        second = await gnews.thin_topics(session, since=since, limit=6)
+        assert first == second

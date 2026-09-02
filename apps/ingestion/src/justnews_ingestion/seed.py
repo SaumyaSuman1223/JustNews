@@ -47,6 +47,9 @@ T_HEALTH = "medtop:07000000"
 T_LIFE = "medtop:10000000"
 T_POL = "medtop:11000000"
 T_SCI = "medtop:13000000"
+_EP = "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/"
+
+T_SOCIETY = "medtop:14000000"
 T_SPORT = "medtop:15000000"
 
 SEED_SOURCES: tuple[SeedSource, ...] = (
@@ -175,7 +178,12 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "es",
         "FR",
         0.8,
-        (SeedFeed("https://www.france24.com/es/rss", "es"),),
+        (
+            SeedFeed("https://www.france24.com/es/rss", "es"),
+            SeedFeed("https://www.france24.com/es/economia/rss", "es", T_ECON),
+            SeedFeed("https://www.france24.com/es/deportes/rss", "es", T_SPORT),
+            SeedFeed("https://www.france24.com/es/cultura/rss", "es", T_ARTS),
+        ),
     ),
     SeedSource(
         "elpais",
@@ -184,7 +192,16 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "es",
         "ES",
         0.85,
-        (SeedFeed("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada", "es"),),
+        (
+            SeedFeed("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada", "es"),
+            SeedFeed(_EP + "economia/portada", "es", T_ECON),
+            SeedFeed(_EP + "deportes/portada", "es", T_SPORT),
+            SeedFeed(_EP + "tecnologia/portada", "es", T_SCI),
+            SeedFeed(_EP + "ciencia/portada", "es", T_SCI),
+            SeedFeed(_EP + "cultura/portada", "es", T_ARTS),
+            SeedFeed(_EP + "sociedad/portada", "es", T_SOCIETY),
+            SeedFeed(_EP + "internacional/portada", "es", T_POL),
+        ),
     ),
     SeedSource(
         "thehindu",
@@ -241,7 +258,13 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "hi",
         "IN",
         0.8,
-        (SeedFeed("https://feeds.feedburner.com/ndtvkhabar-latest", "hi"),),
+        (
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-latest", "hi"),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-india", "hi"),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-business", "hi", T_ECON),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-cricket", "hi", T_SPORT),
+            SeedFeed("https://feeds.feedburner.com/ndtvkhabar-world", "hi", T_POL),
+        ),
     ),
     SeedSource(
         "amar-ujala",
@@ -250,7 +273,14 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "hi",
         "IN",
         0.75,
-        (SeedFeed("https://www.amarujala.com/rss/india-news.xml", "hi"),),
+        (
+            SeedFeed("https://www.amarujala.com/rss/india-news.xml", "hi"),
+            SeedFeed("https://www.amarujala.com/rss/business.xml", "hi", T_ECON),
+            SeedFeed("https://www.amarujala.com/rss/sports.xml", "hi", T_SPORT),
+            SeedFeed("https://www.amarujala.com/rss/technology.xml", "hi", T_SCI),
+            SeedFeed("https://www.amarujala.com/rss/entertainment.xml", "hi", T_ARTS),
+            SeedFeed("https://www.amarujala.com/rss/world.xml", "hi", T_POL),
+        ),
     ),
     SeedSource(
         "aaj-tak",
@@ -268,7 +298,13 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
         "hi",
         "IN",
         0.7,
-        (SeedFeed("https://www.abplive.com/news/india/feed", "hi"),),
+        (
+            SeedFeed("https://www.abplive.com/news/india/feed", "hi"),
+            SeedFeed("https://www.abplive.com/business/feed", "hi", T_ECON),
+            SeedFeed("https://www.abplive.com/sports/feed", "hi", T_SPORT),
+            SeedFeed("https://www.abplive.com/technology/feed", "hi", T_SCI),
+            SeedFeed("https://www.abplive.com/entertainment/feed", "hi", T_ARTS),
+        ),
     ),
 )
 

@@ -156,3 +156,27 @@ class TestTokenise:
 
     def test_drops_punctuation(self) -> None:
         assert tokenise("Hello, world! -- again.") == ["hello", "world", "again"]
+
+    def test_devanagari_words_survive_their_vowel_marks(self) -> None:
+        # Regression: `\w+` excludes Unicode combining marks, so this used to
+        # come back as ["भ", "रत", "म", ...] - every Devanagari word split at
+        # its matra. Hindi is a launch language; this has to hold.
+        assert tokenise("भारत में क्रिकेट मैच") == ["भारत", "में", "क्रिकेट", "मैच"]
+
+    def test_devanagari_tokens_are_whole_words_not_fragments(self) -> None:
+        assert all(len(t) > 1 for t in tokenise("अर्थव्यवस्था और राजनीति"))
+
+
+class TestSimhashAcrossScripts:
+    """Dedup layer two runs over `tokenise` output, so a tokeniser that
+    shatters a script silently weakens deduplication for it."""
+
+    def test_near_duplicate_hindi_headlines_are_close(self) -> None:
+        a = simhash64("मोदी ने संसद में नया कानून पेश किया")
+        b = simhash64("मोदी ने संसद में नया कानून पेश किया है")
+        assert hamming_distance(a, b) < 16
+
+    def test_unrelated_hindi_headlines_are_far(self) -> None:
+        a = simhash64("मोदी ने संसद में नया कानून पेश किया")
+        b = simhash64("क्रिकेट मैच में भारत की जीत")
+        assert hamming_distance(a, b) > 16
