@@ -38,6 +38,8 @@ export type CorpusStats = components["schemas"]["StatsOut"];
 export type Topic = components["schemas"]["TopicOut"];
 export type Story = components["schemas"]["StoryOut"];
 export type StoryDetail = components["schemas"]["StoryDetailOut"];
+export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
+export type Blindspot = components["schemas"]["BlindspotOut"];
 export type FeedPage = components["schemas"]["FeedPageOut"];
 export type MeProfile = components["schemas"]["MeOut"];
 export type SaveOut = components["schemas"]["SaveOut"];
@@ -110,6 +112,16 @@ export function getTopics(language: string): Promise<Degradable<Topic[]>> {
 
 export function getStory(id: number): Promise<Degradable<StoryDetail | null>> {
   return get<StoryDetail | null>(`/v1/stories/${id}`, null, 60);
+}
+
+/**
+ * Stories being reported, but not in a language this reader reads. Cacheable
+ * and anonymous: the answer depends only on the languages asked about, not on
+ * who is asking.
+ */
+export function getBlindspots(languages: string, limit = 4): Promise<Degradable<Blindspot[]>> {
+  const query = new URLSearchParams({ languages, limit: String(limit) });
+  return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
 }
 
 export function searchArticles(params: {

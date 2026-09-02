@@ -227,6 +227,27 @@
         "title": "AuditLogEntryOut",
         "type": "object"
       },
+      "BlindspotOut": {
+        "description": "A story with coverage, none of it in a language the reader reads.",
+        "properties": {
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageCoverageOut"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "story": {
+            "$ref": "#/components/schemas/StoryOut"
+          }
+        },
+        "required": [
+          "story",
+          "coverage"
+        ],
+        "title": "BlindspotOut",
+        "type": "object"
+      },
       "ClickIn": {
         "properties": {
           "article_id": {
@@ -614,6 +635,29 @@
         "title": "InviteOut",
         "type": "object"
       },
+      "LanguageCoverageOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "source_count": {
+            "title": "Source Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "article_count",
+          "source_count"
+        ],
+        "title": "LanguageCoverageOut",
+        "type": "object"
+      },
       "MeExportOut": {
         "properties": {
           "follows": {
@@ -996,6 +1040,14 @@
               "$ref": "#/components/schemas/ArticleOut"
             },
             "title": "Articles",
+            "type": "array"
+          },
+          "coverage": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LanguageCoverageOut"
+            },
+            "title": "Coverage",
             "type": "array"
           },
           "story": {
@@ -2003,6 +2055,77 @@
           }
         },
         "summary": "Get Article",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/blindspots": {
+      "get": {
+        "description": "Stories being reported, but not in a language you read.\n\nGround News's Blindspot reframed around language rather than politics -\nand answerable here only because clustering is cross-lingual, so \"the same\nstory, elsewhere\" is a thing this corpus can actually identify.",
+        "operationId": "blindspots_v1_blindspots_get",
+        "parameters": [
+          {
+            "description": "The reader's languages. Stories covered in any of them are excluded.",
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The reader's languages. Stories covered in any of them are excluded.",
+              "examples": [
+                "en,hi"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BlindspotOut"
+                  },
+                  "title": "Response Blindspots V1 Blindspots Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Blindspots",
         "tags": [
           "content"
         ]

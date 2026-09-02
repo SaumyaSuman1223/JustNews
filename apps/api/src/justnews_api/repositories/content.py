@@ -256,3 +256,96 @@ async def corpus_stats(session: AsyncSession) -> dict[str, int]:
         "story_clusters": clusters or 0,
         "languages": languages or 0,
     }
+
+
+@dataclass(frozen=True, slots=True)
+class LanguageCoverage:
+    """How much of one story is written in one language."""
+
+    language: str
+    article_count: int
+    source_count: int
+
+
+async def language_coverage(
+    session: AsyncSession, story_ids: list[int]
+) -> dict[int, list[LanguageCoverage]]:
+    """Per story, how many articles and distinct sources cover it in each
+    language.
+
+    The one query behind both the coverage breakdown on a story page and the
+    blindspot rail, which ask the same question from opposite directions:
+    "who is covering this, and in what language" versus "which stories is
+    nobody covering in the language I read".
+
+    Ordered by article count so the dominant language of a story leads.
+    """
+    if not story_ids:
+        return {}
+
+    result = await session.execute(
+        select(
+            Article.story_cluster_id,
+            Article.language,
+            func.count(Article.id),
+            func.count(func.distinct(Article.source_id)),
+        )
+        .where(Article.story_cluster_id.in_(story_ids), Article.removed_at.is_(None))
+        .group_by(Article.story_cluster_id, Article.language)
+        .order_by(func.count(Article.id).desc(), Article.language)
+    )
+
+    coverage: dict[int, list[LanguageCoverage]] = {story_id: [] for story_id in story_ids}
+    for story_id, language, articles, sources in result.all():
+        if story_id is not None:
+            coverage[story_id].append(
+                LanguageCoverage(language=language, article_count=articles, source_count=sources)
+            )
+    return coverage
+
+
+async def list_blindspot_clusters(
+    session: AsyncSession,
+    *,
+    languages: list[str],
+    since: datetime,
+    min_sources: int,
+    limit: int,
+) -> list[StoryCluster]:
+    """Stories being covered, but not in any language this reader reads.
+
+    The honest analogue of a partisan "blindspot": it counts articles that
+    exist rather than scoring anyone's politics, and it is only possible
+    because clustering here is cross-lingual - the same event reported in
+    Spanish and Hindi collapses into one cluster, so "covered, but not for
+    you" is a question the data can actually answer.
+
+    `min_sources` guards against surfacing a single outlet's story as though
+    the world were covering it; requiring zero articles in the reader's own
+    languages is what makes it a blindspot rather than merely foreign news
+    they have already seen.
+    """
+    if not languages:
+        return []
+
+    covered_here = (
+        select(Article.story_cluster_id)
+        .where(
+            Article.story_cluster_id.is_not(None),
+            Article.language.in_(languages),
+            Article.removed_at.is_(None),
+        )
+        .scalar_subquery()
+    )
+
+    query = (
+        select(StoryCluster)
+        .where(
+            StoryCluster.last_seen_at >= since,
+            StoryCluster.source_count >= min_sources,
+            StoryCluster.id.not_in(covered_here),
+        )
+        .order_by(StoryCluster.source_count.desc(), StoryCluster.last_seen_at.desc())
+        .limit(limit)
+    )
+    return list((await session.execute(query)).scalars().all())

@@ -243,6 +243,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/blindspots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Blindspots
+         * @description Stories being reported, but not in a language you read.
+         *
+         *     Ground News's Blindspot reframed around language rather than politics -
+         *     and answerable here only because clustering is cross-lingual, so "the same
+         *     story, elsewhere" is a thing this corpus can actually identify.
+         */
+        get: operations["blindspots_v1_blindspots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/explore": {
         parameters: {
             query?: never;
@@ -610,6 +634,15 @@ export interface components {
             /** Target Type */
             target_type: string | null;
         };
+        /**
+         * BlindspotOut
+         * @description A story with coverage, none of it in a language the reader reads.
+         */
+        BlindspotOut: {
+            /** Coverage */
+            coverage: components["schemas"]["LanguageCoverageOut"][];
+            story: components["schemas"]["StoryOut"];
+        };
         /** ClickIn */
         ClickIn: {
             /** Article Id */
@@ -747,6 +780,15 @@ export interface components {
             note: string | null;
             /** Uses */
             uses: number;
+        };
+        /** LanguageCoverageOut */
+        LanguageCoverageOut: {
+            /** Article Count */
+            article_count: number;
+            /** Language */
+            language: string;
+            /** Source Count */
+            source_count: number;
         };
         /** MeExportOut */
         MeExportOut: {
@@ -893,6 +935,11 @@ export interface components {
         StoryDetailOut: {
             /** Articles */
             articles: components["schemas"]["ArticleOut"][];
+            /**
+             * Coverage
+             * @default []
+             */
+            coverage: components["schemas"]["LanguageCoverageOut"][];
             story: components["schemas"]["StoryOut"];
         };
         /** StoryOut */
@@ -1416,6 +1463,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    blindspots_v1_blindspots_get: {
+        parameters: {
+            query?: {
+                /** @description The reader's languages. Stories covered in any of them are excluded. */
+                languages?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlindspotOut"][];
                 };
             };
             /** @description Validation Error */

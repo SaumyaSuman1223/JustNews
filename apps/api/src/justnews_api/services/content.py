@@ -7,6 +7,7 @@ Anonymous browsing over the corpus - no ranking, no personalisation. That is
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,6 +86,11 @@ async def get_article(session: AsyncSession, article_id: int) -> repo.ArticleRow
 class StoryDetail:
     cluster: StoryCluster
     articles: list[repo.ArticleRow]
+    # Which languages this story is being reported in, and by how many
+    # distinct outlets each. Cross-lingual clustering is what makes this
+    # answerable at all - it is the same event in three languages, not three
+    # events (ADR 0005).
+    coverage: list[repo.LanguageCoverage]
 
 
 async def get_story(session: AsyncSession, story_id: int) -> StoryDetail:
@@ -92,4 +98,41 @@ async def get_story(session: AsyncSession, story_id: int) -> StoryDetail:
     if cluster is None:
         raise NotFoundError(f"No story with id {story_id}.")
     articles = await repo.list_articles_in_cluster(session, story_id)
-    return StoryDetail(cluster=cluster, articles=articles)
+    coverage = (await repo.language_coverage(session, [story_id])).get(story_id, [])
+    return StoryDetail(cluster=cluster, articles=articles, coverage=coverage)
+
+
+@dataclass(frozen=True, slots=True)
+class Blindspot:
+    """A story with real coverage, none of it in a language the reader reads."""
+
+    cluster: StoryCluster
+    coverage: list[repo.LanguageCoverage]
+
+
+# A story carried by only one outlet is not a blindspot, it is one outlet's
+# story. Two is the smallest number that means "this is being reported".
+BLINDSPOT_MIN_SOURCES = 2
+BLINDSPOT_WINDOW = timedelta(days=3)
+
+
+async def get_blindspots(
+    session: AsyncSession, *, languages: list[str], limit: int = 6
+) -> list[Blindspot]:
+    """Recent stories nobody is covering in the reader's languages.
+
+    Deliberately not a recommendation: it is a factual statement about where
+    coverage exists. That is also why it is honest in a way a partisan
+    blindspot feed is not - it counts articles rather than judging outlets.
+    """
+    clusters = await repo.list_blindspot_clusters(
+        session,
+        languages=languages,
+        since=datetime.now(UTC) - BLINDSPOT_WINDOW,
+        min_sources=BLINDSPOT_MIN_SOURCES,
+        limit=limit,
+    )
+    coverage = await repo.language_coverage(session, [cluster.id for cluster in clusters])
+    return [
+        Blindspot(cluster=cluster, coverage=coverage.get(cluster.id, [])) for cluster in clusters
+    ]
