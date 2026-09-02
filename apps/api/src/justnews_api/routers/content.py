@@ -76,9 +76,33 @@ class StoryOut(BaseModel):
         )
 
 
+class LanguageCoverageOut(BaseModel):
+    language: str
+    article_count: int
+    source_count: int
+
+    @classmethod
+    def from_row(cls, row: repo.LanguageCoverage) -> LanguageCoverageOut:
+        return cls(
+            language=row.language,
+            article_count=row.article_count,
+            source_count=row.source_count,
+        )
+
+
 class StoryDetailOut(BaseModel):
     story: StoryOut
     articles: list[ArticleOut]
+    # The cross-lingual split - "EN 1 · ES 3 · HI 2". Neither Ground News nor
+    # Google News can show this, because neither clusters across languages.
+    coverage: list[LanguageCoverageOut] = []
+
+
+class BlindspotOut(BaseModel):
+    """A story with coverage, none of it in a language the reader reads."""
+
+    story: StoryOut
+    coverage: list[LanguageCoverageOut]
 
 
 class StatsOut(BaseModel):
@@ -126,7 +150,35 @@ async def get_story(story_id: int, session: AsyncSession = Depends(get_session))
     return StoryDetailOut(
         story=StoryOut.from_cluster(detail.cluster),
         articles=[ArticleOut.from_row(row) for row in detail.articles],
+        coverage=[LanguageCoverageOut.from_row(entry) for entry in detail.coverage],
     )
+
+
+@router.get("/blindspots", response_model=list[BlindspotOut])
+async def blindspots(
+    session: AsyncSession = Depends(get_session),
+    languages: str | None = Query(
+        default=None,
+        examples=["en,hi"],
+        description="The reader's languages. Stories covered in any of them are excluded.",
+    ),
+    limit: int = Query(default=6, ge=1, le=20),
+) -> list[BlindspotOut]:
+    """Stories being reported, but not in a language you read.
+
+    Ground News's Blindspot reframed around language rather than politics -
+    and answerable here only because clustering is cross-lingual, so "the same
+    story, elsewhere" is a thing this corpus can actually identify.
+    """
+    requested = service.parse_languages(languages) or []
+    found = await service.get_blindspots(session, languages=requested, limit=limit)
+    return [
+        BlindspotOut(
+            story=StoryOut.from_cluster(item.cluster),
+            coverage=[LanguageCoverageOut.from_row(entry) for entry in item.coverage],
+        )
+        for item in found
+    ]
 
 
 @router.get("/stats", response_model=StatsOut)

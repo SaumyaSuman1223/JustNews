@@ -227,6 +227,27 @@
         "title": "AuditLogEntryOut",
         "type": "object"
       },
+      "BlindspotOut": {
+        "description": "A story with coverage, none of it in a language the reader reads.",
+        "properties": {
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageCoverageOut"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "story": {
+            "$ref": "#/components/schemas/StoryOut"
+          }
+        },
+        "required": [
+          "story",
+          "coverage"
+        ],
+        "title": "BlindspotOut",
+        "type": "object"
+      },
       "ClickIn": {
         "properties": {
           "article_id": {
@@ -614,6 +635,29 @@
         "title": "InviteOut",
         "type": "object"
       },
+      "LanguageCoverageOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "source_count": {
+            "title": "Source Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "article_count",
+          "source_count"
+        ],
+        "title": "LanguageCoverageOut",
+        "type": "object"
+      },
       "MeExportOut": {
         "properties": {
           "follows": {
@@ -996,6 +1040,14 @@
               "$ref": "#/components/schemas/ArticleOut"
             },
             "title": "Articles",
+            "type": "array"
+          },
+          "coverage": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LanguageCoverageOut"
+            },
+            "title": "Coverage",
             "type": "array"
           },
           "story": {
@@ -2005,6 +2057,191 @@
         "summary": "Get Article",
         "tags": [
           "content"
+        ]
+      }
+    },
+    "/v1/blindspots": {
+      "get": {
+        "description": "Stories being reported, but not in a language you read.\n\nGround News's Blindspot reframed around language rather than politics -\nand answerable here only because clustering is cross-lingual, so \"the same\nstory, elsewhere\" is a thing this corpus can actually identify.",
+        "operationId": "blindspots_v1_blindspots_get",
+        "parameters": [
+          {
+            "description": "The reader's languages. Stories covered in any of them are excluded.",
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The reader's languages. Stories covered in any of them are excluded.",
+              "examples": [
+                "en,hi"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BlindspotOut"
+                  },
+                  "title": "Response Blindspots V1 Blindspots Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Blindspots",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/explore": {
+      "get": {
+        "description": "Latest news, ranked, no sign-in required.\n\nUnlike /v1/feed this is not behind the beta gate or `require_user`: a\nsigned-out visitor is exactly who explore is for, and their impressions\nare logged against their browsing session rather than a user id.",
+        "operationId": "get_explore_v1_explore_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "en,es"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "description": "UI locale the page was rendered in.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "UI locale the page was rendered in.",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Explore",
+        "tags": [
+          "explore"
         ]
       }
     },

@@ -38,6 +38,8 @@ export type CorpusStats = components["schemas"]["StatsOut"];
 export type Topic = components["schemas"]["TopicOut"];
 export type Story = components["schemas"]["StoryOut"];
 export type StoryDetail = components["schemas"]["StoryDetailOut"];
+export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
+export type Blindspot = components["schemas"]["BlindspotOut"];
 export type FeedPage = components["schemas"]["FeedPageOut"];
 export type MeProfile = components["schemas"]["MeOut"];
 export type SaveOut = components["schemas"]["SaveOut"];
@@ -112,6 +114,16 @@ export function getStory(id: number): Promise<Degradable<StoryDetail | null>> {
   return get<StoryDetail | null>(`/v1/stories/${id}`, null, 60);
 }
 
+/**
+ * Stories being reported, but not in a language this reader reads. Cacheable
+ * and anonymous: the answer depends only on the languages asked about, not on
+ * who is asking.
+ */
+export function getBlindspots(languages: string, limit = 4): Promise<Degradable<Blindspot[]>> {
+  const query = new URLSearchParams({ languages, limit: String(limit) });
+  return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
+}
+
 export function searchArticles(params: {
   query: string;
   languages?: string;
@@ -143,6 +155,39 @@ export async function getFeed(
   params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
 ): Promise<Degradable<FeedPage>> {
   const { data, error } = await authedClient(auth).GET("/v1/feed", {
+    params: {
+      query: {
+        languages: params.languages,
+        locale: params.locale,
+        cursor: params.cursor,
+        page_size: params.pageSize ?? 20,
+      },
+    },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (error || !data) return { data: EMPTY_FEED, degraded: true };
+  return { data, degraded: false };
+}
+
+/**
+ * Explore works signed-out - that is who it is for - so `auth` is nullable.
+ * The browsing session id is still sent either way: an anonymous reader's
+ * impressions are keyed by it alone, which is what lets a click from explore
+ * be attributed at all before anyone has an account.
+ *
+ * Not cached, unlike the other anonymous reads in this file. Each request
+ * logs the impressions it served, so a shared cached response would attribute
+ * one visitor's page to everyone who got the same cache entry.
+ */
+export async function getExplore(
+  auth: AuthContext | null,
+  params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
+): Promise<Degradable<FeedPage>> {
+  const client = createApiClient(API_URL, {
+    accessToken: auth?.accessToken,
+    sessionId: auth?.sessionId,
+  });
+  const { data, error } = await client.GET("/v1/explore", {
     params: {
       query: {
         languages: params.languages,

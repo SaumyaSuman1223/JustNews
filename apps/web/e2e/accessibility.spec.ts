@@ -11,7 +11,7 @@ import { expect, test } from "@playwright/test";
  * descenders than Latin, so clipped line boxes and cramped leading show
  * up there first.
  */
-const ROUTES = ["/en", "/hi", "/en/topics", "/en/search", "/en/login"];
+const ROUTES = ["/en", "/hi", "/en/explore", "/en/topics", "/en/search", "/en/login"];
 
 for (const route of ROUTES) {
   test(`${route} has no axe violations`, async ({ page }) => {

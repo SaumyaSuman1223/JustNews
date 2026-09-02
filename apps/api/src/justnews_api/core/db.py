@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_api.core.auth import require_user
+from justnews_api.core.auth import optional_user, require_user
 from justnews_api.repositories import users as users_repo
 from justnews_api.services.auth import Principal
 from justnews_core.db import get_session_factory, set_current_user
@@ -18,6 +18,37 @@ async def get_session() -> AsyncIterator[AsyncSession]:
     factory = get_session_factory()
     async with factory() as session:
         yield session
+
+
+async def get_public_session(
+    principal: Principal | None = Depends(optional_user),
+    session: AsyncSession = Depends(get_session),
+) -> AsyncIterator[AsyncSession]:
+    """A transactional session for a route that writes but does not require
+    sign-in - explore being the first, since logging what a signed-out visitor
+    was shown is the entire point of that surface.
+
+    `get_session` deliberately never commits: everything else that writes goes
+    through `get_user_session`, which does. A route that writes on behalf of a
+    reader who may not exist needs the commit without the auth requirement,
+    which is this.
+
+    When there is a reader, it behaves exactly like `get_user_session` -
+    `app.user_id` set for RLS, profile row ensured, because impressions carry
+    a foreign key into `user_profiles`. When there is not, `app.user_id` stays
+    unset and the impression's `user_id` is NULL, which is what that column is
+    nullable for.
+    """
+    if principal is not None:
+        await set_current_user(session, str(principal.user_id))
+        await users_repo.upsert_profile(session, principal.user_id)
+    try:
+        yield session
+    except Exception:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
 
 
 async def get_user_session(

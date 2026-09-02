@@ -523,7 +523,13 @@ class Impression(Base):
     # Stage 5 ranker). This is the experiment variant a reader was bucketed
     # into, logged once per impression rather than recomputed later, for the
     # same reason propensity is: it cannot be reconstructed after the fact.
-    ranking_policy: Mapped[str] = mapped_column(String(20), nullable=False)
+    # No CHECK constraint, deliberately, and wider than the other short
+    # vocabularies here. `surface` is a genuinely closed set; `ranking_policy`
+    # is an open one that grows with every experiment - constraining it would
+    # mean a migration to ship a ranker, which is exactly the coupling
+    # services.feed's policy registry exists to remove. The values are code
+    # constants guarded by the registry's own tests, not user input.
+    ranking_policy: Mapped[str] = mapped_column(String(40), nullable=False)
     served_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow()
     )
@@ -532,10 +538,6 @@ class Impression(Base):
         CheckConstraint("propensity between 0 and 1", name="ck_impressions_propensity_range"),
         CheckConstraint(
             "surface in ('feed', 'explore', 'search', 'topic')", name="ck_impressions_surface"
-        ),
-        CheckConstraint(
-            "ranking_policy in ('chronological', 'heuristic_v1')",
-            name="ck_impressions_ranking_policy",
         ),
         Index("ix_impressions_user_served", "user_id", served_at.desc()),
         Index("ix_impressions_session_served", "session_id", served_at.desc()),

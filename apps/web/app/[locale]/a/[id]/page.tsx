@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleCard } from "@/components/ArticleCard";
+import { CoverageChips } from "@/components/CoverageChips";
 import { getArticle, getSaves, getStory } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
@@ -64,6 +65,10 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
     : false;
 
   const related = story?.data?.articles.filter((item) => item.id !== article.id) ?? [];
+  // Only languages other than the one being read: telling someone the article
+  // in front of them is available in the language it is written in is noise.
+  const otherLanguages =
+    story?.data?.coverage.filter((entry) => entry.language !== article.language) ?? [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -125,6 +130,19 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
           />
         )}
       </article>
+
+      {otherLanguages.length > 0 && (
+        <section className="notice" aria-labelledby="other-languages-heading">
+          {/* The moment a reader notices this product does something unusual:
+              the same event, being reported right now in a language they may
+              not have thought to look in. */}
+          <h2 id="other-languages-heading" className="coverage-group__heading">
+            Also covered in{" "}
+            {otherLanguages.length === 1 ? "another language" : `${otherLanguages.length} other languages`}
+          </h2>
+          <CoverageChips coverage={otherLanguages} />
+        </section>
+      )}
 
       {related.length > 0 && (
         <section aria-labelledby="related-heading">

@@ -66,6 +66,9 @@ export default async function LocaleLayout({
             <nav className="masthead-nav" aria-label="Primary">
               <ul className="masthead-links">
                 <li>
+                  <Link href={`/${active.code}/explore`}>Explore</Link>
+                </li>
+                <li>
                   <Link href={`/${active.code}/topics`}>Topics</Link>
                 </li>
                 {session && (
