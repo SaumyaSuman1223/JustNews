@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ArticleCard } from "@/components/ArticleCard";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/FeedList";
 import { getArticles, getSaves, getTopics } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
@@ -58,24 +59,23 @@ export default async function TopicDetailPage({ params }: { params: Promise<Rout
       </div>
 
       {articles.data.items.length === 0 ? (
-        <p className="empty">
-          Nothing tagged {topic.label} in {active.label} yet.
-        </p>
+        <EmptyState
+          title={`Nothing tagged ${topic.label} in ${active.label} yet`}
+          body="Coverage of this topic in this language is still thin. It fills in as sources publish through the day."
+          action={{ href: `/${active.code}/topics`, label: "All topics" }}
+        />
       ) : (
-        <ul className="feed">
-          {articles.data.items.map((article, index) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              locale={active.code}
-              surface="topic"
-              position={index}
-              signedIn={Boolean(session)}
-              saved={savedIds.has(article.id)}
-              revalidatePath={`/${active.code}/topics/${id}`}
-            />
-          ))}
-        </ul>
+        <FeedList
+          items={articles.data.items.map((article) => ({
+            article,
+            saved: savedIds.has(article.id),
+          }))}
+          locale={active.code}
+          surface="topic"
+          signedIn={Boolean(session)}
+          revalidatePath={`/${active.code}/topics/${id}`}
+          aboveFold
+        />
       )}
     </>
   );

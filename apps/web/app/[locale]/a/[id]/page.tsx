@@ -148,7 +148,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
       </article>
 
       {otherLanguages.length > 0 && (
-        <section className="notice" aria-labelledby="other-languages-heading">
+        <section className="callout" aria-labelledby="other-languages-heading">
           {/* The moment a reader notices this product does something unusual:
               the same event, being reported right now in a language they may
               not have thought to look in. */}

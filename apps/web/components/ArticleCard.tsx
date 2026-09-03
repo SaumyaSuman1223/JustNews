@@ -7,6 +7,24 @@ import { ArticleActions } from "@/components/ArticleActions";
 import type { Article } from "@/lib/api";
 import { formatRelativeTime, type LocaleCode } from "@/lib/i18n";
 
+/**
+ * The fixed card size set from docs/design/design-system.md.
+ *
+ * Fixed, and deliberately small: a ranked feed has to compose no matter what
+ * order the ranker returns, and it can only do that if the slot shapes are
+ * decided by the page rather than by the content. Principle 3 - "personalised
+ * must not mean random" - is enforced here rather than hoped for.
+ */
+export type CardVariant = "lead" | "secondary" | "list" | "compact";
+
+/** Image geometry per variant. Fixed, so nothing shifts while a photo loads. */
+const MEDIA: Record<CardVariant, { width: number; height: number } | null> = {
+  lead: { width: 1200, height: 675 },
+  secondary: { width: 640, height: 360 },
+  list: { width: 240, height: 160 },
+  compact: null,
+};
+
 export interface ArticleCardProps {
   article: Article;
   locale: LocaleCode;
@@ -24,6 +42,9 @@ export interface ArticleCardProps {
   revalidatePath: string;
   /** Extra context line under the metadata row, e.g. "Viewed 3 hours ago". */
   footnote?: string;
+  variant?: CardVariant;
+  /** Only the one card above the fold should preload its image. */
+  priority?: boolean;
 }
 
 export function ArticleCard({
@@ -36,6 +57,8 @@ export function ArticleCard({
   saved = false,
   revalidatePath,
   footnote,
+  variant = "secondary",
+  priority = false,
 }: ArticleCardProps) {
   function handleClick() {
     // Fire-and-forget: never block or delay the navigation this accompanies.
@@ -53,17 +76,26 @@ export function ArticleCard({
     });
   }
 
+  const media = MEDIA[variant];
+  // The snippet is the first thing density costs you. A lead has room to
+  // argue for itself; a list row has to survive on its headline.
+  const showSnippet = (variant === "lead" || variant === "secondary") && Boolean(article.snippet);
+
   return (
-    <li className="card">
-      {article.image_url && (
-        <Image
-          className="card__media"
-          src={article.image_url}
-          alt=""
-          width={640}
-          height={360}
-          unoptimized
-        />
+    <li className={`card card--${variant}`}>
+      {media && article.image_url && (
+        <div className="card__frame">
+          <Image
+            className="card__media"
+            src={article.image_url}
+            alt=""
+            width={media.width}
+            height={media.height}
+            sizes={variant === "lead" ? "(max-width: 60rem) 100vw, 40rem" : "(max-width: 60rem) 50vw, 20rem"}
+            unoptimized
+            priority={priority}
+          />
+        </div>
       )}
       <div className="card__body">
         <h2 className="card__title">
@@ -73,9 +105,9 @@ export function ArticleCard({
             {article.title}
           </Link>
         </h2>
-        {article.snippet && <p className="card__snippet">{article.snippet}</p>}
+        {showSnippet && <p className="card__snippet">{article.snippet}</p>}
         <p className="card__meta">
-          <span>{article.source_name}</span>
+          <span className="card__source">{article.source_name}</span>
           <time dateTime={article.published_at}>
             {formatRelativeTime(article.published_at, locale)}
           </time>

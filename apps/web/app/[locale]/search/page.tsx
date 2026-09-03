@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { ArticleCard } from "@/components/ArticleCard";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/FeedList";
 import { getSaves, searchArticles } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
@@ -60,24 +61,25 @@ export default async function SearchPage({
       )}
 
       {query.length >= 2 && results.data.items.length === 0 && !results.degraded && (
-        <p className="empty">No headlines match &ldquo;{query}&rdquo; in {active.label} yet.</p>
+        <EmptyState
+          title={`No headlines match \u201c${query}\u201d in ${active.label}`}
+          body="Try a shorter phrase, or a different language - the same story is often filed under quite different words."
+          action={{ href: `/${active.code}/topics`, label: "Browse topics" }}
+        />
       )}
 
       {results.data.items.length > 0 && (
-        <ul className="feed">
-          {results.data.items.map((article, index) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              locale={active.code}
-              surface="search"
-              position={index}
-              signedIn={Boolean(session)}
-              saved={savedIds.has(article.id)}
-              revalidatePath={`/${active.code}/search?q=${encodeURIComponent(query)}`}
-            />
-          ))}
-        </ul>
+        <FeedList
+          items={results.data.items.map((article) => ({
+            article,
+            saved: savedIds.has(article.id),
+          }))}
+          locale={active.code}
+          surface="search"
+          signedIn={Boolean(session)}
+          revalidatePath={`/${active.code}/search?q=${encodeURIComponent(query)}`}
+          layout="list"
+        />
       )}
     </>
   );

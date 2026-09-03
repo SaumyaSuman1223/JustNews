@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ArticleCard } from "@/components/ArticleCard";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/FeedList";
 import { getHistory, getSaves } from "@/lib/api";
 import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
@@ -34,23 +35,25 @@ export default async function HistoryPage({ params }: { params: Promise<{ locale
       )}
 
       {page.data.items.length === 0 ? (
-        <p className="empty">Nothing here yet - articles you open will show up here.</p>
+        <EmptyState
+          title="No reading history yet"
+          body="Articles you open appear here, most recent first. Only you can see this."
+          action={{ href: `/${active.code}`, label: "Back to the feed" }}
+        />
       ) : (
-        <ul className="feed">
-          {page.data.items.map((item, index) => (
-            <ArticleCard
-              key={`${item.article.id}-${item.viewed_at}`}
-              article={item.article}
-              locale={active.code}
-              surface="feed"
-              position={index}
-              signedIn
-              saved={savedIds.has(item.article.id)}
-              revalidatePath={`/${active.code}/history`}
-              footnote={`Viewed ${formatRelativeTime(item.viewed_at, active.code)}`}
-            />
-          ))}
-        </ul>
+        <FeedList
+          items={page.data.items.map((item) => ({
+            key: `${item.article.id}-${item.viewed_at}`,
+            article: item.article,
+            saved: savedIds.has(item.article.id),
+            footnote: `Viewed ${formatRelativeTime(item.viewed_at, active.code)}`,
+          }))}
+          locale={active.code}
+          surface="feed"
+          signedIn
+          revalidatePath={`/${active.code}/history`}
+          layout="list"
+        />
       )}
     </>
   );

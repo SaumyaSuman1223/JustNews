@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ArticleCard } from "@/components/ArticleCard";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/FeedList";
 import { getArticles, getEditions } from "@/lib/api";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -57,21 +58,20 @@ export default async function EditionPage({ params }: { params: Promise<RoutePar
       )}
 
       {page.data.items.length === 0 ? (
-        <p className="empty">No headlines from this edition yet.</p>
+        <EmptyState
+          title="No headlines from this edition yet"
+          body="This edition draws on publishers based in one country. It fills in as they publish."
+          action={{ href: `/${active.code}/explore`, label: "Go to Explore" }}
+        />
       ) : (
-        <ul className="feed">
-          {page.data.items.map((article, index) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              locale={active.code}
-              surface="topic"
-              position={index}
-              signedIn={Boolean(session)}
-              revalidatePath={`/${active.code}/edition/${edition.code}`}
-            />
-          ))}
-        </ul>
+        <FeedList
+          items={page.data.items.map((article) => ({ article }))}
+          locale={active.code}
+          surface="topic"
+          signedIn={Boolean(session)}
+          revalidatePath={`/${active.code}/edition/${edition.code}`}
+          aboveFold
+        />
       )}
     </>
   );
