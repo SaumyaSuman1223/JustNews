@@ -23,7 +23,9 @@ export async function generateMetadata({
   const topicId = decodeURIComponent(id);
   const topics = await getTopics(isLocaleCode(locale) ? locale : "en");
   const topic = topics.data.find((item) => item.id === topicId);
-  if (!topic) return { title: "Topic" };
+  if (!topic) {
+    return { title: t(isLocaleCode(locale) ? locale : "en", "topics.fallbackTitle") };
+  }
   return {
     title: topic.label,
     alternates: { canonical: `/${locale}/topics/${encodeURIComponent(topic.id)}` },

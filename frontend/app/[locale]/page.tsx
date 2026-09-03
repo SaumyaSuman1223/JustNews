@@ -52,7 +52,7 @@ export default async function FeedPage({
           with the shell. It lives on the two suspending routes rather than in
           the layout: in the layout it would also land on the article route,
           ahead of that article's own, more specific description. */}
-      <meta name="description" content="Personalised, multilingual news." />
+      <meta name="description" content={t(active.code, "site.description")} />
       {/* Keyed on the cursor so moving to the next page shows the skeleton
           again rather than holding the previous page's cards while the new
           run loads. */}

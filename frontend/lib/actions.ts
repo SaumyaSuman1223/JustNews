@@ -13,29 +13,41 @@ async function authOrNull() {
   return { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
 }
 
-export async function saveArticleAction(articleId: number, path: string): Promise<void> {
+/**
+ * The card actions report whether they worked.
+ *
+ * They returned void, so a failed save looked exactly like a successful one:
+ * the button re-enabled, nothing changed, and the reader was left to guess
+ * whether the click registered. `false` covers both a lost session and an API
+ * that refused, because from the card's point of view those need the same
+ * answer - say so, and let them try again.
+ */
+export async function saveArticleAction(articleId: number, path: string): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
-  await api.saveArticle(auth, articleId);
-  revalidatePath(path);
+  if (!auth) return false;
+  const ok = await api.saveArticle(auth, articleId);
+  if (ok) revalidatePath(path);
+  return ok;
 }
 
-export async function unsaveArticleAction(articleId: number, path: string): Promise<void> {
+export async function unsaveArticleAction(articleId: number, path: string): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
-  await api.unsaveArticle(auth, articleId);
-  revalidatePath(path);
+  if (!auth) return false;
+  const ok = await api.unsaveArticle(auth, articleId);
+  if (ok) revalidatePath(path);
+  return ok;
 }
 
 export async function notInterestedAction(
   articleId: number,
   surface: string,
   path: string,
-): Promise<void> {
+): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
-  await api.reportNotInterested(auth, { articleId, surface });
-  revalidatePath(path);
+  if (!auth) return false;
+  const ok = await api.reportNotInterested(auth, { articleId, surface });
+  if (ok) revalidatePath(path);
+  return ok;
 }
 
 export async function followTopicAction(topicId: string, path: string): Promise<void> {
@@ -52,18 +64,20 @@ export async function unfollowTopicAction(topicId: string, path: string): Promis
   revalidatePath(path);
 }
 
-export async function followSourceAction(sourceId: number, path: string): Promise<void> {
+export async function followSourceAction(sourceId: number, path: string): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
+  if (!auth) return false;
   await api.followSource(auth, sourceId);
   revalidatePath(path);
+  return true;
 }
 
-export async function unfollowSourceAction(sourceId: number, path: string): Promise<void> {
+export async function unfollowSourceAction(sourceId: number, path: string): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
+  if (!auth) return false;
   await api.unfollowSource(auth, sourceId);
   revalidatePath(path);
+  return true;
 }
 
 export async function updateLanguagesAction(languages: string[]): Promise<void> {

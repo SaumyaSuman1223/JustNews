@@ -250,6 +250,21 @@ const en = {
   "pagination.label": "More headlines",
   "pagination.next": "More headlines",
   "pagination.latest": "Back to the latest",
+
+  "actions.save": "Save",
+  "actions.saved": "Saved",
+  "actions.save.failed": "Could not save that. Try again.",
+  "actions.notInterested": "Not interested",
+  "actions.notInterested.done": "Hidden from your feed",
+  "actions.notInterested.failed": "Could not hide that. Try again.",
+  "actions.follow": "Follow {source}",
+  "actions.following": "Following {source}",
+  "actions.follow.failed": "Could not change that. Try again.",
+
+  "account.menu": "Account",
+
+  "site.description": "Personalised, multilingual news.",
+  "topics.fallbackTitle": "Topic",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -439,6 +454,21 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "pagination.label": "Más titulares",
     "pagination.next": "Más titulares",
     "pagination.latest": "Volver a lo más reciente",
+
+    "actions.save": "Guardar",
+    "actions.saved": "Guardado",
+    "actions.save.failed": "No se ha podido guardar. Inténtalo de nuevo.",
+    "actions.notInterested": "No me interesa",
+    "actions.notInterested.done": "Oculto de tu feed",
+    "actions.notInterested.failed": "No se ha podido ocultar. Inténtalo de nuevo.",
+    "actions.follow": "Seguir a {source}",
+    "actions.following": "Siguiendo a {source}",
+    "actions.follow.failed": "No se ha podido cambiar. Inténtalo de nuevo.",
+
+    "account.menu": "Cuenta",
+
+    "site.description": "Noticias personalizadas y multilingües.",
+    "topics.fallbackTitle": "Tema",
   },
   hi: {
     "skip.toContent": "सामग्री पर जाएँ",
@@ -622,6 +652,21 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "pagination.label": "और सुर्ख़ियाँ",
     "pagination.next": "और सुर्ख़ियाँ",
     "pagination.latest": "ताज़ा ख़बरों पर लौटें",
+
+    "actions.save": "सहेजें",
+    "actions.saved": "सहेजा गया",
+    "actions.save.failed": "सहेजा नहीं जा सका। फिर कोशिश करें।",
+    "actions.notInterested": "दिलचस्पी नहीं",
+    "actions.notInterested.done": "आपकी फ़ीड से हटाया गया",
+    "actions.notInterested.failed": "हटाया नहीं जा सका। फिर कोशिश करें।",
+    "actions.follow": "{source} को फ़ॉलो करें",
+    "actions.following": "{source} को फ़ॉलो कर रहे हैं",
+    "actions.follow.failed": "बदला नहीं जा सका। फिर कोशिश करें।",
+
+    "account.menu": "खाता",
+
+    "site.description": "वैयक्तिकृत, बहुभाषी ख़बरें।",
+    "topics.fallbackTitle": "विषय",
   },
 };
 

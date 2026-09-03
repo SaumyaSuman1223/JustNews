@@ -22,7 +22,7 @@ export async function generateMetadata({
   const { locale } = await params;
   return {
     title: { default: "JustNews", template: "%s · JustNews" },
-    description: "Personalised, multilingual news.",
+    description: t(isLocaleCode(locale) ? locale : "en", "site.description"),
     // hreflang across every locale, so search engines serve the right one.
     alternates: {
       canonical: `/${locale}`,

@@ -148,6 +148,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
           <div className="card__actions">
             <ArticleActions
               articleId={article.id}
+              locale={active.code}
               surface="feed"
               saved={saved}
               revalidatePath={`/${active.code}/a/${article.id}`}
@@ -155,6 +156,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
             <FollowSourceButton
               sourceId={article.source_id}
               sourceName={article.source_name}
+              locale={active.code}
               following={followingSource}
               revalidatePath={`/${active.code}/a/${article.id}`}
             />

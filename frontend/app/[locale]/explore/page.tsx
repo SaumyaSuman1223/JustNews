@@ -54,7 +54,7 @@ export default async function ExplorePage({
           with the shell. It lives on the two suspending routes rather than in
           the layout: in the layout it would also land on the article route,
           ahead of that article's own, more specific description. */}
-      <meta name="description" content="Personalised, multilingual news." />
+      <meta name="description" content={t(active.code, "site.description")} />
       <div className="page-header">
         <h1>{t(active.code, "explore.heading")}</h1>
         <p>{t(active.code, "explore.intro")}</p>
