@@ -2,8 +2,9 @@ import type { ReactElement } from "react";
 
 import { BetaGateNotice } from "@/components/BetaGateNotice";
 import { SignInRequired } from "@/components/SignInRequired";
-import { getMe } from "@/lib/api";
+import { getMe, type MeProfile } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import type { LocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 export interface AuthContext {
@@ -11,7 +12,13 @@ export interface AuthContext {
   sessionId: string;
 }
 
-export type BetaAccessResult = { ok: true; auth: AuthContext } | { ok: false; element: ReactElement };
+export type BetaAccessResult =
+  // The profile comes back with the pass because the gate has already paid
+  // for it, and every gated page needs `preferred_languages` off it. Fetching
+  // it twice would be a second transcontinental round trip for a value we are
+  // holding.
+  | { ok: true; auth: AuthContext; profile: MeProfile }
+  | { ok: false; element: ReactElement };
 
 /**
  * The gate every page behind ``/v1/feed``, ``/v1/saves``, ``/v1/follows`` or
@@ -20,7 +27,10 @@ export type BetaAccessResult = { ok: true; auth: AuthContext } | { ok: false; el
  * invite", and conflating them would send an already-signed-in reader back
  * through a login form that cannot fix their actual problem.
  */
-export async function requireBetaAccess(locale: string, path: string): Promise<BetaAccessResult> {
+export async function requireBetaAccess(
+  locale: LocaleCode,
+  path: string,
+): Promise<BetaAccessResult> {
   const session = await getSession();
   if (!session) {
     return { ok: false, element: <SignInRequired locale={locale} path={path} /> };
@@ -30,5 +40,5 @@ export async function requireBetaAccess(locale: string, path: string): Promise<B
   if (!profile?.has_beta_access) {
     return { ok: false, element: <BetaGateNotice locale={locale} /> };
   }
-  return { ok: true, auth };
+  return { ok: true, auth, profile };
 }

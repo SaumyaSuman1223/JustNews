@@ -4,10 +4,17 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { getSaves } from "@/lib/api";
-import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
-export const metadata: Metadata = { title: "Saved" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t(isLocaleCode(locale) ? locale : "en", "saved.heading") };
+}
 
 export default async function SavedPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -22,20 +29,20 @@ export default async function SavedPage({ params }: { params: Promise<{ locale: 
   return (
     <>
       <div className="page-header">
-        <h1>Saved</h1>
+        <h1>{t(active.code, "saved.heading")}</h1>
       </div>
 
       {page.degraded && (
         <p className="notice" role="status">
-          Saved articles are unavailable right now.
+          {t(active.code, "saved.degraded")}
         </p>
       )}
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title="Nothing saved yet"
-          body={"Every headline has a Save button. Saved stories stay here, and they keep working after the article scrolls off the feed."}
-          action={{ href: `/${active.code}`, label: "Back to the feed" }}
+          title={t(active.code, "saved.empty.title")}
+          body={t(active.code, "saved.empty.body")}
+          action={{ href: `/${active.code}`, label: t(active.code, "common.backToFeed") }}
         />
       ) : (
         <FeedList

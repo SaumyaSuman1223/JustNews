@@ -8,12 +8,24 @@ import { FeedList } from "@/components/FeedList";
 import { FeedSkeleton } from "@/components/FeedSkeleton";
 import Link from "next/link";
 
-import { getBlindspots, getEditions, getExplore, getSaves } from "@/lib/api";
+import { getBlindspots, getEditions, getExplore, getMe, getSaves } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Explore", description: null };
+// A function rather than a static object so the tab title is in the reader's
+// language too - it is the one string that shows up outside the page.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: t(isLocaleCode(locale) ? locale : "en", "explore.heading"),
+    description: null,
+  };
+}
 
 // Every request logs the impressions it served, so this page cannot be
 // statically rendered or shared from a cache - two readers must not be
@@ -36,11 +48,8 @@ export default async function ExplorePage({ params }: { params: Promise<{ locale
           ahead of that article's own, more specific description. */}
       <meta name="description" content="Personalised, multilingual news." />
       <div className="page-header">
-        <h1>Explore</h1>
-        <p>
-          The latest across every source we follow, ranked by recency and spread across topics -
-          the same for everyone, whether or not you are signed in.
-        </p>
+        <h1>{t(active.code, "explore.heading")}</h1>
+        <p>{t(active.code, "explore.intro")}</p>
       </div>
       {/* Suspended here rather than in a route-level loading.tsx: a streaming
           route flushes before Next resolves its metadata, which costs the
@@ -60,10 +69,20 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
     ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
     : null;
 
+  // The reader's chosen languages decide what this page may return, so the
+  // profile has to land before the queries that filter on it. One extra
+  // round trip, and only for signed-in readers - the anonymous path, which is
+  // the majority of pageviews here, still starts its fetches immediately.
+  const profile = auth ? await getMe(auth) : null;
+  const languages = readerLanguages(profile?.preferred_languages, active.code);
+
   const [page, blindspots, editions, savedIds] = await Promise.all([
-    getExplore(auth, { locale: active.code, languages: active.code, pageSize: 24 }),
-    getBlindspots(active.code),
-    getEditions(active.code),
+    getExplore(auth, { locale: active.code, languages, pageSize: 24 }),
+    // Blindspots are stories covered in *no* language the reader reads, so
+    // this argument has to be the full set or the rail invents gaps that are
+    // not there.
+    getBlindspots(languages),
+    getEditions(languages),
     auth
       ? getSaves(auth).then((saves) => new Set(saves.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
@@ -73,12 +92,12 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
     <>
       {page.degraded && (
         <p className="notice" role="status">
-          Live headlines are unavailable right now, so this page may be out of date.
+          {t(active.code, "explore.degraded")}
         </p>
       )}
 
       {editions.data.length > 0 && (
-        <nav aria-label="Editions">
+        <nav aria-label={t(active.code, "explore.editions")}>
           <ul className="chip-list">
             {editions.data.map((edition) => (
               <li key={edition.code}>
@@ -95,9 +114,12 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title={`Nothing to explore in ${active.label} yet`}
-          body="No sources we follow have published in this language recently. Switching language in the header will show you what is running elsewhere."
-          action={{ href: `/${active.code}/topics`, label: "Browse topics" }}
+          title={t(active.code, "explore.empty.title")}
+          body={t(active.code, "explore.empty.body")}
+          action={{
+            href: `/${active.code}/topics`,
+            label: t(active.code, "explore.empty.action"),
+          }}
         />
       ) : (
         <FeedList

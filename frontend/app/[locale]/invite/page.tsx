@@ -4,10 +4,17 @@ import { notFound, redirect } from "next/navigation";
 import { InviteForm } from "@/components/InviteForm";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { isLocaleCode } from "@/lib/i18n";
+import { isLocaleCode, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Redeem your invite" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t(isLocaleCode(locale) ? locale : "en", "invite.title") };
+}
 
 export default async function InvitePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

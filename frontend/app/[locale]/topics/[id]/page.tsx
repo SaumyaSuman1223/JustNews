@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
-import { getArticles, getSaves, getTopics } from "@/lib/api";
+import { getArticles, getMe, getSaves, getTopics } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, readerLanguages } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -37,20 +37,28 @@ export default async function TopicDetailPage({ params }: { params: Promise<Rout
   // is linked to, and not every router stage decodes it back automatically.
   const topicId = decodeURIComponent(id);
 
-  const [topics, articles, session] = await Promise.all([
+  const session = await getSession();
+  const auth = session
+    ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
+    : null;
+  const profile = auth ? await getMe(auth) : null;
+
+  const [topics, articles, savedIds] = await Promise.all([
+    // The topic label follows the interface, not the reader's content
+    // languages: this heading names the section they are standing in. The
+    // articles under it follow the reader.
     getTopics(active.code),
-    getArticles({ languages: active.code, topic: topicId, pageSize: 24 }),
-    getSession(),
+    getArticles({
+      languages: readerLanguages(profile?.preferred_languages, active.code),
+      topic: topicId,
+      pageSize: 24,
+    }),
+    auth
+      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
+      : Promise.resolve(new Set<number>()),
   ]);
   const topic = topics.data.find((item) => item.id === topicId);
   if (!topic) notFound();
-
-  const savedIds = session
-    ? await getSaves({
-        accessToken: session.accessToken,
-        sessionId: await getBrowsingSessionId(),
-      }).then((page) => new Set(page.data.items.map((item) => item.article.id)))
-    : new Set<number>();
 
   return (
     <>

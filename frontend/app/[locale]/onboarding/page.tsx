@@ -4,10 +4,17 @@ import { notFound } from "next/navigation";
 
 import { completeOnboardingAction } from "@/lib/actions";
 import { getFollows, getMe, getTopics } from "@/lib/api";
-import { getLocale, isLocaleCode, locales } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
-export const metadata: Metadata = { title: "Get set up" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t(isLocaleCode(locale) ? locale : "en", "onboarding.heading") };
+}
 
 export default async function OnboardingPage({
   params,
@@ -35,15 +42,15 @@ export default async function OnboardingPage({
   return (
     <div className="narrow">
       <div className="page-header">
-        <h1>Get set up</h1>
-        <p>Two quick choices - both changeable later from Settings.</p>
+        <h1>{t(active.code, "onboarding.heading")}</h1>
+        <p>{t(active.code, "onboarding.intro")}</p>
       </div>
 
       <form action={action}>
         <div className="field">
-          <label>Languages for your feed</label>
+          <label>{t(active.code, "settings.languages.label")}</label>
           <p className="form-note" style={{ marginBlockStart: 0 }}>
-            Choose at least one.
+            {t(active.code, "onboarding.languages.note")}
           </p>
         </div>
         <ul className="checkbox-grid">
@@ -63,9 +70,9 @@ export default async function OnboardingPage({
         </ul>
 
         <div className="field" style={{ marginBlockStart: "var(--space-6)" }}>
-          <label>What are you interested in?</label>
+          <label>{t(active.code, "onboarding.topics.label")}</label>
           <p className="form-note" style={{ marginBlockStart: 0 }}>
-            Optional - pick as many as you like.
+            {t(active.code, "onboarding.topics.note")}
           </p>
         </div>
         <ul className="checkbox-grid">
@@ -85,12 +92,12 @@ export default async function OnboardingPage({
         </ul>
 
         <button type="submit" className="button button--primary">
-          Continue
+          {t(active.code, "onboarding.continue")}
         </button>
       </form>
 
       <p className="form-note">
-        <Link href={`/${active.code}`}>Skip for now</Link>
+        <Link href={`/${active.code}`}>{t(active.code, "onboarding.skip")}</Link>
       </p>
     </div>
   );

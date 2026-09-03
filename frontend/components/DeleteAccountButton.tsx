@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { deleteAccountAction } from "@/lib/actions";
+import { t, type LocaleCode } from "@/lib/i18n";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-export function DeleteAccountButton({ locale }: { locale: string }) {
+export function DeleteAccountButton({ locale }: { locale: LocaleCode }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
@@ -23,20 +24,17 @@ export function DeleteAccountButton({ locale }: { locale: string }) {
   if (!confirming) {
     return (
       <button type="button" className="button button--secondary" onClick={() => setConfirming(true)}>
-        Delete my account
+        {t(locale, "account.delete")}
       </button>
     );
   }
 
   return (
     <div className="notice" role="alertdialog">
-      <p style={{ marginBlockStart: 0 }}>
-        This removes your saves, follows and profile permanently. Your reading history is kept
-        but no longer linked to you. This cannot be undone.
-      </p>
+      <p style={{ marginBlockStart: 0 }}>{t(locale, "account.delete.warning")}</p>
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="button" className="button button--primary" disabled={pending} onClick={handleDelete}>
-          {pending ? "Deleting…" : "Yes, delete everything"}
+          {pending ? t(locale, "account.delete.pending") : t(locale, "account.delete.confirm")}
         </button>
         <button
           type="button"
@@ -44,7 +42,7 @@ export function DeleteAccountButton({ locale }: { locale: string }) {
           disabled={pending}
           onClick={() => setConfirming(false)}
         >
-          Cancel
+          {t(locale, "account.delete.cancel")}
         </button>
       </div>
     </div>

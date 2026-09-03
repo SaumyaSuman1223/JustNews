@@ -4,10 +4,17 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { getHistory, getSaves } from "@/lib/api";
-import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
+import { formatRelativeTime, getLocale, isLocaleCode, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
-export const metadata: Metadata = { title: "History" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t(isLocaleCode(locale) ? locale : "en", "history.heading") };
+}
 
 export default async function HistoryPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -24,21 +31,21 @@ export default async function HistoryPage({ params }: { params: Promise<{ locale
   return (
     <>
       <div className="page-header">
-        <h1>History</h1>
-        <p>Articles you have opened, most recent first.</p>
+        <h1>{t(active.code, "history.heading")}</h1>
+        <p>{t(active.code, "history.intro")}</p>
       </div>
 
       {page.degraded && (
         <p className="notice" role="status">
-          History is unavailable right now.
+          {t(active.code, "history.degraded")}
         </p>
       )}
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title="No reading history yet"
-          body="Articles you open appear here, most recent first. Only you can see this."
-          action={{ href: `/${active.code}`, label: "Back to the feed" }}
+          title={t(active.code, "history.empty.title")}
+          body={t(active.code, "history.empty.body")}
+          action={{ href: `/${active.code}`, label: t(active.code, "common.backToFeed") }}
         />
       ) : (
         <FeedList
@@ -46,7 +53,9 @@ export default async function HistoryPage({ params }: { params: Promise<{ locale
             key: `${item.article.id}-${item.viewed_at}`,
             article: item.article,
             saved: savedIds.has(item.article.id),
-            footnote: `Viewed ${formatRelativeTime(item.viewed_at, active.code)}`,
+            footnote: t(active.code, "history.viewed", {
+              time: formatRelativeTime(item.viewed_at, active.code),
+            }),
           }))}
           locale={active.code}
           surface="feed"

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import type { Article } from "@/lib/api";
-import { type LocaleCode, formatRelativeTime } from "@/lib/i18n";
+import { type LocaleCode, formatRelativeTime, t } from "@/lib/i18n";
 
 /**
  * What readers are clicking, most-clicked first.
@@ -23,7 +23,7 @@ export function TrendingRail({
   return (
     <section className="trending" aria-labelledby="trending-heading">
       <h2 id="trending-heading" className="trending__heading">
-        Most read
+        {t(locale, "trending.heading")}
       </h2>
       <ol className="trending__list">
         {articles.map((article) => (

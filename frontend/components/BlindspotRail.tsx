@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { CoverageChips } from "@/components/CoverageChips";
 import type { Blindspot } from "@/lib/api";
-import type { LocaleCode } from "@/lib/i18n";
+import { type LocaleCode, t } from "@/lib/i18n";
 
 /**
  * Stories being reported right now, but not in a language this reader reads.
@@ -25,19 +25,16 @@ export function BlindspotRail({
   return (
     <section className="blindspot" aria-labelledby="blindspot-heading">
       <h2 id="blindspot-heading" className="blindspot__heading">
-        Not covered in your languages
+        {t(locale, "blindspot.heading")}
       </h2>
-      <p className="blindspot__note">
-        Being reported elsewhere right now, by outlets writing in a language you have not
-        selected.
-      </p>
+      <p className="blindspot__note">{t(locale, "blindspot.note")}</p>
       <ul className="blindspot__list">
         {blindspots.map((item) => (
           <li key={item.story.id} className="blindspot__item">
             <h3 className="blindspot__title">
               <Link href={`/${locale}/story/${item.story.id}`}>{item.story.title}</Link>
             </h3>
-            <CoverageChips coverage={item.coverage} />
+            <CoverageChips coverage={item.coverage} locale={locale} />
           </li>
         ))}
       </ul>
