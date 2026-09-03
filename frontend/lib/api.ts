@@ -22,6 +22,8 @@
 import { createApiClient } from "@justnews/api-client";
 import type { components } from "@justnews/api-client";
 
+import { hasAnalyticsConsent } from "@/lib/consent";
+
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 // Render's free tier spins the API down after 15 minutes idle and cold-starts
 // on the next request - measured around 22s. Nothing pings it to stay warm
@@ -184,6 +186,10 @@ export async function getFeed(
   params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
 ): Promise<Degradable<FeedPage>> {
   try {
+    // Fails closed server-side too (see routers/feed.py), but the header is
+    // only ever sent as the literal string "granted" - never "denied" or
+    // omitted-as-false - so there is no ambiguity for the backend to resolve
+    // either way.
     const { data, error } = await authedClient(auth).GET("/v1/feed", {
       params: {
         query: {
@@ -192,6 +198,7 @@ export async function getFeed(
           cursor: params.cursor,
           page_size: params.pageSize ?? 20,
         },
+        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -232,6 +239,7 @@ export async function getExplore(
           cursor: params.cursor,
           page_size: params.pageSize ?? 20,
         },
+        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

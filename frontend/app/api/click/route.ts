@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { reportClick } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { hasAnalyticsConsent } from "@/lib/consent";
 import { getSession } from "@/lib/session";
 
 /**
@@ -18,6 +19,12 @@ export async function POST(request: Request): Promise<Response> {
   // Impressions are only logged against the authenticated /v1/feed - an
   // anonymous explorer's click has nothing to correlate against yet.
   if (!session) return NextResponse.json({ ok: true });
+
+  // The consent gate for click logging: not a client-side self-censor, this
+  // route is the actual choke point every click report passes through,
+  // matching how a card's own fire-and-forget fetch has no way to know or
+  // enforce the reader's choice on its own.
+  if (!(await hasAnalyticsConsent())) return NextResponse.json({ ok: true });
 
   const body: unknown = await request.json().catch(() => null);
   if (
