@@ -406,3 +406,19 @@ async def list_editions(session: AsyncSession, *, languages: list[str] | None) -
     if languages:
         query = query.where(Edition.language.in_(languages))
     return list((await session.execute(query)).scalars().all())
+
+
+async def list_sources_for_language(
+    session: AsyncSession, *, language: str, limit: int
+) -> list[Source]:
+    """Discovery order, not trust-score-as-quality-signal exposed to a reader
+    - trust_score decides tie-breaking among sources that publish in the
+    reader's language, it is never shown, and it is not a claim about which
+    source is "better"."""
+    result = await session.execute(
+        select(Source)
+        .where(Source.active.is_(True), Source.language == language)
+        .order_by(Source.trust_score.desc(), Source.name)
+        .limit(limit)
+    )
+    return list(result.scalars().all())

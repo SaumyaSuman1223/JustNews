@@ -208,6 +208,45 @@ class TestGetStory:
         assert response.status_code == 404
 
 
+class TestSources:
+    async def test_filters_to_the_requested_language(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        await make_source(session, slug="hindi-source", language="hi", name="Hindi Source")
+        await make_source(session, slug="english-source", language="en", name="English Source")
+        await session.commit()
+
+        body = (await client.get("/v1/sources", params={"language": "hi"})).json()
+        assert [row["name"] for row in body] == ["Hindi Source"]
+
+    async def test_an_inactive_source_is_excluded(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        await make_source(session, slug="retired", language="en", active=False)
+        await session.commit()
+
+        body = (await client.get("/v1/sources", params={"language": "en"})).json()
+        assert body == []
+
+    async def test_higher_trust_sources_come_first(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        await make_source(session, slug="low-trust", language="en", trust_score=0.3, name="Low")
+        await make_source(session, slug="high-trust", language="en", trust_score=0.9, name="High")
+        await session.commit()
+
+        body = (await client.get("/v1/sources", params={"language": "en"})).json()
+        assert [row["name"] for row in body] == ["High", "Low"]
+
+    async def test_requires_a_language(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/sources")
+        assert response.status_code == 422
+
+    async def test_rejects_an_invalid_language_code(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/sources", params={"language": "zzzz9"})
+        assert response.status_code == 422
+
+
 class TestStats:
     async def test_counts_distinct_languages(
         self, client: AsyncClient, session: AsyncSession
