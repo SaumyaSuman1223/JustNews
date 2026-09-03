@@ -300,7 +300,11 @@ export interface paths {
          *
          *     Unlike /v1/feed this is not behind the beta gate or `require_user`: a
          *     signed-out visitor is exactly who explore is for, and their impressions
-         *     are logged against their browsing session rather than a user id.
+         *     are logged against their browsing session rather than a user id - or
+         *     would be: this is the largest pre-consent observation surface in the
+         *     app precisely because it is reachable with no sign-in and no beta
+         *     access, so an anonymous visitor who has not consented generates zero
+         *     impression rows here, not rows keyed on a throwaway session id.
          */
         get: operations["get_explore_v1_explore_get"];
         put?: never;
@@ -813,7 +817,7 @@ export interface components {
         FeedItemOut: {
             article: components["schemas"]["ArticleOut"];
             /** Impression Id */
-            impression_id: number;
+            impression_id: number | null;
         };
         /** FeedPageOut */
         FeedPageOut: {
@@ -1763,6 +1767,7 @@ export interface operations {
             };
             header?: {
                 "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1801,6 +1806,7 @@ export interface operations {
             };
             header?: {
                 "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
             };
             path?: never;
             cookie?: never;

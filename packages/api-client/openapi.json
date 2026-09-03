@@ -339,8 +339,15 @@
             "$ref": "#/components/schemas/ArticleOut"
           },
           "impression_id": {
-            "title": "Impression Id",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impression Id"
           }
         },
         "required": [
@@ -2397,7 +2404,7 @@
     },
     "/v1/explore": {
       "get": {
-        "description": "Latest news, ranked, no sign-in required.\n\nUnlike /v1/feed this is not behind the beta gate or `require_user`: a\nsigned-out visitor is exactly who explore is for, and their impressions\nare logged against their browsing session rather than a user id.",
+        "description": "Latest news, ranked, no sign-in required.\n\nUnlike /v1/feed this is not behind the beta gate or `require_user`: a\nsigned-out visitor is exactly who explore is for, and their impressions\nare logged against their browsing session rather than a user id - or\nwould be: this is the largest pre-consent observation surface in the\napp precisely because it is reachable with no sign-in and no beta\naccess, so an anonymous visitor who has not consented generates zero\nimpression rows here, not rows keyed on a throwaway session id.",
         "operationId": "get_explore_v1_explore_get",
         "parameters": [
           {
@@ -2473,6 +2480,22 @@
                 }
               ],
               "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
             }
           }
         ],
@@ -2588,6 +2611,22 @@
                 }
               ],
               "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
             }
           }
         ],
