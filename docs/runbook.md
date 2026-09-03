@@ -18,6 +18,27 @@ hit `/health`, which never touches the database — otherwise a database
 outage makes the orchestrator kill healthy containers and a degradation
 becomes an outage.
 
+### Uptime monitoring
+
+`.github/workflows/uptime.yml` checks `/health`, `/health/ready` and the web
+app every 15 minutes and fails the run (a GitHub Actions failure
+notification, no external service) when any of them don't come back healthy.
+Its whole marginal value is the API process and the web app — `ingest.yml`
+already fails loudly whenever Supabase itself is unreachable, since it's on
+the request path of every ingestion run, so this workflow is not also
+watching the database on its own account.
+
+Two things worth knowing before trusting it:
+
+- **GitHub disables a scheduled workflow after 60 days with no commits to the
+  repo.** A quiet monitor is not the same as a healthy one — if nobody has
+  pushed in two months, check `Actions` → `uptime` is still listed as
+  scheduled, not just check that it hasn't failed.
+- It needs `STAGING_API_URL` (secret) and `SITE_URL` (variable) set in the
+  repo's Actions settings. Without them the curl calls hit an empty string
+  and fail immediately, which reads exactly like a real outage the first
+  time anyone looks.
+
 ## Common failures
 
 ### An `ingest_runs` row has `finished_at` NULL
