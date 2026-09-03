@@ -42,10 +42,10 @@ dev-web: ## run the web app on the host with reload
 # --- database -----------------------------------------------------------
 
 migrate: ## apply database migrations
-	cd apps/api && uv run alembic upgrade head
+	cd backend && uv run alembic upgrade head
 
 migration: ## generate a migration: make migration m="add x"
-	cd apps/api && uv run alembic revision --autogenerate -m "$(m)"
+	cd backend && uv run alembic revision --autogenerate -m "$(m)"
 
 seed: ## seed IPTC topics, editions, sources and feeds (idempotent)
 	uv run justnews-ingest seed
@@ -76,7 +76,7 @@ test: ## run every test
 lint: ## lint and typecheck everything
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy packages/core/src apps/api/src apps/ingestion/src
+	uv run mypy packages/core/src backend/src apps/ingestion/src
 	pnpm --filter @justnews/web lint
 	pnpm --filter @justnews/web typecheck
 

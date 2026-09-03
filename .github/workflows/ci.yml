@@ -54,14 +54,14 @@ jobs:
           uv run ruff format --check .
 
       - name: Typecheck
-        run: uv run mypy packages/core/src apps/api/src apps/ingestion/src
+        run: uv run mypy packages/core/src backend/src apps/ingestion/src
 
       - name: Migrations apply cleanly to an empty database
-        working-directory: apps/api
+        working-directory: backend
         run: uv run alembic upgrade head
 
       - name: Migrations are reversible
-        working-directory: apps/api
+        working-directory: backend
         run: |
           uv run alembic downgrade base
           uv run alembic upgrade head
@@ -69,7 +69,7 @@ jobs:
       - name: No model drift
         # Catches a model edited without a matching migration - the change that
         # passes review and breaks the next deploy.
-        working-directory: apps/api
+        working-directory: backend
         run: uv run alembic check
 
       - name: Test

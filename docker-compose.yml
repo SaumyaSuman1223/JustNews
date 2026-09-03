@@ -61,6 +61,7 @@ services:
         condition: service_healthy
     volumes:
       # Source is mounted so uvicorn --reload sees edits without a rebuild.
+      - ./backend:/app/backend
       - ./apps:/app/apps
       - ./packages:/app/packages
     healthcheck:
@@ -82,6 +83,7 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - ./backend:/app/backend
       - ./apps:/app/apps
       - ./packages:/app/packages
     # In staging this is a scheduled GitHub Actions step, not a deployed

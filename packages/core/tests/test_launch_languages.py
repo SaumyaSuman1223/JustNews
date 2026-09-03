@@ -17,7 +17,7 @@ import pytest
 from justnews_core.language import LAUNCH_LANGUAGES
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-WEB_I18N = REPO_ROOT / "apps" / "web" / "lib" / "i18n.ts"
+WEB_I18N = REPO_ROOT / "frontend" / "lib" / "i18n.ts"
 
 
 def _web_locale_codes() -> set[str]:

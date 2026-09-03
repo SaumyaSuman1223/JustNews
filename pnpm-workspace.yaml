@@ -1,5 +1,5 @@
 packages:
-  - "apps/web"
+  - "frontend"
   - "packages/api-client"
   - "packages/ui"
 
