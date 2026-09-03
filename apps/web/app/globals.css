@@ -605,9 +605,31 @@ a {
   max-width: var(--measure);
 }
 
+/* Sign-in, invite, onboarding, settings: a single column of form, centred.
+   These pages are operated, not read, so they take the section step rather
+   than the lead one - the type scale's job is to say what kind of page this
+   is, and a display headline over two input fields says the wrong thing. */
 .narrow {
-  max-width: 32rem;
+  max-width: 26rem;
   margin-inline: auto;
+}
+
+.narrow .page-header h1 {
+  font-size: var(--type-section);
+  letter-spacing: -0.01em;
+}
+
+/* The form gets a surface of its own so it reads as one object to complete,
+   rather than controls scattered on the page ground. */
+.form-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+}
+
+.form-panel .button {
+  inline-size: 100%;
 }
 
 /* --- header nav / account / search --------------------------------------- */
