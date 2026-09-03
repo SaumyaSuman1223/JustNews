@@ -75,6 +75,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if settings.app_env == "local"
             else []
         ),
+        # Expo's LAN mode serves the web preview from whatever private IP the
+        # dev machine currently has (DHCP-assigned, changes across networks
+        # and reconnects) - a literal allowlist entry would go stale the next
+        # time that address changes, which is exactly what just happened.
+        # Scoped to Expo's default port and RFC 1918 private ranges only.
+        allow_origin_regex=(
+            r"^http://(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+            r"|192\.168\.\d{1,3}\.\d{1,3}):8081$"
+            if settings.app_env == "local"
+            else None
+        ),
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["authorization", "content-type", "x-request-id"],
