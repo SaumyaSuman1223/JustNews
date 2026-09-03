@@ -9,7 +9,7 @@ import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { TrendingRail } from "@/components/TrendingRail";
 import { getArticles, getFeed, getMe, getSaves, getStats, getTrending } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 // The layout's description would otherwise also be emitted, deferred, as a
@@ -36,7 +36,7 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
           flags a page with no h1 at all. Visually hidden: the design
           doesn't need a second, redundant "JustNews" banner under the one
           already in the header, it just needs a real heading to exist. */}
-      <h1 className="visually-hidden">Feed</h1>
+      <h1 className="visually-hidden">{t(active.code, "feed.heading")}</h1>
       {/* A suspending page streams its shell before Next has resolved route
           metadata, so the description from generateMetadata is not in the
           initial document - Lighthouse SEO drops to 92. React hoists this tag
@@ -60,6 +60,11 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
     : null;
   const profile = auth ? await getMe(auth) : null;
   const hasBetaAccess = profile?.has_beta_access ?? false;
+  // Anonymous readers have told us nothing, so the locale is all we have. A
+  // signed-in reader waiting on an invite has already chosen their languages
+  // in onboarding, and this holding page is the first thing that should
+  // honour them.
+  const languages = readerLanguages(profile?.preferred_languages, active.code);
 
   const [feed, stats, trending, savedIds] = await Promise.all([
     auth && hasBetaAccess
@@ -68,7 +73,7 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
           items: page.data.items,
           nextCursor: page.data.next_cursor,
         }))
-      : getArticles({ languages: active.code, pageSize: 24 }).then((page) => ({
+      : getArticles({ languages, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
           // Uniform shape either way - an anonymous read has no impression
           // to report a click against, so there is nothing to attribute.
@@ -76,7 +81,7 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
           nextCursor: page.data.next_cursor,
         })),
     getStats(),
-    getTrending(active.code),
+    getTrending(languages),
     auth && hasBetaAccess
       ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
@@ -88,18 +93,18 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
 
       {feed.degraded && (
         <p className="notice" role="status">
-          {hasBetaAccess
-            ? "Your feed is unavailable right now, so this page may be out of date."
-            : "Live headlines are unavailable right now, so this page may be out of date."}{" "}
-          Everything else still works.
+          {t(active.code, hasBetaAccess ? "feed.degraded.personal" : "feed.degraded.anonymous")}
         </p>
       )}
 
       {feed.items.length === 0 ? (
         <EmptyState
-          title={`No headlines in ${active.label} right now`}
-          body="We are still gathering today's coverage in this language. Explore is the same news without the personalisation, and it is worth a look in the meantime."
-          action={{ href: `/${active.code}/explore`, label: "Go to Explore" }}
+          title={t(active.code, "feed.empty.title")}
+          body={t(active.code, "feed.empty.body")}
+          action={{
+            href: `/${active.code}/explore`,
+            label: t(active.code, "feed.empty.action"),
+          }}
         />
       ) : (
         <FeedList
@@ -125,19 +130,19 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
         // dt/dd groups.
         <dl className="stats">
           <div>
-            <dt>articles</dt>
+            <dt>{t(active.code, "stats.articles")}</dt>
             <dd>{stats.data.articles.toLocaleString(active.code)}</dd>
           </div>
           <div>
-            <dt>sources</dt>
+            <dt>{t(active.code, "stats.sources")}</dt>
             <dd>{stats.data.sources.toLocaleString(active.code)}</dd>
           </div>
           <div>
-            <dt>languages</dt>
+            <dt>{t(active.code, "stats.languages")}</dt>
             <dd>{stats.data.languages.toLocaleString(active.code)}</dd>
           </div>
           <div>
-            <dt>stories</dt>
+            <dt>{t(active.code, "stats.stories")}</dt>
             <dd>{stats.data.story_clusters.toLocaleString(active.code)}</dd>
           </div>
         </dl>

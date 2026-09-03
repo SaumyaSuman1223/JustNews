@@ -7,7 +7,7 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode, locales } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 export function generateStaticParams() {
@@ -56,24 +56,24 @@ export default async function LocaleLayout({
     <html lang={active.htmlLang} dir={active.dir}>
       <body>
         <a className="skip-link" href="#main">
-          Skip to content
+          {t(active.code, "skip.toContent")}
         </a>
         <div className="shell">
           <header className="masthead">
             <Link href={`/${active.code}`} className="wordmark">
               Just<span>News</span>
             </Link>
-            <nav className="masthead-nav" aria-label="Primary">
+            <nav className="masthead-nav" aria-label={t(active.code, "nav.primary")}>
               <ul className="masthead-links">
                 <li>
-                  <Link href={`/${active.code}/explore`}>Explore</Link>
+                  <Link href={`/${active.code}/explore`}>{t(active.code, "nav.explore")}</Link>
                 </li>
                 <li>
-                  <Link href={`/${active.code}/topics`}>Topics</Link>
+                  <Link href={`/${active.code}/topics`}>{t(active.code, "nav.topics")}</Link>
                 </li>
                 {session && (
                   <li>
-                    <Link href={`/${active.code}/saved`}>Saved</Link>
+                    <Link href={`/${active.code}/saved`}>{t(active.code, "nav.saved")}</Link>
                   </li>
                 )}
               </ul>
@@ -84,7 +84,7 @@ export default async function LocaleLayout({
                 hasBetaAccess={hasBetaAccess}
               />
             </nav>
-            <nav aria-label="Language">
+            <nav aria-label={t(active.code, "nav.language")}>
               <ul className="locale-switcher">
                 {locales.map((option) => (
                   <li key={option.code}>
@@ -108,7 +108,7 @@ export default async function LocaleLayout({
             {children}
           </main>
           <footer className="site-footer">
-            <Link href="/privacy">Privacy</Link>
+            <Link href="/privacy">{t(active.code, "nav.privacy")}</Link>
           </footer>
         </div>
       </body>

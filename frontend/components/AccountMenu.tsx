@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { t, type LocaleCode } from "@/lib/i18n";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function AccountMenu({
@@ -11,7 +12,7 @@ export function AccountMenu({
   email,
   hasBetaAccess,
 }: {
-  locale: string;
+  locale: LocaleCode;
   email: string | null;
   hasBetaAccess: boolean;
 }) {
@@ -21,7 +22,7 @@ export function AccountMenu({
   if (!email) {
     return (
       <Link href={`/${locale}/login`} className="button button--secondary">
-        Sign in
+        {t(locale, "account.signIn")}
       </Link>
     );
   }
@@ -49,23 +50,23 @@ export function AccountMenu({
         <div className="account-menu__panel" role="menu">
           {!hasBetaAccess && (
             <Link role="menuitem" href={`/${locale}/invite`} onClick={() => setOpen(false)}>
-              Enter invite code
+              {t(locale, "account.enterInvite")}
             </Link>
           )}
           <Link role="menuitem" href={`/${locale}/saved`} onClick={() => setOpen(false)}>
-            Saved
+            {t(locale, "account.saved")}
           </Link>
           <Link role="menuitem" href={`/${locale}/history`} onClick={() => setOpen(false)}>
-            History
+            {t(locale, "account.history")}
           </Link>
           <Link role="menuitem" href={`/${locale}/settings`} onClick={() => setOpen(false)}>
-            Settings
+            {t(locale, "account.settings")}
           </Link>
           <Link role="menuitem" href={`/${locale}/onboarding`} onClick={() => setOpen(false)}>
-            Choose topics
+            {t(locale, "account.chooseTopics")}
           </Link>
           <button role="menuitem" type="button" onClick={signOut}>
-            Sign out
+            {t(locale, "account.signOut")}
           </button>
         </div>
       )}
