@@ -469,6 +469,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/reading-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Reading Profile */
+        get: operations["get_reading_profile_v1_me_reading_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/not-interested": {
         parameters: {
             query?: never;
@@ -884,6 +901,13 @@ export interface components {
             /** Source Count */
             source_count: number;
         };
+        /** LanguageMixOut */
+        LanguageMixOut: {
+            /** Count */
+            count: number;
+            /** Language */
+            language: string;
+        };
         /** MeExportOut */
         MeExportOut: {
             /** Follows */
@@ -954,6 +978,15 @@ export interface components {
              * @enum {string}
              */
             status: "ready" | "degraded";
+        };
+        /** ReadingProfileOut */
+        ReadingProfileOut: {
+            /** Languages */
+            languages: components["schemas"]["LanguageMixOut"][];
+            /** Sampled */
+            sampled: number;
+            /** Topics */
+            topics: components["schemas"]["TopicMixOut"][];
         };
         /** RedeemIn */
         RedeemIn: {
@@ -1106,6 +1139,15 @@ export interface components {
             impressions: number;
             /** Name */
             name: string;
+        };
+        /** TopicMixOut */
+        TopicMixOut: {
+            /** Count */
+            count: number;
+            /** Label */
+            label: string;
+            /** Topic Id */
+            topic_id: string;
         };
         /** TopicOut */
         TopicOut: {
@@ -2077,6 +2119,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeExportOut"];
+                };
+            };
+        };
+    };
+    get_reading_profile_v1_me_reading_profile_get: {
+        parameters: {
+            query?: {
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

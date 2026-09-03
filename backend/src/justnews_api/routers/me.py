@@ -3,14 +3,17 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.auth import require_user
 from justnews_api.core.db import get_user_session
+from justnews_api.services import interactions as interactions_service
 from justnews_api.services import users as service
 from justnews_api.services.auth import Principal
+from justnews_core.errors import ValidationError
+from justnews_core.language import normalise_language_code
 from justnews_core.models import UserProfile
 
 router = APIRouter(prefix="/v1", tags=["me"])
@@ -74,6 +77,47 @@ async def export_me(
     export = await service.export_user_data(session, principal.user_id)
     return MeExportOut(
         profile=export.profile, saves=export.saves, follows=export.follows, history=export.history
+    )
+
+
+class LanguageMixOut(BaseModel):
+    language: str
+    count: int
+
+
+class TopicMixOut(BaseModel):
+    topic_id: str
+    label: str
+    count: int
+
+
+class ReadingProfileOut(BaseModel):
+    sampled: int
+    languages: list[LanguageMixOut]
+    topics: list[TopicMixOut]
+
+
+@router.get("/me/reading-profile", response_model=ReadingProfileOut)
+async def get_reading_profile(
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_user_session),
+    language: str = Query(default="en"),
+) -> ReadingProfileOut:
+    code = normalise_language_code(language)
+    if code is None:
+        raise ValidationError(f"Not a language code: {language!r}")
+    profile = await interactions_service.get_reading_profile(
+        session, principal.user_id, language=code
+    )
+    return ReadingProfileOut(
+        sampled=profile.sampled,
+        languages=[
+            LanguageMixOut(language=row.language, count=row.count) for row in profile.languages
+        ],
+        topics=[
+            TopicMixOut(topic_id=row.topic_id, label=row.label, count=row.count)
+            for row in profile.topics
+        ],
     )
 
 

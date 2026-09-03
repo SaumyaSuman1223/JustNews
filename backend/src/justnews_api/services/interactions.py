@@ -15,9 +15,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import content as content_repo
 from justnews_api.repositories import interactions as repo
+from justnews_api.repositories import topics as topics_repo
+from justnews_api.services import topics as topics_service
 from justnews_api.services.content import MAX_PAGE_SIZE
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_core.errors import NotFoundError, ValidationError
+
+# A real sample, not an exhaustive one - this backs a settings-page section
+# rendered on every visit, not a report. Matches the frontend's earlier
+# same-purpose cap (three pages at /v1/history's 50-row ceiling) now that the
+# work moved server-side into one query instead of several round trips.
+READING_MIX_SAMPLE = 150
 
 VALID_SURFACES = ("feed", "explore", "search", "topic")
 
@@ -119,3 +127,56 @@ async def list_history(
         encode_cursor(page_rows[-1].viewed_at, page_rows[-1].id) if has_more and page_rows else None
     )
     return HistoryPage(items=items, next_cursor=next_cursor)
+
+
+@dataclass(frozen=True, slots=True)
+class LanguageMix:
+    language: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class TopicMix:
+    topic_id: str
+    label: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class ReadingProfile:
+    sampled: int
+    languages: list[LanguageMix]
+    topics: list[TopicMix]
+
+
+async def get_reading_profile(
+    session: AsyncSession, user_id: UUID, *, language: str
+) -> ReadingProfile:
+    """The reader's own reading, broken down by language and by top-level
+    IPTC topic - real numbers over their actual clicks, not a ranker's
+    prediction. Topic labels resolve the same way /v1/topics already does
+    (service.topics.label_for): the reader's language, falling back to
+    English, falling back to the slug.
+    """
+    language_rows, topic_rows = await repo.reading_mix(
+        session, user_id, sample_limit=READING_MIX_SAMPLE
+    )
+    sampled = sum(row.count for row in language_rows)
+    languages = [LanguageMix(language=row.key, count=row.count) for row in language_rows]
+
+    # Level-1 topics only - a small, fixed set (~17), the same one the
+    # onboarding topic picker shows, and already fetched with labels
+    # eager-loaded (Topic.labels is lazy="selectin") by this one call.
+    top_level = {topic.id: topic for topic in await topics_repo.list_top_level_topics(session)}
+    topics = [
+        TopicMix(
+            topic_id=row.key,
+            label=topics_service.label_for(top_level[row.key], language)
+            if row.key in top_level
+            else row.key,
+            count=row.count,
+        )
+        for row in topic_rows
+    ]
+
+    return ReadingProfile(sampled=sampled, languages=languages, topics=topics)
