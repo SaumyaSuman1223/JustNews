@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ArticleActions } from "@/components/ArticleActions";
 import type { Article } from "@/lib/api";
 import { formatRelativeTime, locales, type LocaleCode } from "@/lib/i18n";
+import { formatRankReason, type RankReason } from "@/lib/rankReason";
 
 /**
  * The fixed card size set from docs/design/design-system.md.
@@ -43,6 +44,13 @@ export interface ArticleCardProps {
   revalidatePath: string;
   /** Extra context line under the metadata row, e.g. "Viewed 3 hours ago". */
   footnote?: string;
+  /**
+   * design-system.md's non-negotiable: "every ranked card can explain
+   * itself." Undefined on every real route today - no surface has a reason
+   * to give yet - so this renders nothing until a caller actually has one.
+   * See lib/rankReason.ts.
+   */
+  why?: RankReason;
   variant?: CardVariant;
   /** Only the one card above the fold should preload its image. */
   priority?: boolean;
@@ -58,6 +66,7 @@ export function ArticleCard({
   saved = false,
   revalidatePath,
   footnote,
+  why,
   variant = "secondary",
   priority = false,
 }: ArticleCardProps) {
@@ -136,6 +145,7 @@ export function ArticleCard({
             </span>
           )}
         </p>
+        {why && <p className="card__why">{formatRankReason(locale, why)}</p>}
         {footnote && <p className="card__footnote">{footnote}</p>}
         {signedIn && (
           <ArticleActions

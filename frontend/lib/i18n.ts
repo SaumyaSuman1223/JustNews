@@ -270,6 +270,11 @@ const en = {
   "profile.languageMix.body": "Based on your last {count} articles opened.",
   "profile.languageMix.empty": "Nothing to show yet — this fills in as you read.",
   "profile.languageMix.count": "{count} read",
+
+  "card.why.followedTopic": "Because you follow {topic}",
+  "card.why.followedSource": "Because you follow {source}",
+  "card.why.trending": "Trending now",
+  "card.why.exploration": "Something different, on purpose",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -479,6 +484,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "profile.languageMix.body": "Según tus últimos {count} artículos abiertos.",
     "profile.languageMix.empty": "Todavía no hay nada que mostrar — esto se llena a medida que lees.",
     "profile.languageMix.count": "{count} leídos",
+
+    "card.why.followedTopic": "Porque sigues {topic}",
+    "card.why.followedSource": "Porque sigues {source}",
+    "card.why.trending": "Tendencia ahora",
+    "card.why.exploration": "Algo distinto, a propósito",
   },
   hi: {
     "skip.toContent": "सामग्री पर जाएँ",
@@ -682,6 +692,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "profile.languageMix.body": "आपके पिछले {count} खोले गए लेखों के आधार पर।",
     "profile.languageMix.empty": "अभी दिखाने को कुछ नहीं — जैसे-जैसे आप पढ़ेंगे, यह भरता जाएगा।",
     "profile.languageMix.count": "{count} पढ़े गए",
+
+    "card.why.followedTopic": "क्योंकि आप {topic} को फ़ॉलो करते हैं",
+    "card.why.followedSource": "क्योंकि आप {source} को फ़ॉलो करते हैं",
+    "card.why.trending": "अभी ट्रेंड में",
+    "card.why.exploration": "जान-बूझकर कुछ अलग",
   },
 };
 

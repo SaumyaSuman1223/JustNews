@@ -483,6 +483,17 @@ a {
   margin: 0;
 }
 
+/* design-system.md's ranked-card disclosure. Italic, unlike .card__footnote:
+   a footnote states a fact about the reader ("Viewed 3 hours ago"), this is
+   the system talking about itself, and the two should not read as the same
+   kind of statement even at the same size and weight. */
+.card__why {
+  color: var(--text-muted);
+  font-size: var(--type-meta);
+  font-style: italic;
+  margin: 0;
+}
+
 .card__actions {
   display: flex;
   flex-wrap: wrap;
