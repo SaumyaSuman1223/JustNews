@@ -703,6 +703,24 @@
         "title": "LanguageCoverageOut",
         "type": "object"
       },
+      "LanguageMixOut": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "count"
+        ],
+        "title": "LanguageMixOut",
+        "type": "object"
+      },
       "MeExportOut": {
         "properties": {
           "follows": {
@@ -876,6 +894,35 @@
           "database"
         ],
         "title": "Readiness",
+        "type": "object"
+      },
+      "ReadingProfileOut": {
+        "properties": {
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageMixOut"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "sampled": {
+            "title": "Sampled",
+            "type": "integer"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicMixOut"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sampled",
+          "languages",
+          "topics"
+        ],
+        "title": "ReadingProfileOut",
         "type": "object"
       },
       "RedeemIn": {
@@ -1272,6 +1319,29 @@
           "impressions"
         ],
         "title": "TopSourceOut",
+        "type": "object"
+      },
+      "TopicMixOut": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "topic_id": {
+            "title": "Topic Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic_id",
+          "label",
+          "count"
+        ],
+        "title": "TopicMixOut",
         "type": "object"
       },
       "TopicOut": {
@@ -3022,6 +3092,54 @@
           }
         ],
         "summary": "Export Me",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/reading-profile": {
+      "get": {
+        "operationId": "get_reading_profile_v1_me_reading_profile_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Reading Profile",
         "tags": [
           "me"
         ]

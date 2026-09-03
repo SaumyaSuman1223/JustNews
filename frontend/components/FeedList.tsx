@@ -1,6 +1,7 @@
 import { ArticleCard, type CardVariant } from "@/components/ArticleCard";
 import type { Article } from "@/lib/api";
 import type { LocaleCode } from "@/lib/i18n";
+import type { RankReason } from "@/lib/rankReason";
 
 export interface FeedItem {
   article: Article;
@@ -8,6 +9,8 @@ export interface FeedItem {
   impressionId?: number | null;
   saved?: boolean;
   footnote?: string;
+  /** See ArticleCard's `why` - undefined on every real feed today. */
+  why?: RankReason;
   /** Overrides the article id as the React key, for lists that can repeat an
    * article - history being the one that does. */
   key?: string;
@@ -69,6 +72,7 @@ export function FeedList({
             signedIn={signedIn}
             saved={item.saved}
             footnote={item.footnote}
+            why={item.why}
             revalidatePath={revalidatePath}
             variant={variant}
             priority={aboveFold && index === 0}

@@ -91,6 +91,13 @@ export default async function OnboardingPage({
           ))}
         </ul>
 
+        {/* True today, not a promise about later: anyone who reaches this
+            page already has beta access (requireBetaAccess above), so these
+            picks feed the real heuristic ranker (backend/.../ranking.py)
+            immediately - not a preference stored for a model that doesn't
+            exist yet. */}
+        <p className="form-note">{t(active.code, "onboarding.shapesFeed")}</p>
+
         <button type="submit" className="button button--primary">
           {t(active.code, "onboarding.continue")}
         </button>

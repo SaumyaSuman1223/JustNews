@@ -4,49 +4,11 @@ import { notFound } from "next/navigation";
 
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { SignInRequired } from "@/components/SignInRequired";
-import { getHistory, getMe } from "@/lib/api";
+import { getMe, getReadingProfile } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { updateLanguagesFormAction } from "@/lib/actions";
-import type { AuthContext } from "@/lib/guards";
-import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t, type LocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
-
-/**
- * The reader's own honest mirror: what they've actually been reading, by
- * language, next to what they told Settings they want. Computed from
- * history, capped rather than exhaustive - `/v1/history` tops out at 50 rows
- * a request, and a full-history read for every settings-page view would be
- * real, avoidable latency on a route that renders on every visit. Three
- * pages (150 reads, or fewer for a newer reader) is a real sample without
- * turning a settings page into a report. `null` means the call itself failed
- * (degraded, or history isn't reachable pre-beta) - a real absence,
- * rendered as nothing, not an empty chart standing in for one.
- */
-async function getRecentLanguageMix(
-  auth: AuthContext,
-): Promise<{ rows: { language: string; count: number }[]; sampled: number } | null> {
-  const PAGE_SIZE = 50;
-  const MAX_PAGES = 3;
-  const counts = new Map<string, number>();
-  let cursor: string | undefined;
-  let sampled = 0;
-
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const result = await getHistory(auth, cursor, PAGE_SIZE);
-    if (result.degraded) return null;
-    for (const item of result.data.items) {
-      counts.set(item.article.language, (counts.get(item.article.language) ?? 0) + 1);
-      sampled += 1;
-    }
-    if (!result.data.next_cursor) break;
-    cursor = result.data.next_cursor;
-  }
-
-  const rows = [...counts.entries()]
-    .map(([language, count]) => ({ language, count }))
-    .sort((a, b) => b.count - a.count);
-  return { rows, sampled };
-}
 
 export async function generateMetadata({
   params,
@@ -55,6 +17,35 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return { title: t(isLocaleCode(locale) ? locale : "en", "settings.heading") };
+}
+
+/** A proportional bar row, shared by the language and topic breakdowns. */
+function MixRow({
+  label,
+  lang,
+  count,
+  pct,
+  locale,
+}: {
+  label: string;
+  lang?: string;
+  count: number;
+  pct: number;
+  locale: LocaleCode;
+}) {
+  return (
+    <li className="reading-mix__row">
+      <span className="reading-mix__label" lang={lang}>
+        {label}
+      </span>
+      <span className="reading-mix__track">
+        <span className="reading-mix__bar" style={{ inlineSize: `${pct}%` }} />
+      </span>
+      <span className="reading-mix__count">
+        {t(locale, "profile.languageMix.count", { count })} · {pct.toLocaleString(locale)}%
+      </span>
+    </li>
+  );
 }
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -66,8 +57,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   if (!session) return <SignInRequired locale={active.code} path={`/${active.code}/settings`} />;
 
   const auth = { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
-  const [profile, languageMix] = await Promise.all([getMe(auth), getRecentLanguageMix(auth)]);
+  const [profile, readingProfile] = await Promise.all([
+    getMe(auth),
+    getReadingProfile(auth, active.code),
+  ]);
   const preferred = new Set(profile?.preferred_languages ?? []);
+  // The topic axis's own total, not readingProfile.sampled (the language
+  // axis's count): not every read article carries an assigned primary
+  // topic, so the two axes can sum to different totals, and each needs its
+  // own denominator.
+  const topicTotal =
+    readingProfile?.topics.reduce((sum, entry) => sum + entry.count, 0) ?? 0;
 
   return (
     <div className="narrow">
@@ -107,37 +107,51 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         </button>
       </form>
 
-      {languageMix && (
+      {readingProfile && (
         <div className="page-header" style={{ marginBlockStart: "var(--space-8)" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem" }}>
             {t(active.code, "profile.languageMix.heading")}
           </h2>
-          {languageMix.rows.length > 0 ? (
+          {readingProfile.sampled > 0 ? (
             <>
-              <p>{t(active.code, "profile.languageMix.body", { count: languageMix.sampled })}</p>
-              <ul className="language-mix">
-                {languageMix.rows.map((row) => {
+              <p>
+                {t(active.code, "profile.languageMix.body", { count: readingProfile.sampled })}
+              </p>
+
+              <h3 className="reading-mix__subheading">{t(active.code, "profile.byLanguage")}</h3>
+              <ul className="reading-mix">
+                {readingProfile.languages.map((row) => {
                   const known = locales.find((option) => option.code === row.language);
-                  const pct = Math.round((row.count / languageMix.sampled) * 100);
+                  const pct = Math.round((row.count / readingProfile.sampled) * 100);
                   return (
-                    <li key={row.language} className="language-mix__row">
-                      <span
-                        className="language-mix__label"
-                        lang={known?.htmlLang ?? row.language}
-                      >
-                        {known?.label ?? row.language}
-                      </span>
-                      <span className="language-mix__track">
-                        <span className="language-mix__bar" style={{ inlineSize: `${pct}%` }} />
-                      </span>
-                      <span className="language-mix__count">
-                        {t(active.code, "profile.languageMix.count", { count: row.count })} ·{" "}
-                        {pct.toLocaleString(active.code)}%
-                      </span>
-                    </li>
+                    <MixRow
+                      key={row.language}
+                      label={known?.label ?? row.language}
+                      lang={known?.htmlLang ?? row.language}
+                      count={row.count}
+                      pct={pct}
+                      locale={active.code}
+                    />
                   );
                 })}
               </ul>
+
+              {readingProfile.topics.length > 0 && (
+                <>
+                  <h3 className="reading-mix__subheading">{t(active.code, "profile.byTopic")}</h3>
+                  <ul className="reading-mix">
+                    {readingProfile.topics.map((row) => (
+                      <MixRow
+                        key={row.topic_id}
+                        label={row.label}
+                        count={row.count}
+                        pct={Math.round((row.count / topicTotal) * 100)}
+                        locale={active.code}
+                      />
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           ) : (
             <p>{t(active.code, "profile.languageMix.empty")}</p>

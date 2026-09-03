@@ -10,10 +10,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import insert, select, tuple_
+from sqlalchemy import func, insert, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from justnews_core.models import Impression, InteractionEvent
+from justnews_core.models import Article, ArticleTopic, Impression, InteractionEvent, Topic
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,3 +130,60 @@ async def excluded_article_ids(session: AsyncSession, user_id: UUID) -> set[int]
         )
     )
     return set(result.scalars().all())
+
+
+@dataclass(frozen=True, slots=True)
+class ReadingMixRow:
+    key: str
+    count: int
+
+
+async def reading_mix(
+    session: AsyncSession, user_id: UUID, *, sample_limit: int
+) -> tuple[list[ReadingMixRow], list[ReadingMixRow]]:
+    """Language and top-level-topic breakdowns over a reader's most recent
+    clicks - one capped window, computed once and reused for both axes,
+    rather than two independently-limited queries. A reader whose last N
+    clicks skew heavily toward one language should see that skew reflected
+    in the topic axis's sample too, not a differently-sized, silently
+    unrelated slice of their history.
+
+    Topics roll up to their level-1 ancestor (``path[1]`` - the array is
+    root-first and 1-indexed in Postgres, so this is the top-level concept
+    regardless of the primary topic's own depth) and count distinct
+    articles, not tag rows - an article's other, non-primary topics do not
+    inflate its own top-level bucket.
+    """
+    recent = (
+        select(InteractionEvent.article_id)
+        .where(InteractionEvent.user_id == user_id, InteractionEvent.event_type == "click")
+        .order_by(InteractionEvent.created_at.desc(), InteractionEvent.id.desc())
+        .limit(sample_limit)
+        .subquery()
+    )
+
+    language_result = await session.execute(
+        select(Article.language, func.count())
+        .select_from(recent)
+        .join(Article, Article.id == recent.c.article_id)
+        .group_by(Article.language)
+        .order_by(func.count().desc())
+    )
+    languages = [ReadingMixRow(key=row[0], count=row[1]) for row in language_result.all()]
+
+    top_topic = aliased(Topic)
+    topic_result = await session.execute(
+        select(top_topic.id, func.count(func.distinct(recent.c.article_id)))
+        .select_from(recent)
+        .join(
+            ArticleTopic,
+            (ArticleTopic.article_id == recent.c.article_id) & (ArticleTopic.is_primary.is_(True)),
+        )
+        .join(Topic, Topic.id == ArticleTopic.topic_id)
+        .join(top_topic, top_topic.id == Topic.path[1])
+        .group_by(top_topic.id)
+        .order_by(func.count(func.distinct(recent.c.article_id)).desc())
+    )
+    topics = [ReadingMixRow(key=row[0], count=row[1]) for row in topic_result.all()]
+
+    return languages, topics
