@@ -980,6 +980,56 @@ a.chip:hover {
   font-weight: 600;
 }
 
+/* The settings-page reading mix: a real proportion per language, so the bar
+   is drawn to the same discipline as any other chart - it earns its width
+   from the reader's own numbers, not from being an app-shaped decoration. */
+.language-mix {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.language-mix__row {
+  display: grid;
+  grid-template-columns: 6rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.language-mix__label {
+  color: var(--text-mid);
+  font-weight: 600;
+}
+
+.language-mix__track {
+  block-size: 6px;
+  border-radius: 3px;
+  background: var(--surface-sub);
+  overflow: hidden;
+}
+
+.language-mix__bar {
+  display: block;
+  block-size: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+.language-mix__count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .language-mix__row {
+    grid-template-columns: 5rem 1fr auto;
+  }
+}
+
 /* An empty state is a page, not an error slot: it says what is missing and
    offers the one thing worth doing next. The dashed box it replaced read as
    a broken component. */

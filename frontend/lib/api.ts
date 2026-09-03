@@ -339,9 +339,10 @@ export async function unfollowTopic(auth: AuthContext, topicId: string): Promise
 export async function getHistory(
   auth: AuthContext,
   cursor?: string,
+  pageSize?: number,
 ): Promise<Degradable<HistoryPage>> {
   const { data, error } = await authedClient(auth).GET("/v1/history", {
-    params: { query: { cursor } },
+    params: { query: { cursor, page_size: pageSize } },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (error || !data) return { data: { items: [], next_cursor: null }, degraded: true };
