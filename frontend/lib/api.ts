@@ -260,6 +260,25 @@ export async function getMe(auth: AuthContext): Promise<MeProfile | null> {
   return data ?? null;
 }
 
+export type ReadingProfile = components["schemas"]["ReadingProfileOut"];
+
+/**
+ * The reader's own reading, by language and by top-level topic - computed
+ * server-side over their real click history (`/v1/me/reading-profile`), not
+ * a client-side loop over `/v1/history` pages. `null` on any failure: a real
+ * absence, rendered as nothing, not an empty chart standing in for one.
+ */
+export async function getReadingProfile(
+  auth: AuthContext,
+  language: string,
+): Promise<ReadingProfile | null> {
+  const { data } = await authedClient(auth).GET("/v1/me/reading-profile", {
+    params: { query: { language } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? null;
+}
+
 export async function updateMe(
   auth: AuthContext,
   preferredLanguages: string[],

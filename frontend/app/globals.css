@@ -991,53 +991,68 @@ a.chip:hover {
   font-weight: 600;
 }
 
-/* The settings-page reading mix: a real proportion per language, so the bar
-   is drawn to the same discipline as any other chart - it earns its width
-   from the reader's own numbers, not from being an app-shaped decoration. */
-.language-mix {
+/* The settings-page reading mix: a real proportion per language or topic, so
+   the bar is drawn to the same discipline as any other chart - it earns its
+   width from the reader's own numbers, not from being an app-shaped
+   decoration. One set of rules for both axes; they differ only in the rows
+   handed to them. */
+.reading-mix__subheading {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: var(--space-6) 0 0;
+}
+
+.reading-mix {
   display: grid;
   gap: var(--space-3);
   list-style: none;
-  margin: var(--space-4) 0 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
 }
 
-.language-mix__row {
+.reading-mix__row {
   display: grid;
-  grid-template-columns: 6rem 1fr auto;
+  grid-template-columns: 8rem 1fr auto;
   align-items: center;
   gap: var(--space-3);
   font-size: 0.9rem;
 }
 
-.language-mix__label {
+.reading-mix__label {
   color: var(--text-mid);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.language-mix__track {
+.reading-mix__track {
   block-size: 6px;
   border-radius: 3px;
   background: var(--surface-sub);
   overflow: hidden;
 }
 
-.language-mix__bar {
+.reading-mix__bar {
   display: block;
   block-size: 100%;
   background: var(--accent);
   border-radius: 3px;
 }
 
-.language-mix__count {
+.reading-mix__count {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 @media (max-width: 30rem) {
-  .language-mix__row {
-    grid-template-columns: 5rem 1fr auto;
+  .reading-mix__row {
+    grid-template-columns: 5.5rem 1fr auto;
   }
 }
 

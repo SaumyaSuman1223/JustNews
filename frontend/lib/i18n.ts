@@ -271,6 +271,8 @@ const en = {
   "profile.languageMix.body": "Based on your last {count} articles opened.",
   "profile.languageMix.empty": "Nothing to show yet — this fills in as you read.",
   "profile.languageMix.count": "{count} read",
+  "profile.byLanguage": "By language",
+  "profile.byTopic": "By topic",
 
   "card.why.followedTopic": "Because you follow {topic}",
   "card.why.followedSource": "Because you follow {source}",
@@ -486,6 +488,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "profile.languageMix.body": "Según tus últimos {count} artículos abiertos.",
     "profile.languageMix.empty": "Todavía no hay nada que mostrar — esto se llena a medida que lees.",
     "profile.languageMix.count": "{count} leídos",
+    "profile.byLanguage": "Por idioma",
+    "profile.byTopic": "Por tema",
 
     "card.why.followedTopic": "Porque sigues {topic}",
     "card.why.followedSource": "Porque sigues {source}",
@@ -695,6 +699,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "profile.languageMix.body": "आपके पिछले {count} खोले गए लेखों के आधार पर।",
     "profile.languageMix.empty": "अभी दिखाने को कुछ नहीं — जैसे-जैसे आप पढ़ेंगे, यह भरता जाएगा।",
     "profile.languageMix.count": "{count} पढ़े गए",
+    "profile.byLanguage": "भाषा के अनुसार",
+    "profile.byTopic": "विषय के अनुसार",
 
     "card.why.followedTopic": "क्योंकि आप {topic} को फ़ॉलो करते हैं",
     "card.why.followedSource": "क्योंकि आप {source} को फ़ॉलो करते हैं",
