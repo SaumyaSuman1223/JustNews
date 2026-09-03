@@ -1,5 +1,6 @@
 packages:
-  - "apps/web"
+  - "frontend"
+  - "apps/mobile"
   - "packages/api-client"
   - "packages/ui"
 

@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["packages/core", "apps/api", "apps/ingestion", "testing"]
+members = ["packages/core", "backend", "apps/ingestion", "testing"]
 
 [tool.uv.sources]
 justnews-core = { workspace = true }
@@ -35,7 +35,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/core/src", "apps/api/src", "apps/ingestion/src"]
+src = ["packages/core/src", "backend/src", "apps/ingestion/src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "T20", "RUF"]
@@ -60,5 +60,5 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-testpaths = ["packages/core/tests", "apps/api/tests", "apps/ingestion/tests"]
+testpaths = ["packages/core/tests", "backend/tests", "apps/ingestion/tests"]
 filterwarnings = ["error::DeprecationWarning:justnews.*"]

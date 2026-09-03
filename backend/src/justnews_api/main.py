@@ -67,7 +67,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"] if settings.app_env == "local" else [],
+        # localhost:3000 is the web app's dev server; the 8081 pair is Expo's
+        # web preview (`expo start --web`) - localhost and 127.0.0.1 are
+        # different origins to a browser, so both are listed rather than one.
+        allow_origins=(
+            ["http://localhost:3000", "http://localhost:8081", "http://127.0.0.1:8081"]
+            if settings.app_env == "local"
+            else []
+        ),
+        # Expo's LAN mode serves the web preview from whatever private IP the
+        # dev machine currently has (DHCP-assigned, changes across networks
+        # and reconnects) - a literal allowlist entry would go stale the next
+        # time that address changes, which is exactly what just happened.
+        # Scoped to Expo's default port and RFC 1918 private ranges only.
+        allow_origin_regex=(
+            r"^http://(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+            r"|192\.168\.\d{1,3}\.\d{1,3}):8081$"
+            if settings.app_env == "local"
+            else None
+        ),
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["authorization", "content-type", "x-request-id"],

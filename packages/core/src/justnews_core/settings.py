@@ -16,7 +16,7 @@ def _find_env_file() -> Path | None:
     """Locate ``.env`` by walking up from this file to the repo root.
 
     Commands run from several working directories - ``alembic`` from
-    ``apps/api``, the ingestion CLI from anywhere, pytest from the root - and a
+    ``backend``, the ingestion CLI from anywhere, pytest from the root - and a
     CWD-relative ``.env`` silently resolves to different files depending on
     where you happened to be standing. Walking up finds the same one every time.
     """

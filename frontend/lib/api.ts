@@ -170,19 +170,26 @@ export async function getFeed(
   auth: AuthContext,
   params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
 ): Promise<Degradable<FeedPage>> {
-  const { data, error } = await authedClient(auth).GET("/v1/feed", {
-    params: {
-      query: {
-        languages: params.languages,
-        locale: params.locale,
-        cursor: params.cursor,
-        page_size: params.pageSize ?? 20,
+  try {
+    const { data, error } = await authedClient(auth).GET("/v1/feed", {
+      params: {
+        query: {
+          languages: params.languages,
+          locale: params.locale,
+          cursor: params.cursor,
+          page_size: params.pageSize ?? 20,
+        },
       },
-    },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (error || !data) return { data: EMPTY_FEED, degraded: true };
-  return { data, degraded: false };
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return { data: EMPTY_FEED, degraded: true };
+    return { data, degraded: false };
+  } catch {
+    // openapi-fetch only returns {data,error} for HTTP-level failures - a
+    // network-level one (DNS, connection refused, timeout) throws instead.
+    // The API being unreachable is exactly the case this must degrade for.
+    return { data: EMPTY_FEED, degraded: true };
+  }
 }
 
 /**
@@ -203,19 +210,26 @@ export async function getExplore(
     accessToken: auth?.accessToken,
     sessionId: auth?.sessionId,
   });
-  const { data, error } = await client.GET("/v1/explore", {
-    params: {
-      query: {
-        languages: params.languages,
-        locale: params.locale,
-        cursor: params.cursor,
-        page_size: params.pageSize ?? 20,
+  try {
+    const { data, error } = await client.GET("/v1/explore", {
+      params: {
+        query: {
+          languages: params.languages,
+          locale: params.locale,
+          cursor: params.cursor,
+          page_size: params.pageSize ?? 20,
+        },
       },
-    },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (error || !data) return { data: EMPTY_FEED, degraded: true };
-  return { data, degraded: false };
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return { data: EMPTY_FEED, degraded: true };
+    return { data, degraded: false };
+  } catch {
+    // openapi-fetch only returns {data,error} for HTTP-level failures - a
+    // network-level one (DNS, connection refused, timeout) throws instead.
+    // The API being unreachable is exactly the case this must degrade for.
+    return { data: EMPTY_FEED, degraded: true };
+  }
 }
 
 export async function getFollowedSources(auth: AuthContext): Promise<SourceFollow[]> {

@@ -11,12 +11,12 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web/package.json apps/web/
+COPY frontend/package.json frontend/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @justnews/web build
@@ -24,12 +24,12 @@ RUN pnpm --filter @justnews/web build
 FROM base AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/apps/web ./apps/web
+COPY --from=build /app/frontend ./frontend
 COPY --from=build /app/package.json ./package.json
 
 RUN addgroup -g 10001 app && adduser -u 10001 -G app -D app && chown -R app:app /app
 USER app
 
 EXPOSE 3000
-WORKDIR /app/apps/web
+WORKDIR /app/frontend
 CMD ["node_modules/.bin/next", "start", "--port", "3000", "--hostname", "0.0.0.0"]

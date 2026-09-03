@@ -18,7 +18,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 FROM base AS deps
 COPY pyproject.toml uv.lock ./
 COPY packages/core/pyproject.toml packages/core/
-COPY apps/api/pyproject.toml apps/api/
+COPY backend/pyproject.toml backend/
 COPY apps/ingestion/pyproject.toml apps/ingestion/
 COPY testing/pyproject.toml testing/
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -28,7 +28,7 @@ FROM base AS runtime
 COPY --from=deps /app/.venv /app/.venv
 COPY pyproject.toml uv.lock ./
 COPY packages/ packages/
-COPY apps/api/ apps/api/
+COPY backend/ backend/
 COPY apps/ingestion/ apps/ingestion/
 COPY testing/ testing/
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
