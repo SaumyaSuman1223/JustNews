@@ -1,16 +1,62 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import * as api from "@/lib/api";
-import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { BROWSING_SESSION_COOKIE, getBrowsingSessionId } from "@/lib/browsingSession";
+import { CONSENT_COOKIE, type ConsentState } from "@/lib/consent";
 import { getSession } from "@/lib/session";
 
 async function authOrNull() {
   const session = await getSession();
   if (!session) return null;
   return { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
+}
+
+/**
+ * The only place `jn_consent` is ever written - a reader's own choice, on
+ * the banner or the Settings toggle, never a default middleware.ts assigns.
+ * `httpOnly`: nothing client-side needs to read this cookie, since the
+ * banner is server-rendered and both its buttons are plain `<form
+ * action={...}>` submissions, not client state - one fewer thing a tampered
+ * client value could lie to the server about.
+ *
+ * Also sets/deletes jn_sid directly here, synchronously, rather than only
+ * relying on middleware.ts to notice the new consent cookie on some later
+ * request. middleware.ts's own copy of this logic is what keeps the
+ * invariant holding on every ordinary navigation afterward (and is what
+ * actually enforces it - a tampered client could call this action with any
+ * cookie state it likes, but every subsequent real request still passes
+ * through middleware); this one is what makes the grant or withdrawal take
+ * effect immediately, in the same response, rather than waiting on a
+ * refresh whose exact timing relative to a Server Action isn't a contract
+ * this code should depend on.
+ *
+ * `revalidatePath("/", "layout")` matches the pattern every other
+ * account-wide action in this file already uses (redeemInviteAction) - the
+ * root layout is what decides whether ConsentBanner renders at all.
+ */
+export async function setConsentAction(state: ConsentState): Promise<void> {
+  const store = await cookies();
+  store.set(CONSENT_COOKIE, state, {
+    maxAge: 60 * 60 * 24 * 180,
+    sameSite: "lax",
+    httpOnly: true,
+    path: "/",
+  });
+  if (state === "granted") {
+    const existing = store.get(BROWSING_SESSION_COOKIE)?.value;
+    store.set(BROWSING_SESSION_COOKIE, existing ?? crypto.randomUUID(), {
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: "lax",
+      path: "/",
+    });
+  } else {
+    store.delete(BROWSING_SESSION_COOKIE);
+  }
+  revalidatePath("/", "layout");
 }
 
 /**

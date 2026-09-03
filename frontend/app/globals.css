@@ -1500,6 +1500,45 @@ a.chip:hover {
   margin-block-start: 0;
 }
 
+/* The one-time consent choice. Accent-bordered like .callout - informational,
+   not a warning - but its own rule rather than sharing that class's box
+   model: a viewport-fixed bar needs a border on the edge that actually
+   separates it from the page (block-start, since it's pinned to the bottom),
+   not the inline-start edge that makes sense for a block read top to bottom.
+   No shadow: nothing else in this file uses one, and the border plus the
+   surface/ground contrast already reads as "a different layer" without
+   introducing elevation as a first here. */
+.consent-banner {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-block-start: 3px solid var(--accent);
+  padding: var(--space-4);
+}
+
+.consent-banner__inner {
+  max-width: 72rem;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.consent-banner__text {
+  flex: 1 1 24rem;
+  color: var(--text-mid);
+  font-size: 0.9rem;
+}
+
+.consent-banner__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 /* --- target size ---------------------------------------------------------- */
 
 /* WCAG 2.2 AA is 2.5.8 Target Size (Minimum): 24x24 CSS pixels. Three

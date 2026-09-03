@@ -166,11 +166,15 @@ export function searchArticles(params: {
 
 interface AuthContext {
   accessToken: string;
-  sessionId: string;
+  /** `null` pre-consent - see lib/consent.ts. createApiClient already omits
+   * the x-session-id header on a falsy value, so `null` here needs no
+   * special casing beyond satisfying its own narrower `sessionId?: string`
+   * parameter type. */
+  sessionId: string | null;
 }
 
 function authedClient({ accessToken, sessionId }: AuthContext) {
-  return createApiClient(API_URL, { accessToken, sessionId });
+  return createApiClient(API_URL, { accessToken, sessionId: sessionId ?? undefined });
 }
 
 const EMPTY_FEED: FeedPage = { items: [], next_cursor: null };
@@ -217,7 +221,7 @@ export async function getExplore(
 ): Promise<Degradable<FeedPage>> {
   const client = createApiClient(API_URL, {
     accessToken: auth?.accessToken,
-    sessionId: auth?.sessionId,
+    sessionId: auth?.sessionId ?? undefined,
   });
   try {
     const { data, error } = await client.GET("/v1/explore", {
