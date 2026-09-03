@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { defaultLocale } from "@/lib/i18n";
+import { safeNext } from "@/lib/safeNext";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -12,7 +13,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 export async function GET(request: Request): Promise<Response> {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? `/${defaultLocale}`;
+  // Attacker-controlled: this route is reached from a link in an email.
+  const next = safeNext(searchParams.get("next"), `/${defaultLocale}`);
 
   if (code && isSupabaseConfigured) {
     const supabase = await createServerSupabaseClient();
