@@ -6,7 +6,8 @@ import { notFound } from "next/navigation";
 import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleCard } from "@/components/ArticleCard";
 import { CoverageChips } from "@/components/CoverageChips";
-import { getArticle, getSaves, getStory } from "@/lib/api";
+import { FollowSourceButton } from "@/components/FollowSourceButton";
+import { getArticle, getFollowedSources, getSaves, getStory } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -57,11 +58,18 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
 
   // Checked against the most recent saves only - good enough for the common
   // case, and consistent with how every other page in this app checks it.
-  const saved = session
-    ? await getSaves({
-        accessToken: session.accessToken,
-        sessionId: await getBrowsingSessionId(),
-      }).then((page) => page.data.items.some((item) => item.article.id === article.id))
+  const auth = session
+    ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
+    : null;
+  const saved = auth
+    ? await getSaves(auth).then((page) =>
+        page.data.items.some((item) => item.article.id === article.id),
+      )
+    : false;
+  const followingSource = auth
+    ? await getFollowedSources(auth).then((rows) =>
+        rows.some((row) => row.source_id === article.source_id),
+      )
     : false;
 
   const related = story?.data?.articles.filter((item) => item.id !== article.id) ?? [];
@@ -122,17 +130,25 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
         </div>
 
         {session && (
-          <ArticleActions
-            articleId={article.id}
-            surface="feed"
-            saved={saved}
-            revalidatePath={`/${active.code}/a/${article.id}`}
-          />
+          <div className="card__actions">
+            <ArticleActions
+              articleId={article.id}
+              surface="feed"
+              saved={saved}
+              revalidatePath={`/${active.code}/a/${article.id}`}
+            />
+            <FollowSourceButton
+              sourceId={article.source_id}
+              sourceName={article.source_name}
+              following={followingSource}
+              revalidatePath={`/${active.code}/a/${article.id}`}
+            />
+          </div>
         )}
       </article>
 
       {otherLanguages.length > 0 && (
-        <section className="notice" aria-labelledby="other-languages-heading">
+        <section className="callout" aria-labelledby="other-languages-heading">
           {/* The moment a reader notices this product does something unusual:
               the same event, being reported right now in a language they may
               not have thought to look in. */}

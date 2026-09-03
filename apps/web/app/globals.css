@@ -37,6 +37,32 @@
   --measure: 68ch;
   --radius: 6px;
 
+  /* Modular scale, named by role rather than by size, with the steps
+     docs/design/design-system.md asks for: lead / section-lead / card /
+     list / meta. Naming them by role is what keeps hierarchy structural -
+     a component picks the step for what it *is*, so the scale cannot drift
+     into ad-hoc font sizes. The lead step is fluid because a fixed 2.6rem
+     headline is a wall on a 360px phone. */
+  --type-lead: clamp(1.7rem, 1.15rem + 2.4vw, 2.5rem);
+  --type-section: 1.3rem;
+  --type-card: 1.12rem;
+  --type-list: 1rem;
+  --type-body: 0.95rem;
+  --type-meta: 0.76rem;
+
+  /* Leading is a token, not a per-component value, because it is exactly what
+     has to change per script. See the :lang(hi) override below. */
+  --leading-tight: 1.16;
+  --leading-snug: 1.32;
+  --leading-body: 1.65;
+
+  /* Motion, per the design system's "almost none". One duration and one
+     curve, so every state change in the product moves the same way; anything
+     that wants a different feel needs a reason. Decelerating, because every
+     transition here reports a state that has already happened. */
+  --dur: 180ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
   /* Per-script coverage, not a Latin list with a generic keyword on the end.
      CSS font fallback resolves per *glyph*, so Latin text still gets Georgia
      or system-ui while Devanagari falls through to the first face that
@@ -87,6 +113,12 @@ html[dir="rtl"] {
    story page and the blindspot rail both produce. */
 :lang(hi) {
   line-height: 1.75;
+  /* Overriding the tokens rather than the components: Devanagari's matras sit
+     above the headline's cap height, so the Latin `tight` step clips them.
+     One override here fixes every headline in the product at once, which is
+     the point of leading being a token in the first place. */
+  --leading-tight: 1.4;
+  --leading-snug: 1.5;
 }
 
 body {
@@ -170,12 +202,22 @@ a {
   color: var(--accent);
 }
 
-/* --- feed -------------------------------------------------------------- */
+/* --- feed: the card size set ---------------------------------------------
+ *
+ * Four sizes, no more, because the ranker decides the order and the page has
+ * to decide the shape. A uniform grid is what a feed looks like when nobody
+ * made that decision - every story equally important, which on a news page
+ * means none of them are.
+ *
+ * The grid is 12 columns so a lead can span the full measure while the
+ * secondary band divides it evenly, and it collapses at two breakpoints
+ * rather than tracking device widths.
+ */
 
 .feed {
   display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-6) var(--space-4);
+  grid-template-columns: repeat(12, 1fr);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -184,50 +226,211 @@ a {
 .card {
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  gap: var(--space-3);
+  /* Spans the full width unless a variant narrows it. */
+  grid-column: span 12;
+  min-width: 0;
+}
+
+.card__frame {
+  /* Owns the overflow so the media can move inside it on hover without the
+     card itself needing to clip - a clipping card also clips its focus ring. */
   border-radius: var(--radius);
   overflow: hidden;
+  background: var(--surface-sub);
 }
 
 .card__media {
-  /* Fixed ratio so an image that is slow or missing shifts nothing. */
+  /* Fixed ratio so an image that is slow or missing shifts nothing.
+     `height: auto` is load-bearing, not tidying: next/image emits real width
+     and height attributes, which map to presentational hints, and a box with
+     both dimensions resolved ignores aspect-ratio entirely. Without this the
+     lead image renders at its intrinsic 675px height. */
   aspect-ratio: 16 / 9;
-  background: var(--surface-sub);
+  block-size: auto;
+  display: block;
   object-fit: cover;
   width: 100%;
+  transition: transform var(--dur) var(--ease);
+}
+
+.card:hover .card__media {
+  transform: scale(1.03);
 }
 
 .card__body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-4);
+  min-width: 0;
 }
 
 .card__title {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: var(--type-card);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: var(--leading-snug);
+  letter-spacing: -0.011em;
   margin: 0;
   text-wrap: balance;
 }
 
+.card__title a {
+  transition: color var(--dur) var(--ease);
+}
+
+.card__title a:hover {
+  color: var(--accent);
+}
+
+/* Clamped, because the snippet comes from whatever the publisher put in
+   their RSS description - length is not something this design gets to assume.
+   Without it one talkative feed sets the height of an entire row. */
 .card__snippet {
   color: var(--text-mid);
-  font-size: 0.88rem;
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
   margin: 0;
+  max-width: var(--measure);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.card--lead .card__snippet {
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
 }
 
 .card__meta {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  align-items: center;
+  align-items: baseline;
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--type-meta);
   margin-block-start: auto;
+}
+
+/* The publisher is the one piece of metadata a reader actually weighs, so it
+   is the one piece that is not grey. */
+.card__source {
+  color: var(--text-mid);
+  font-weight: 600;
+}
+
+/* --- lead ---------------------------------------------------------------- */
+
+.card--lead {
+  padding-block-end: var(--space-6);
+  border-block-end: 1px solid var(--border);
+}
+
+.card--lead .card__title {
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.022em;
+}
+
+.card--lead .card__snippet {
+  font-size: 1.05rem;
+}
+
+/* Deeper than the 16:9 default: a lead is the one image on the page with the
+   room to be looked at, and at 16:9 it leaves the headline column visibly
+   unbalanced beside it. */
+.card--lead .card__media {
+  aspect-ratio: 4 / 3;
+}
+
+/* Side by side once there is room for both to be worth looking at; stacked
+   below that, because a 40% column of photo next to three words is neither. */
+@media (min-width: 52rem) {
+  .card--lead {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: var(--space-6);
+    align-items: start;
+  }
+}
+
+/* --- secondary ----------------------------------------------------------- */
+
+@media (min-width: 40rem) {
+  .card--secondary {
+    grid-column: span 6;
+  }
+}
+
+@media (min-width: 64rem) {
+  .card--secondary {
+    grid-column: span 3;
+  }
+}
+
+/* --- list row ------------------------------------------------------------ */
+
+/* Rules rather than boxes. A run of bordered cards at this density reads as
+   a table of identical objects; a hairline between rows reads as a column of
+   headlines, which is what it is. */
+.card--list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+@media (min-width: 30rem) {
+  .card--list {
+    /* Thumbnail trails the headline: the headline is what gets scanned, so it
+       gets the reading edge. Logical, so it mirrors under RTL. */
+    grid-template-columns: 1fr 8rem;
+    align-items: start;
+  }
+
+  .card--list .card__frame {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .card--list .card__body {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
+
+.card--list .card__title {
+  font-size: var(--type-list);
+}
+
+/* --- compact ------------------------------------------------------------- */
+
+.card--compact {
+  gap: var(--space-1);
+}
+
+.card--compact .card__title {
+  font-size: var(--type-list);
+  font-weight: 600;
+}
+
+/* A run the reader assembled themselves - saved, history - where promoting
+   one item to a lead would be the page inventing an editorial judgement. */
+.feed--list {
+  gap: 0;
+}
+
+.feed--list .card--list:first-child {
+  padding-block-start: 0;
+  border-block-start: none;
+}
+
+.feed--list .card--list {
+  padding-block: var(--space-4);
 }
 
 .badge {
@@ -240,12 +443,13 @@ a {
 
 .card__footnote {
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--type-meta);
   margin: 0;
 }
 
 .card__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin-block-start: var(--space-2);
 }
@@ -259,6 +463,10 @@ a {
   border-radius: var(--radius);
   padding: 0.2rem var(--space-2);
   cursor: pointer;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .card__action:hover {
@@ -310,6 +518,12 @@ a {
 
 .button--secondary:hover {
   border-color: var(--text-muted);
+}
+
+.button {
+  transition:
+    border-color var(--dur) var(--ease),
+    filter var(--dur) var(--ease);
 }
 
 .button:disabled {
@@ -378,7 +592,9 @@ a {
 
 .page-header h1 {
   font-family: var(--font-display);
-  font-size: 1.7rem;
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.022em;
   margin: 0 0 var(--space-2);
   text-wrap: balance;
 }
@@ -522,6 +738,18 @@ a {
   background: var(--surface);
 }
 
+.chip {
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+a.chip:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
 .chip[aria-current="true"],
 .chip[data-active="true"] {
   border-color: var(--accent);
@@ -553,13 +781,15 @@ a {
 
 .article-header {
   max-width: var(--measure);
-  margin-inline: auto var(--space-8);
+  margin-inline: auto;
+  margin-block-end: var(--space-8);
 }
 
 .article-header h1 {
   font-family: var(--font-display);
-  font-size: 2rem;
-  line-height: 1.25;
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.022em;
   margin: 0 0 var(--space-3);
   text-wrap: balance;
 }
@@ -569,16 +799,21 @@ a {
   font-size: 0.85rem;
 }
 
+/* The standfirst. Principle 4 - reading is the product - so this is set for
+   sustained reading rather than as a longer piece of card metadata. */
 .article-snippet {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   color: var(--text-mid);
-  line-height: 1.7;
+  line-height: var(--leading-body);
   max-width: var(--measure);
 }
 
 .article-media {
   width: 100%;
   aspect-ratio: 16 / 9;
+  /* Same presentational-hint trap as .card__media: without this the img's
+     own height attribute wins and aspect-ratio is ignored. */
+  block-size: auto;
   object-fit: cover;
   border-radius: var(--radius);
   background: var(--surface-sub);
@@ -591,12 +826,14 @@ a {
 
 .related-heading {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--type-section);
   margin-block: var(--space-8) var(--space-4);
 }
 
 /* --- notices ----------------------------------------------------------- */
 
+/* Reserved for something being wrong - it carries the danger rule. Anything
+   that is merely notable gets .callout instead. */
 .notice {
   border: 1px solid var(--border);
   border-inline-start: 3px solid var(--danger);
@@ -608,13 +845,17 @@ a {
   font-size: 0.9rem;
 }
 
+/* Site telemetry, so it reads as a footer strip rather than a dashboard
+   above the headlines. */
 .stats {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-6);
   color: var(--text-muted);
-  font-size: 0.8rem;
-  margin-block-end: var(--space-6);
+  font-size: var(--type-meta);
+  margin-block: var(--space-8) 0;
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
 }
 
@@ -624,20 +865,44 @@ a {
 }
 
 .stats dd {
-  color: var(--text);
-  font-size: 1.1rem;
+  color: var(--text-mid);
+  font-size: 0.95rem;
   display: block;
   font-weight: 600;
 }
 
+/* An empty state is a page, not an error slot: it says what is missing and
+   offers the one thing worth doing next. The dashed box it replaced read as
+   a broken component. */
 .empty {
-  border: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--space-8);
+  background: var(--surface);
+  padding: var(--space-12) var(--space-6);
   text-align: center;
-  color: var(--text-muted);
   max-width: var(--measure);
   margin-inline: auto;
+}
+
+.empty__title {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  line-height: var(--leading-snug);
+  color: var(--text);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.empty__body {
+  color: var(--text-muted);
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+  margin: 0;
+  max-width: 40ch;
 }
 
 .skip-link {
@@ -843,7 +1108,7 @@ a {
   gap: var(--space-2);
   align-items: baseline;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: var(--type-section);
   padding-block-end: var(--space-2);
   border-block-end: 1px solid var(--border);
   margin-block-end: var(--space-4);
@@ -869,7 +1134,7 @@ a {
 
 .blindspot__heading {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: var(--type-section);
   margin: 0;
 }
 
@@ -906,4 +1171,146 @@ a {
    second row of controls. */
 .blindspot__item .chip-list {
   margin-block-end: 0;
+}
+
+/* --- trending rail ------------------------------------------------------- */
+
+/* A closing module, not a header. It sits below the feed because the front
+   page's job is to lead with the news; what other readers clicked is context
+   you reach after that, not the thing you are greeted by. */
+.trending {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--space-6);
+  margin-block: var(--space-12) var(--space-8);
+}
+
+.trending__heading {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin: 0 0 var(--space-3);
+}
+
+.trending__list {
+  /* Numbered by the browser rather than by hand: the rank is real
+     information, so it belongs in an <ol> and is read out as one. */
+  counter-reset: trending;
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trending__item {
+  counter-increment: trending;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-3);
+  align-items: baseline;
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--border);
+}
+
+.trending__item:last-child {
+  padding-block-end: 0;
+  border-block-end: none;
+}
+
+.trending__item::before {
+  content: counter(trending);
+  grid-row: 1 / span 2;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.trending__link {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.trending__link:hover {
+  color: var(--accent);
+}
+
+.trending__meta {
+  grid-column: 2;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  margin: var(--space-1) 0 0;
+}
+
+/* --- skeletons ------------------------------------------------------------
+ * Reserving the exact final space, per the design system's zero-CLS rule -
+ * these mirror the card size set rather than being generic grey boxes, so
+ * nothing moves when the real cards replace them. The shimmer is a keyframe
+ * animation, which the global prefers-reduced-motion rule already stops; a
+ * still block is the correct reduced-motion form of a skeleton, so there is
+ * nothing extra to write.
+ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-sub) 25%,
+    color-mix(in srgb, var(--surface-sub) 60%, var(--surface)) 37%,
+    var(--surface-sub) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+@keyframes skeleton-sweep {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+.skeleton--media {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+.skeleton--line {
+  block-size: 0.8rem;
+}
+
+.skeleton--title {
+  block-size: 1.1rem;
+}
+
+.skeleton--short {
+  inline-size: 45%;
+}
+
+.skeleton--mid {
+  inline-size: 75%;
+}
+
+/* Editorially interesting, not a problem: the accent rule rather than the
+   danger one. The cross-language coverage block was using .notice, which meant
+   the one thing this product does that nobody else does was framed as a
+   warning. */
+.callout {
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface);
+  padding: var(--space-4) var(--space-6);
+  margin-block: var(--space-8);
+}
+
+.callout .coverage-group__heading {
+  margin-block-start: 0;
 }

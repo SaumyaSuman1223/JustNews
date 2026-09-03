@@ -89,6 +89,10 @@
             ],
             "title": "Snippet"
           },
+          "source_id": {
+            "title": "Source Id",
+            "type": "integer"
+          },
           "source_name": {
             "title": "Source Name",
             "type": "string"
@@ -126,6 +130,7 @@
           "url",
           "language",
           "published_at",
+          "source_id",
           "source_name",
           "source_slug",
           "story_cluster_id"
@@ -286,6 +291,46 @@
           "surface"
         ],
         "title": "ClickIn",
+        "type": "object"
+      },
+      "EditionOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "language",
+          "country",
+          "is_default"
+        ],
+        "title": "EditionOut",
         "type": "object"
       },
       "FeedItemOut": {
@@ -942,6 +987,48 @@
           "role"
         ],
         "title": "SetRoleIn",
+        "type": "object"
+      },
+      "SourceFollowIn": {
+        "properties": {
+          "source_id": {
+            "title": "Source Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "title": "SourceFollowIn",
+        "type": "object"
+      },
+      "SourceFollowOut": {
+        "properties": {
+          "followed_at": {
+            "format": "date-time",
+            "title": "Followed At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_id",
+          "slug",
+          "name",
+          "followed_at"
+        ],
+        "title": "SourceFollowOut",
         "type": "object"
       },
       "SourceHealthOut": {
@@ -1962,6 +2049,28 @@
             }
           },
           {
+            "description": "Publisher country - what makes an edition regional, not just a language.",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Publisher country - what makes an edition regional, not just a language.",
+              "examples": [
+                "IN"
+              ],
+              "title": "Country"
+            }
+          },
+          {
             "in": "query",
             "name": "cursor",
             "required": false,
@@ -2126,6 +2235,63 @@
           }
         },
         "summary": "Blindspots",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/editions": {
+      "get": {
+        "description": "The regional views on offer - Google News' local-news equivalent.",
+        "operationId": "editions_v1_editions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "es"
+              ],
+              "title": "Languages"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EditionOut"
+                  },
+                  "title": "Response Editions V1 Editions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Editions",
         "tags": [
           "content"
         ]
@@ -2429,6 +2595,120 @@
           }
         ],
         "summary": "Create Follow",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/sources": {
+      "get": {
+        "operationId": "list_source_follows_v1_follows_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceFollowOut"
+                  },
+                  "title": "Response List Source Follows V1 Follows Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Source Follows",
+        "tags": [
+          "follows"
+        ]
+      },
+      "post": {
+        "operationId": "create_source_follow_v1_follows_sources_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceFollowIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceFollowOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Source Follow",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/sources/{source_id}": {
+      "delete": {
+        "operationId": "delete_source_follow_v1_follows_sources__source_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Source Follow",
         "tags": [
           "follows"
         ]
@@ -3211,6 +3491,75 @@
         "summary": "List Topics",
         "tags": [
           "topics"
+        ]
+      }
+    },
+    "/v1/trending": {
+      "get": {
+        "description": "What readers are actually clicking, most-clicked first.\n\nRanked on behaviour rather than recency - a rail that repeated the feed's\nown ordering would be decoration. Built from the interaction log that\nalready exists for Stage 6's benefit.",
+        "operationId": "trending_v1_trending_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "en,hi"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleOut"
+                  },
+                  "title": "Response Trending V1 Trending Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trending",
+        "tags": [
+          "content"
         ]
       }
     }

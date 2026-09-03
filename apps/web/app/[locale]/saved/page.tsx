@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ArticleCard } from "@/components/ArticleCard";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/FeedList";
 import { getSaves } from "@/lib/api";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
@@ -31,22 +32,20 @@ export default async function SavedPage({ params }: { params: Promise<{ locale: 
       )}
 
       {page.data.items.length === 0 ? (
-        <p className="empty">Nothing saved yet. Use &ldquo;Save&rdquo; on any headline.</p>
+        <EmptyState
+          title="Nothing saved yet"
+          body={"Every headline has a Save button. Saved stories stay here, and they keep working after the article scrolls off the feed."}
+          action={{ href: `/${active.code}`, label: "Back to the feed" }}
+        />
       ) : (
-        <ul className="feed">
-          {page.data.items.map((item, index) => (
-            <ArticleCard
-              key={item.article.id}
-              article={item.article}
-              locale={active.code}
-              surface="feed"
-              position={index}
-              signedIn
-              saved
-              revalidatePath={`/${active.code}/saved`}
-            />
-          ))}
-        </ul>
+        <FeedList
+          items={page.data.items.map((item) => ({ article: item.article, saved: true }))}
+          locale={active.code}
+          surface="feed"
+          signedIn
+          revalidatePath={`/${active.code}/saved`}
+          layout="list"
+        />
       )}
     </>
   );

@@ -1,16 +1,58 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
-import { ArticleCard } from "@/components/ArticleCard";
 import { BetaGateNotice } from "@/components/BetaGateNotice";
-import { getArticles, getFeed, getMe, getSaves, getStats } from "@/lib/api";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/FeedList";
+import { FeedSkeleton } from "@/components/FeedSkeleton";
+import { TrendingRail } from "@/components/TrendingRail";
+import { getArticles, getFeed, getMe, getSaves, getStats, getTrending } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
+// The layout's description would otherwise also be emitted, deferred, as a
+// second identical tag. Nulling it here leaves exactly the hoisted one.
+export const metadata: Metadata = { description: null };
+
+/**
+ * The whole page as a Suspense boundary would be a route-level `loading.tsx`,
+ * and that is measurably worse: a streaming route flushes its shell before
+ * Next has resolved the route's metadata, so the meta description is not in
+ * the initial document. Measured on this page - Lighthouse SEO 100 -> 92,
+ * performance 100 -> 97, with the only change being the presence of a
+ * loading.tsx. Suspending just the part that waits on the API keeps the
+ * skeleton and keeps the head intact.
+ */
 export default async function FeedPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+
+  return (
+    <>
+      {/* The masthead's wordmark is a link, not a heading - axe correctly
+          flags a page with no h1 at all. Visually hidden: the design
+          doesn't need a second, redundant "JustNews" banner under the one
+          already in the header, it just needs a real heading to exist. */}
+      <h1 className="visually-hidden">Feed</h1>
+      {/* A suspending page streams its shell before Next has resolved route
+          metadata, so the description from generateMetadata is not in the
+          initial document - Lighthouse SEO drops to 92. React hoists this tag
+          into <head>, and it sits above the Suspense boundary so it flushes
+          with the shell. It lives on the two suspending routes rather than in
+          the layout: in the layout it would also land on the article route,
+          ahead of that article's own, more specific description. */}
+      <meta name="description" content="Personalised, multilingual news." />
+      <Suspense fallback={<FeedSkeleton />}>
+        <FeedBody active={active} />
+      </Suspense>
+    </>
+  );
+}
+
+async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
   const session = await getSession();
 
   const auth = session
@@ -19,7 +61,7 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
   const profile = auth ? await getMe(auth) : null;
   const hasBetaAccess = profile?.has_beta_access ?? false;
 
-  const [feed, stats, savedIds] = await Promise.all([
+  const [feed, stats, trending, savedIds] = await Promise.all([
     auth && hasBetaAccess
       ? getFeed(auth, { locale: active.code, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
@@ -34,6 +76,7 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
           nextCursor: page.data.next_cursor,
         })),
     getStats(),
+    getTrending(active.code),
     auth && hasBetaAccess
       ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
@@ -41,11 +84,6 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
 
   return (
     <>
-      {/* The masthead's wordmark is a link, not a heading - axe correctly
-          flags a page with no h1 at all. Visually hidden: the design
-          doesn't need a second, redundant "JustNews" banner under the one
-          already in the header, it just needs a real heading to exist. */}
-      <h1 className="visually-hidden">Feed</h1>
       {session && !hasBetaAccess && <BetaGateNotice locale={active.code} />}
 
       {feed.degraded && (
@@ -56,6 +94,29 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
           Everything else still works.
         </p>
       )}
+
+      {feed.items.length === 0 ? (
+        <EmptyState
+          title={`No headlines in ${active.label} right now`}
+          body="We are still gathering today's coverage in this language. Explore is the same news without the personalisation, and it is worth a look in the meantime."
+          action={{ href: `/${active.code}/explore`, label: "Go to Explore" }}
+        />
+      ) : (
+        <FeedList
+          items={feed.items.map((item) => ({
+            article: item.article,
+            impressionId: item.impression_id,
+            saved: savedIds.has(item.article.id),
+          }))}
+          locale={active.code}
+          surface="feed"
+          signedIn={hasBetaAccess}
+          revalidatePath={`/${active.code}`}
+          aboveFold
+        />
+      )}
+
+      <TrendingRail articles={trending.data} locale={active.code} />
 
       {!stats.degraded && (
         // dt-then-dd per stat, each pair wrapped in its own div - the only
@@ -82,28 +143,6 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
         </dl>
       )}
 
-      {feed.items.length === 0 ? (
-        <p className="empty">
-          Nothing here yet in {active.label}. Run <code>make ingest</code> to fetch headlines, or
-          pick another language above.
-        </p>
-      ) : (
-        <ul className="feed">
-          {feed.items.map((item, index) => (
-            <ArticleCard
-              key={item.article.id}
-              article={item.article}
-              impressionId={item.impression_id}
-              locale={active.code}
-              surface="feed"
-              position={index}
-              signedIn={hasBetaAccess}
-              saved={savedIds.has(item.article.id)}
-              revalidatePath={`/${active.code}`}
-            />
-          ))}
-        </ul>
-      )}
     </>
   );
 }
