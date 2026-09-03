@@ -15,7 +15,7 @@ from justnews_api.repositories import content as repo
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_core.errors import NotFoundError, ValidationError
 from justnews_core.language import normalise_language_code
-from justnews_core.models import Edition, StoryCluster
+from justnews_core.models import Edition, Source, StoryCluster
 
 MAX_PAGE_SIZE = 50
 DEFAULT_PAGE_SIZE = 20
@@ -158,3 +158,17 @@ async def get_trending(
 
 async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:
     return await repo.list_editions(session, languages=languages)
+
+
+# A discovery list for onboarding, not a directory - bounded so a reader
+# meets a handful of recognisable names, not the entire source table.
+SOURCE_DISCOVERY_LIMIT = 12
+
+
+async def list_sources_for_language(session: AsyncSession, *, language: str) -> list[Source]:
+    code = normalise_language_code(language)
+    if code is None:
+        raise ValidationError(f"Not a language code: {language!r}")
+    return await repo.list_sources_for_language(
+        session, language=code, limit=SOURCE_DISCOVERY_LIMIT
+    )

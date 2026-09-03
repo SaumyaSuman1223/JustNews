@@ -173,7 +173,9 @@ const en = {
   "onboarding.topics.note": "Optional — pick as many as you like.",
   "onboarding.continue": "Continue",
   "onboarding.skip": "Skip for now",
-  "onboarding.shapesFeed": "Both already shape your feed — not just saved for later.",
+  "onboarding.shapesFeed": "All three already shape your feed — not just saved for later.",
+  "onboarding.sources.label": "Sources you already trust",
+  "onboarding.sources.note": "Optional — pick any you already read.",
 
   "login.title": "Sign in",
   "login.createHeading": "Create an account",
@@ -248,6 +250,9 @@ const en = {
   "notFound.heading": "That page does not exist",
   "notFound.action": "Go to the front page",
 
+  "privacy.englishOnly":
+    "This policy is currently available in English only. Machine-translating legal text risks getting your rights wrong, which is worse than not translating it at all — we'd rather say so plainly than guess.",
+
   "pagination.label": "More headlines",
   "pagination.next": "More headlines",
   "pagination.latest": "Back to the latest",
@@ -258,6 +263,8 @@ const en = {
   "actions.notInterested": "Not interested",
   "actions.notInterested.done": "Hidden from your feed",
   "actions.notInterested.failed": "Could not hide that. Try again.",
+  "actions.undo": "Undo",
+  "actions.undo.failed": "Could not undo. Try again.",
   "actions.follow": "Follow {source}",
   "actions.following": "Following {source}",
   "actions.follow.failed": "Could not change that. Try again.",
@@ -387,7 +394,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "onboarding.topics.note": "Opcional — elige los que quieras.",
     "onboarding.continue": "Continuar",
     "onboarding.skip": "Ahora no",
-    "onboarding.shapesFeed": "Ambos ya dan forma a tu feed — no es solo para más tarde.",
+    "onboarding.shapesFeed": "Los tres ya dan forma a tu feed — no es solo para más tarde.",
+    "onboarding.sources.label": "Medios en los que ya confías",
+    "onboarding.sources.note": "Opcional — elige los que ya lees.",
 
     "login.title": "Iniciar sesión",
     "login.createHeading": "Crear una cuenta",
@@ -465,6 +474,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "notFound.heading": "Esa página no existe",
     "notFound.action": "Ir a la portada",
 
+    "privacy.englishOnly":
+      "Esta política solo está disponible en inglés por ahora. Traducir texto legal automáticamente puede tergiversar tus derechos, lo cual es peor que no traducirlo — preferimos decirlo claramente antes que arriesgarnos.",
+
     "pagination.label": "Más titulares",
     "pagination.next": "Más titulares",
     "pagination.latest": "Volver a lo más reciente",
@@ -475,6 +487,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "actions.notInterested": "No me interesa",
     "actions.notInterested.done": "Oculto de tu feed",
     "actions.notInterested.failed": "No se ha podido ocultar. Inténtalo de nuevo.",
+    "actions.undo": "Deshacer",
+    "actions.undo.failed": "No se ha podido deshacer. Inténtalo de nuevo.",
     "actions.follow": "Seguir a {source}",
     "actions.following": "Siguiendo a {source}",
     "actions.follow.failed": "No se ha podido cambiar. Inténtalo de nuevo.",
@@ -599,7 +613,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "onboarding.topics.note": "वैकल्पिक — जितने चाहें उतने चुनें।",
     "onboarding.continue": "आगे बढ़ें",
     "onboarding.skip": "अभी नहीं",
-    "onboarding.shapesFeed": "दोनों अभी से आपकी सुर्ख़ियों को आकार देते हैं — सिर्फ़ बाद के लिए सहेजे नहीं गए।",
+    "onboarding.shapesFeed": "तीनों अभी से आपकी सुर्ख़ियों को आकार देते हैं — सिर्फ़ बाद के लिए सहेजे नहीं गए।",
+    "onboarding.sources.label": "जिन स्रोतों पर आप पहले से भरोसा करते हैं",
+    "onboarding.sources.note": "वैकल्पिक — जो पहले से पढ़ते हैं उन्हें चुनें।",
 
     "login.title": "साइन इन",
     "login.createHeading": "खाता बनाएँ",
@@ -676,6 +692,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "notFound.heading": "यह पेज मौजूद नहीं है",
     "notFound.action": "मुख्य पृष्ठ पर जाएँ",
 
+    "privacy.englishOnly":
+      "यह नीति अभी सिर्फ़ अंग्रेज़ी में उपलब्ध है। कानूनी पाठ का मशीनी अनुवाद आपके अधिकारों को ग़लत बता सकता है, जो बिना अनुवाद के छोड़ने से भी बुरा है — हम अंदाज़ा लगाने के बजाय साफ़-साफ़ यह बता देना बेहतर समझते हैं।",
+
     "pagination.label": "और सुर्ख़ियाँ",
     "pagination.next": "और सुर्ख़ियाँ",
     "pagination.latest": "ताज़ा ख़बरों पर लौटें",
@@ -686,6 +705,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "actions.notInterested": "दिलचस्पी नहीं",
     "actions.notInterested.done": "आपकी फ़ीड से हटाया गया",
     "actions.notInterested.failed": "हटाया नहीं जा सका। फिर कोशिश करें।",
+    "actions.undo": "पूर्ववत करें",
+    "actions.undo.failed": "पूर्ववत नहीं किया जा सका। फिर कोशिश करें।",
     "actions.follow": "{source} को फ़ॉलो करें",
     "actions.following": "{source} को फ़ॉलो कर रहे हैं",
     "actions.follow.failed": "बदला नहीं जा सका। फिर कोशिश करें।",

@@ -241,6 +241,29 @@ async def editions(
     ]
 
 
+class SourceOut(BaseModel):
+    id: int
+    name: str
+    slug: str
+    homepage_url: str
+
+
+@router.get("/sources", response_model=list[SourceOut])
+async def sources(
+    session: AsyncSession = Depends(get_session),
+    language: str = Query(...),
+) -> list[SourceOut]:
+    """A discovery list for onboarding - the handful of sources publishing in
+    one language a new reader is most likely to already recognise. Not a
+    directory: no pagination, no filtering beyond language, bounded to
+    service.SOURCE_DISCOVERY_LIMIT."""
+    rows = await service.list_sources_for_language(session, language=language)
+    return [
+        SourceOut(id=row.id, name=row.name, slug=row.slug, homepage_url=row.homepage_url)
+        for row in rows
+    ]
+
+
 @router.get("/stats", response_model=StatsOut)
 async def stats(session: AsyncSession = Depends(get_session)) -> StatsOut:
     return StatsOut(**await repo.corpus_stats(session))

@@ -167,7 +167,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
             A sentence split around an inline link only reassembles correctly
             in languages that put the clause in the same place. */}
         <p>
-          <Link href="/privacy">{t(active.code, "settings.privacyPolicy")}</Link>
+          <Link href={`/${active.code}/privacy`}>{t(active.code, "settings.privacyPolicy")}</Link>
         </p>
       </div>
       <p>

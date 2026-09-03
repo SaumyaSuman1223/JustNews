@@ -123,10 +123,27 @@ async def list_history(
 
 
 async def excluded_article_ids(session: AsyncSession, user_id: UUID) -> set[int]:
-    """Articles explicitly marked not interesting - excluded from the feed."""
+    """Articles explicitly marked not interesting - excluded from the feed.
+
+    Latest-event-wins, not "any not_interested row ever exists": undo is a
+    new `not_interested_undo` event (migration 0009), not a deletion, so a
+    reader who undoes a mark is excluded only until the NOT EXISTS below
+    finds that later reversal - and is excluded again correctly if they
+    re-mark the same article afterward.
+    """
+    later_undo = aliased(InteractionEvent)
     result = await session.execute(
         select(InteractionEvent.article_id).where(
-            InteractionEvent.user_id == user_id, InteractionEvent.event_type == "not_interested"
+            InteractionEvent.user_id == user_id,
+            InteractionEvent.event_type == "not_interested",
+            ~select(later_undo.id)
+            .where(
+                later_undo.user_id == InteractionEvent.user_id,
+                later_undo.article_id == InteractionEvent.article_id,
+                later_undo.event_type == "not_interested_undo",
+                later_undo.created_at > InteractionEvent.created_at,
+            )
+            .exists(),
         )
     )
     return set(result.scalars().all())

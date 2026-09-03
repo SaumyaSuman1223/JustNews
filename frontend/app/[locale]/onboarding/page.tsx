@@ -3,7 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { completeOnboardingAction } from "@/lib/actions";
-import { getFollows, getMe, getTopics } from "@/lib/api";
+import {
+  getFollowedSources,
+  getFollows,
+  getMe,
+  getSources,
+  getTopics,
+  type SourceOption,
+} from "@/lib/api";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
@@ -28,14 +35,25 @@ export default async function OnboardingPage({
   const access = await requireBetaAccess(active.code, `/${active.code}/onboarding`);
   if (!access.ok) return access.element;
 
-  const [topics, followed, profile] = await Promise.all([
+  const [topics, followedTopics, profile, followedSourceIds] = await Promise.all([
     getTopics(active.code),
     getFollows(access.auth).then((rows) => new Set(rows.map((row) => row.topic_id))),
     getMe(access.auth),
+    getFollowedSources(access.auth).then((rows) => new Set(rows.map((row) => row.source_id))),
   ]);
   const preferredLanguages = new Set(
     profile?.preferred_languages.length ? profile.preferred_languages : [active.code],
   );
+
+  // Seeded from the reader's languages as they stand right now, not from
+  // whatever the language checkboxes below are checked to when the form is
+  // submitted - this page has no client JS to react to that live, and a
+  // reader picking a new language for the first time meets its sources on
+  // their next visit here, not mid-scroll on this one.
+  const sourcesByLanguage = await Promise.all(
+    [...preferredLanguages].map((language) => getSources(language)),
+  );
+  const sources: SourceOption[] = sourcesByLanguage.flatMap((page) => page.data);
 
   const action = completeOnboardingAction.bind(null, active.code);
 
@@ -69,6 +87,35 @@ export default async function OnboardingPage({
           ))}
         </ul>
 
+        {/* Before topics, not after: for a reader who already reads two
+            named outlets daily, which source they trust is a faster,
+            more legible signal than which IPTC topic covers it. */}
+        {sources.length > 0 && (
+          <>
+            <div className="field" style={{ marginBlockStart: "var(--space-6)" }}>
+              <label>{t(active.code, "onboarding.sources.label")}</label>
+              <p className="form-note" style={{ marginBlockStart: 0 }}>
+                {t(active.code, "onboarding.sources.note")}
+              </p>
+            </div>
+            <ul className="checkbox-grid">
+              {sources.map((source) => (
+                <li key={source.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="sources"
+                      value={source.id}
+                      defaultChecked={followedSourceIds.has(source.id)}
+                    />
+                    {source.name}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         <div className="field" style={{ marginBlockStart: "var(--space-6)" }}>
           <label>{t(active.code, "onboarding.topics.label")}</label>
           <p className="form-note" style={{ marginBlockStart: 0 }}>
@@ -83,7 +130,7 @@ export default async function OnboardingPage({
                   type="checkbox"
                   name="topics"
                   value={topic.id}
-                  defaultChecked={followed.has(topic.id)}
+                  defaultChecked={followedTopics.has(topic.id)}
                 />
                 {topic.label}
               </label>
