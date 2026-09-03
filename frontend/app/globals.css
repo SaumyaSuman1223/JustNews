@@ -202,6 +202,39 @@ a {
   color: var(--accent);
 }
 
+/* Below 40rem - the same line every other narrow-screen rule in this file
+   uses - the masthead's three groups (wordmark, primary nav, language nav)
+   were flex items sharing one row, so each wrapped into fragments inside
+   whatever space the others left rather than using the full viewport width:
+   the wordmark took the first line's start, and Explore/Topics/Saved, the
+   search field and the account control broke wherever they ran out of the
+   leftover room beside it. Stacking the three groups full-width fixes that
+   without touching source order - nothing here is a keyboard-order change,
+   only how much width each group gets to lay out in. */
+@media (max-width: 39.9375rem) {
+  .masthead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+  }
+
+  .masthead-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .search-box {
+    align-self: stretch;
+  }
+
+  .search-box input {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
 /* --- feed: the card size set ---------------------------------------------
  *
  * Four sizes, no more, because the ranker decides the order and the page has
@@ -339,21 +372,24 @@ a {
   font-size: 1.05rem;
 }
 
-/* Deeper than the 16:9 default: a lead is the one image on the page with the
-   room to be looked at, and at 16:9 it leaves the headline column visibly
-   unbalanced beside it. */
-.card--lead .card__media {
-  aspect-ratio: 4 / 3;
-}
-
 /* Side by side once there is room for both to be worth looking at; stacked
-   below that, because a 40% column of photo next to three words is neither. */
+   below that, because a 40% column of photo next to three words is neither.
+   The deeper 4:3 ratio lives in this same query rather than applying always:
+   its reason is specifically the side-by-side column ("leaves the headline
+   column visibly unbalanced beside it"), which does not hold once the lead
+   is stacked. A stacked 4:3 lead on a 360px phone ran to roughly 246px of
+   image before a single word of the headline - taller than the 16:9 every
+   other card variant uses, for a reason that only applies at this width. */
 @media (min-width: 52rem) {
   .card--lead {
     display: grid;
     grid-template-columns: 1.15fr 1fr;
     gap: var(--space-6);
     align-items: start;
+  }
+
+  .card--lead .card__media {
+    aspect-ratio: 4 / 3;
   }
 }
 
