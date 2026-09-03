@@ -180,6 +180,7 @@ class TestAnalytics:
         await session.commit()
 
         reader = await make_beta_headers(session)
+        reader["x-analytics-consent"] = "granted"
         await client.get("/v1/feed", headers=reader)
 
         admin = await make_beta_headers(session, role="admin")
@@ -194,6 +195,7 @@ class TestAnalytics:
         await session.commit()
 
         reader = await make_beta_headers(session, user_id=find_user_id_for_policy(HEURISTIC_POLICY))
+        reader["x-analytics-consent"] = "granted"
         feed = (await client.get("/v1/feed", headers=reader)).json()
         impression_id = feed["items"][0]["impression_id"]
         await client.post(
