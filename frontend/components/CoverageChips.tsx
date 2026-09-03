@@ -1,5 +1,5 @@
 import type { LanguageCoverage } from "@/lib/api";
-import { locales } from "@/lib/i18n";
+import { type LocaleCode, locales, t } from "@/lib/i18n";
 
 /**
  * The language split of one story: "English 1 · Español 3 · हिन्दी 2".
@@ -10,13 +10,19 @@ import { locales } from "@/lib/i18n";
  * languages - the same event in three languages is one story here, not three
  * (ADR 0005).
  */
-export function CoverageChips({ coverage }: { coverage: LanguageCoverage[] }) {
+export function CoverageChips({
+  coverage,
+  locale,
+}: {
+  coverage: LanguageCoverage[];
+  locale: LocaleCode;
+}) {
   if (coverage.length === 0) return null;
 
   return (
-    <ul className="chip-list" aria-label="Languages covering this story">
+    <ul className="chip-list" aria-label={t(locale, "coverage.label")}>
       {coverage.map((entry) => {
-        const known = locales.find((locale) => locale.code === entry.language);
+        const known = locales.find((option) => option.code === entry.language);
         return (
           <li key={entry.language}>
             <span className="chip">
@@ -24,7 +30,7 @@ export function CoverageChips({ coverage }: { coverage: LanguageCoverage[] }) {
                   outlives a change to the launch set, and hiding it would
                   misreport the coverage. */}
               <span lang={known?.htmlLang ?? entry.language}>{known?.label ?? entry.language}</span>
-              <b className="chip__count">{entry.article_count}</b>
+              <b className="chip__count">{entry.article_count.toLocaleString(locale)}</b>
             </span>
           </li>
         );

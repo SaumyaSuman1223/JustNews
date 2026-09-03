@@ -5,7 +5,7 @@ import { ArticleCard } from "@/components/ArticleCard";
 import { CoverageChips } from "@/components/CoverageChips";
 import { getSaves, getStory } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode, locales } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -27,7 +27,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   const detail = await loadStory(id);
-  if (!detail) return { title: "Not found" };
+  if (!detail) {
+    return { title: t(isLocaleCode(locale) ? locale : "en", "article.notFound") };
+  }
   const leadImage = detail.articles[0]?.image_url;
   return {
     title: detail.story.title,
@@ -72,12 +74,15 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
     <>
       <div className="page-header">
         <h1>{detail.story.title}</h1>
+        {/* Two sentences rather than one with an appended clause: a fragment
+            glued on the end only reads correctly in languages that put it
+            there, and Hindi does not. */}
         <p>
-          Covered by {detail.story.source_count}{" "}
-          {detail.story.source_count === 1 ? "source" : "sources"}
-          {detail.story.language_count > 1 && ` in ${detail.story.language_count} languages`}.
+          {tPlural(active.code, "story.coveredBy", detail.story.source_count)}
+          {detail.story.language_count > 1 &&
+            ` ${t(active.code, "story.reportedIn", { count: detail.story.language_count })}`}
         </p>
-        <CoverageChips coverage={detail.coverage} />
+        <CoverageChips coverage={detail.coverage} locale={active.code} />
       </div>
 
       {byLanguage.map((group) => (
@@ -85,7 +90,7 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
           <h2 className="coverage-group__heading">
             <span lang={group.htmlLang}>{group.label}</span>
             <span className="coverage-group__count">
-              {group.articles.length} {group.articles.length === 1 ? "report" : "reports"}
+              {tPlural(active.code, "story.reports", group.articles.length)}
             </span>
           </h2>
           <ul className="feed">

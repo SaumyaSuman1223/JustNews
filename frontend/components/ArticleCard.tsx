@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { ArticleActions } from "@/components/ArticleActions";
 import type { Article } from "@/lib/api";
-import { formatRelativeTime, type LocaleCode } from "@/lib/i18n";
+import { formatRelativeTime, locales, type LocaleCode } from "@/lib/i18n";
 
 /**
  * The fixed card size set from docs/design/design-system.md.
@@ -77,6 +77,17 @@ export function ArticleCard({
   }
 
   const media = MEDIA[variant];
+  // Named, not coded. A reader who chose two languages is told which one this
+  // headline is in, in that language's own name - "Español", not "es". The
+  // raw code survives only for a language outside the launch set, where the
+  // corpus knows something the registry does not.
+  const foreign =
+    article.language === locale
+      ? null
+      : (locales.find((option) => option.code === article.language) ?? {
+          label: article.language,
+          htmlLang: article.language,
+        });
   // The snippet is the first thing density costs you. A lead has room to
   // argue for itself; a list row has to survive on its headline.
   const showSnippet = (variant === "lead" || variant === "secondary") && Boolean(article.snippet);
@@ -111,7 +122,11 @@ export function ArticleCard({
           <time dateTime={article.published_at}>
             {formatRelativeTime(article.published_at, locale)}
           </time>
-          {article.language !== locale && <span className="badge">{article.language}</span>}
+          {foreign && (
+            <span className="badge" lang={foreign.htmlLang}>
+              {foreign.label}
+            </span>
+          )}
         </p>
         {footnote && <p className="card__footnote">{footnote}</p>}
         {signedIn && (

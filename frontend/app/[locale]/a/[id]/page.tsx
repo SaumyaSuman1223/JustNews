@@ -9,7 +9,7 @@ import { CoverageChips } from "@/components/CoverageChips";
 import { FollowSourceButton } from "@/components/FollowSourceButton";
 import { getArticle, getFollowedSources, getSaves, getStory } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { formatRelativeTime, getLocale, isLocaleCode } from "@/lib/i18n";
+import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -29,9 +29,11 @@ export async function generateMetadata({
 }: {
   params: Promise<RouteParams>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
   const article = await loadArticle(id);
-  if (!article) return { title: "Not found" };
+  if (!article) {
+    return { title: t(isLocaleCode(locale) ? locale : "en", "article.notFound") };
+  }
   return {
     title: article.title,
     description: article.snippet ?? undefined,
@@ -78,6 +80,15 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
   const otherLanguages =
     story?.data?.coverage.filter((entry) => entry.language !== article.language) ?? [];
 
+  // Same rule as the card: name the language, do not print its code.
+  const foreign =
+    article.language === active.code
+      ? null
+      : (locales.find((option) => option.code === article.language) ?? {
+          label: article.language,
+          htmlLang: article.language,
+        });
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -100,7 +111,11 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
           <time dateTime={article.published_at}>
             {formatRelativeTime(article.published_at, active.code)}
           </time>
-          {article.language !== active.code && <span className="badge">{article.language}</span>}
+          {foreign && (
+            <span className="badge" lang={foreign.htmlLang}>
+              {foreign.label}
+            </span>
+          )}
         </p>
         <h1>{article.title}</h1>
 
@@ -125,7 +140,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
             target="_blank"
             rel="noopener noreferrer nofollow"
           >
-            Read the full story at {article.source_name}
+            {t(active.code, "article.readFull", { source: article.source_name })}
           </a>
         </div>
 
@@ -153,18 +168,19 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
               the same event, being reported right now in a language they may
               not have thought to look in. */}
           <h2 id="other-languages-heading" className="coverage-group__heading">
-            Also covered in{" "}
-            {otherLanguages.length === 1 ? "another language" : `${otherLanguages.length} other languages`}
+            {tPlural(active.code, "article.otherLanguages", otherLanguages.length)}
           </h2>
-          <CoverageChips coverage={otherLanguages} />
+          <CoverageChips coverage={otherLanguages} locale={active.code} />
         </section>
       )}
 
       {related.length > 0 && (
         <section aria-labelledby="related-heading">
           <h2 id="related-heading" className="related-heading">
-            Also reported by {related.length} other {related.length === 1 ? "source" : "sources"} ·{" "}
-            <Link href={`/${active.code}/story/${article.story_cluster_id}`}>See full coverage</Link>
+            {tPlural(active.code, "article.otherSources", related.length)} ·{" "}
+            <Link href={`/${active.code}/story/${article.story_cluster_id}`}>
+              {t(active.code, "article.seeFullCoverage")}
+            </Link>
           </h2>
           <ul className="feed">
             {related.map((item, index) => (
@@ -183,7 +199,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
       )}
 
       <p className="form-note">
-        <Link href={`/${active.code}`}>Back to the front page</Link>
+        <Link href={`/${active.code}`}>{t(active.code, "article.backToFront")}</Link>
       </p>
     </>
   );
