@@ -1139,6 +1139,34 @@
         "title": "SourceHealthOut",
         "type": "object"
       },
+      "SourceOut": {
+        "properties": {
+          "homepage_url": {
+            "title": "Homepage Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "homepage_url"
+        ],
+        "title": "SourceOut",
+        "type": "object"
+      },
       "StatsOut": {
         "properties": {
           "articles": {
@@ -3202,6 +3230,72 @@
         ]
       }
     },
+    "/v1/not-interested/{article_id}": {
+      "delete": {
+        "description": "Reverses a not-interested mark. Records a new event rather than\ndeleting the old one - see services.interactions.undo_not_interested.",
+        "operationId": "undo_not_interested_v1_not_interested__article_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "surface",
+            "required": true,
+            "schema": {
+              "title": "Surface",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Undo Not Interested",
+        "tags": [
+          "interactions"
+        ]
+      }
+    },
     "/v1/saves": {
       "get": {
         "operationId": "list_saves_v1_saves_get",
@@ -3438,6 +3532,53 @@
         "summary": "Search Articles",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/v1/sources": {
+      "get": {
+        "description": "A discovery list for onboarding - the handful of sources publishing in\none language a new reader is most likely to already recognise. Not a\ndirectory: no pagination, no filtering beyond language, bounded to\nservice.SOURCE_DISCOVERY_LIMIT.",
+        "operationId": "sources_v1_sources_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceOut"
+                  },
+                  "title": "Response Sources V1 Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sources",
+        "tags": [
+          "content"
         ]
       }
     },

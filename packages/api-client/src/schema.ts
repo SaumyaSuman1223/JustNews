@@ -503,6 +503,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/not-interested/{article_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Undo Not Interested
+         * @description Reverses a not-interested mark. Records a new event rather than
+         *     deleting the old one - see services.interactions.undo_not_interested.
+         */
+        delete: operations["undo_not_interested_v1_not_interested__article_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/saves": {
         parameters: {
             query?: never;
@@ -547,6 +568,29 @@ export interface paths {
         };
         /** Search Articles */
         get: operations["search_articles_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sources
+         * @description A discovery list for onboarding - the handful of sources publishing in
+         *     one language a new reader is most likely to already recognise. Not a
+         *     directory: no pagination, no filtering beyond language, bounded to
+         *     service.SOURCE_DISCOVERY_LIMIT.
+         */
+        get: operations["sources_v1_sources_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1061,6 +1105,17 @@ export interface components {
             language: string;
             /** Last Success At */
             last_success_at: string | null;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /** SourceOut */
+        SourceOut: {
+            /** Homepage Url */
+            homepage_url: string;
+            /** Id */
+            id: number;
             /** Name */
             name: string;
             /** Slug */
@@ -2187,6 +2242,39 @@ export interface operations {
             };
         };
     };
+    undo_not_interested_v1_not_interested__article_id__delete: {
+        parameters: {
+            query: {
+                surface: string;
+            };
+            header?: {
+                "x-session-id"?: string | null;
+            };
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_saves_v1_saves_get: {
         parameters: {
             query?: {
@@ -2302,6 +2390,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchPageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sources_v1_sources_get: {
+        parameters: {
+            query: {
+                language: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"][];
                 };
             };
             /** @description Validation Error */
