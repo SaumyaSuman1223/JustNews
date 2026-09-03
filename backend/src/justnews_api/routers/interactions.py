@@ -89,3 +89,22 @@ async def report_not_interested(
         article_id=body.article_id,
         surface=body.surface,
     )
+
+
+@router.delete("/not-interested/{article_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def undo_not_interested(
+    article_id: int,
+    surface: str = Query(...),
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+    x_session_id: str | None = Header(default=None, alias="x-session-id"),
+) -> None:
+    """Reverses a not-interested mark. Records a new event rather than
+    deleting the old one - see services.interactions.undo_not_interested."""
+    await service.undo_not_interested(
+        session,
+        user_id=principal.user_id,
+        session_id=x_session_id or uuid.uuid4().hex,
+        article_id=article_id,
+        surface=surface,
+    )

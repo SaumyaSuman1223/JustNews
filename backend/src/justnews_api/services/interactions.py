@@ -85,6 +85,33 @@ async def report_not_interested(
     )
 
 
+async def undo_not_interested(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    session_id: str,
+    article_id: int,
+    surface: str,
+) -> None:
+    """Reverses a `not_interested` mark by recording a new event, not by
+    deleting the old one - see migration 0009's docstring for why the log
+    stays append-only. `excluded_article_ids` reads the latest of the pair,
+    so this takes effect on the reader's very next feed request."""
+    _validate_surface(surface)
+    article = await content_repo.get_article(session, article_id)
+    if article is None:
+        raise NotFoundError(f"No article with id {article_id}.")
+    await repo.record_event(
+        session,
+        user_id=user_id,
+        session_id=session_id,
+        article_id=article_id,
+        event_type="not_interested_undo",
+        surface=surface,
+        locale=article.language,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class HistoryItem:
     article: content_repo.ArticleRow

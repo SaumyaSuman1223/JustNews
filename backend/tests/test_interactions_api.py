@@ -92,3 +92,52 @@ class TestNotInterested:
             headers=headers,
         )
         assert response.status_code == 404
+
+
+class TestUndoNotInterested:
+    async def test_undoes_a_mark(self, client: AsyncClient, session: AsyncSession) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        await client.post(
+            "/v1/not-interested",
+            json={"article_id": article.id, "surface": "feed"},
+            headers=headers,
+        )
+        response = await client.delete(
+            f"/v1/not-interested/{article.id}", params={"surface": "feed"}, headers=headers
+        )
+        assert response.status_code == 204
+
+    async def test_requires_surface(self, client: AsyncClient, session: AsyncSession) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        response = await client.delete(f"/v1/not-interested/{article.id}", headers=headers)
+        assert response.status_code == 422
+
+    async def test_unknown_article_is_404(self, client: AsyncClient, session: AsyncSession) -> None:
+        headers = await make_beta_headers(session)
+        response = await client.delete(
+            "/v1/not-interested/999999", params={"surface": "feed"}, headers=headers
+        )
+        assert response.status_code == 404
+
+    async def test_undoing_a_mark_that_was_never_made_is_still_a_valid_event(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        # No POST /v1/not-interested first: the log is append-only and an
+        # extra reversal event is harmless, not an error to reject.
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        response = await client.delete(
+            f"/v1/not-interested/{article.id}", params={"surface": "feed"}, headers=headers
+        )
+        assert response.status_code == 204

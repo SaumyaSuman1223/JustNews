@@ -82,6 +82,56 @@ class TestFeed:
         titles = [item["article"]["title"] for item in body["items"]]
         assert titles == ["Keep"]
 
+    async def test_undo_restores_the_article_to_the_feed(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source, title="Reconsidered")
+        await session.commit()
+
+        headers = await _chronological_headers(session)
+        await client.post(
+            "/v1/not-interested",
+            json={"article_id": article.id, "surface": "feed"},
+            headers=headers,
+        )
+        excluded = (await client.get("/v1/feed", headers=headers)).json()
+        assert excluded["items"] == []
+
+        undo = await client.delete(
+            f"/v1/not-interested/{article.id}", params={"surface": "feed"}, headers=headers
+        )
+        assert undo.status_code == 204
+
+        restored = (await client.get("/v1/feed", headers=headers)).json()
+        assert [item["article"]["title"] for item in restored["items"]] == ["Reconsidered"]
+
+    async def test_re_marking_after_undo_excludes_it_again(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source, title="Flip-flop")
+        await session.commit()
+
+        headers = await _chronological_headers(session)
+        for _ in range(2):
+            await client.post(
+                "/v1/not-interested",
+                json={"article_id": article.id, "surface": "feed"},
+                headers=headers,
+            )
+            await client.delete(
+                f"/v1/not-interested/{article.id}", params={"surface": "feed"}, headers=headers
+            )
+        await client.post(
+            "/v1/not-interested",
+            json={"article_id": article.id, "surface": "feed"},
+            headers=headers,
+        )
+
+        body = (await client.get("/v1/feed", headers=headers)).json()
+        assert body["items"] == []
+
     async def test_falls_back_to_profile_languages_when_unspecified(
         self, client: AsyncClient, session: AsyncSession
     ) -> None:

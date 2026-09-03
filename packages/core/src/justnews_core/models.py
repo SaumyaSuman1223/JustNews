@@ -607,7 +607,8 @@ class InteractionEvent(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "event_type in ('click', 'save', 'unsave', 'share', 'not_interested', 'dwell')",
+            "event_type in ('click', 'save', 'unsave', 'share', 'not_interested', "
+            "'not_interested_undo', 'dwell')",
             name="ck_interaction_events_type",
         ),
         CheckConstraint(
