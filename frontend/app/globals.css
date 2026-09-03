@@ -502,6 +502,25 @@ a {
   color: var(--danger);
 }
 
+/* "Not interested," confirmed: the card steps its own content back rather
+   than only the text beneath it changing. Targeted at the specific elements
+   that are the article's content - .card__status is deliberately excluded,
+   because the confirmation explaining the dimming has to stay at full
+   contrast to be read, not dim along with what it is explaining. */
+.card--hidden .card__frame,
+.card--hidden .card__title,
+.card--hidden .card__snippet,
+.card--hidden .card__meta,
+.card--hidden .card__footnote {
+  opacity: 0.55;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.card--hidden .card__frame {
+  filter: grayscale(0.6);
+  transition: opacity var(--dur) var(--ease), filter var(--dur) var(--ease);
+}
+
 .card__action {
   font: inherit;
   font-size: 0.78rem;
@@ -959,6 +978,56 @@ a.chip:hover {
   font-size: 0.95rem;
   display: block;
   font-weight: 600;
+}
+
+/* The settings-page reading mix: a real proportion per language, so the bar
+   is drawn to the same discipline as any other chart - it earns its width
+   from the reader's own numbers, not from being an app-shaped decoration. */
+.language-mix {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.language-mix__row {
+  display: grid;
+  grid-template-columns: 6rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.language-mix__label {
+  color: var(--text-mid);
+  font-weight: 600;
+}
+
+.language-mix__track {
+  block-size: 6px;
+  border-radius: 3px;
+  background: var(--surface-sub);
+  overflow: hidden;
+}
+
+.language-mix__bar {
+  display: block;
+  block-size: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+.language-mix__count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .language-mix__row {
+    grid-template-columns: 5rem 1fr auto;
+  }
 }
 
 /* An empty state is a page, not an error slot: it says what is missing and

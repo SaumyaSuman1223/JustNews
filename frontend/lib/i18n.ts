@@ -265,6 +265,11 @@ const en = {
 
   "site.description": "Personalised, multilingual news.",
   "topics.fallbackTitle": "Topic",
+
+  "profile.languageMix.heading": "What you actually read",
+  "profile.languageMix.body": "Based on your last {count} articles opened.",
+  "profile.languageMix.empty": "Nothing to show yet — this fills in as you read.",
+  "profile.languageMix.count": "{count} read",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -469,6 +474,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "site.description": "Noticias personalizadas y multilingües.",
     "topics.fallbackTitle": "Tema",
+
+    "profile.languageMix.heading": "Lo que realmente lees",
+    "profile.languageMix.body": "Según tus últimos {count} artículos abiertos.",
+    "profile.languageMix.empty": "Todavía no hay nada que mostrar — esto se llena a medida que lees.",
+    "profile.languageMix.count": "{count} leídos",
   },
   hi: {
     "skip.toContent": "सामग्री पर जाएँ",
@@ -667,6 +677,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "site.description": "वैयक्तिकृत, बहुभाषी ख़बरें।",
     "topics.fallbackTitle": "विषय",
+
+    "profile.languageMix.heading": "आप असल में क्या पढ़ते हैं",
+    "profile.languageMix.body": "आपके पिछले {count} खोले गए लेखों के आधार पर।",
+    "profile.languageMix.empty": "अभी दिखाने को कुछ नहीं — जैसे-जैसे आप पढ़ेंगे, यह भरता जाएगा।",
+    "profile.languageMix.count": "{count} पढ़े गए",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 import { ArticleActions } from "@/components/ArticleActions";
 import type { Article } from "@/lib/api";
@@ -60,6 +61,13 @@ export function ArticleCard({
   variant = "secondary",
   priority = false,
 }: ArticleCardProps) {
+  // Owned here, not in ArticleActions: dimming is the card stepping its own
+  // content back, and the confirmation text that explains why has to stay at
+  // full contrast to say so - Artifact's pattern (the dismissed card grays
+  // out in place) without losing the accessible status line this app's own
+  // earlier pass added.
+  const [hidden, setHidden] = useState(false);
+
   function handleClick() {
     // Fire-and-forget: never block or delay the navigation this accompanies.
     // Anonymous visits are a no-op server-side (see the route).
@@ -93,7 +101,7 @@ export function ArticleCard({
   const showSnippet = (variant === "lead" || variant === "secondary") && Boolean(article.snippet);
 
   return (
-    <li className={`card card--${variant}`}>
+    <li className={`card card--${variant}${hidden ? " card--hidden" : ""}`}>
       {media && article.image_url && (
         <div className="card__frame">
           <Image
@@ -136,6 +144,7 @@ export function ArticleCard({
             surface={surface}
             saved={saved}
             revalidatePath={revalidatePath}
+            onHidden={() => setHidden(true)}
           />
         )}
       </div>
