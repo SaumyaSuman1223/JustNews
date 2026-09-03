@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { getArticles, getEditions } from "@/lib/api";
-import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -22,9 +22,13 @@ export async function generateMetadata({
 }: {
   params: Promise<RouteParams>;
 }): Promise<Metadata> {
-  const { code } = await params;
+  const { locale, code } = await params;
   const edition = await loadEdition(code);
-  return { title: edition ? edition.name : "Not found" };
+  return {
+    title: edition
+      ? edition.name
+      : t(isLocaleCode(locale) ? locale : "en", "article.notFound"),
+  };
 }
 
 export default async function EditionPage({ params }: { params: Promise<RouteParams> }) {
@@ -48,20 +52,34 @@ export default async function EditionPage({ params }: { params: Promise<RoutePar
     <>
       <div className="page-header">
         <h1>{edition.name}</h1>
-        <p>Reported by newsrooms in {edition.name}, in {active.label}.</p>
+        {/* The edition's own language, not the interface's. These come apart
+            the moment a reader browses a Spanish edition from the English
+            site, and the old copy claimed the page was in whichever language
+            the chrome happened to be in. */}
+        <p>
+          {t(active.code, "edition.intro", {
+            name: edition.name,
+            language:
+              locales.find((option) => option.code === edition.language)?.label ??
+              edition.language,
+          })}
+        </p>
       </div>
 
       {page.degraded && (
         <p className="notice" role="status">
-          This edition is unavailable right now, so the page may be out of date.
+          {t(active.code, "edition.degraded")}
         </p>
       )}
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title="No headlines from this edition yet"
-          body="This edition draws on publishers based in one country. It fills in as they publish."
-          action={{ href: `/${active.code}/explore`, label: "Go to Explore" }}
+          title={t(active.code, "edition.empty.title")}
+          body={t(active.code, "edition.empty.body")}
+          action={{
+            href: `/${active.code}/explore`,
+            label: t(active.code, "feed.empty.action"),
+          }}
         />
       ) : (
         <FeedList

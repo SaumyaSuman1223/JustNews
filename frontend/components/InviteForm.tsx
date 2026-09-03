@@ -4,9 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { redeemInviteAction } from "@/lib/actions";
+import { defaultLocale, isLocaleCode, t } from "@/lib/i18n";
 
 export function InviteForm() {
-  const { locale } = useParams<{ locale: string }>();
+  const { locale: routeLocale } = useParams<{ locale: string }>();
+  const locale = isLocaleCode(routeLocale) ? routeLocale : defaultLocale;
   const router = useRouter();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export function InviteForm() {
     const result = await redeemInviteAction(code);
     setPending(false);
     if (!result.ok) {
-      setError(result.message ?? "That code did not work.");
+      setError(result.message ?? t(locale, "invite.failed"));
       return;
     }
     router.push(`/${locale}`);
@@ -29,8 +31,8 @@ export function InviteForm() {
   return (
     <div className="narrow">
       <div className="page-header">
-        <h1>You&rsquo;re invited</h1>
-        <p>JustNews is in private beta. Enter your invite code to unlock your personalised feed.</p>
+        <h1>{t(locale, "invite.heading")}</h1>
+        <p>{t(locale, "invite.intro")}</p>
       </div>
 
       {error && (
@@ -41,7 +43,7 @@ export function InviteForm() {
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="invite-code">Invite code</label>
+          <label htmlFor="invite-code">{t(locale, "invite.codeLabel")}</label>
           <input
             id="invite-code"
             type="text"
@@ -52,7 +54,7 @@ export function InviteForm() {
           />
         </div>
         <button type="submit" className="button button--primary" disabled={pending || !code}>
-          {pending ? "Checking…" : "Unlock"}
+          {pending ? t(locale, "invite.pending") : t(locale, "invite.submit")}
         </button>
       </form>
     </div>

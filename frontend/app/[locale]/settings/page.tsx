@@ -7,10 +7,17 @@ import { SignInRequired } from "@/components/SignInRequired";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { updateLanguagesFormAction } from "@/lib/actions";
-import { getLocale, isLocaleCode, locales } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Settings" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t(isLocaleCode(locale) ? locale : "en", "settings.heading") };
+}
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -29,15 +36,19 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   return (
     <div className="narrow">
       <div className="page-header">
-        <h1>Settings</h1>
-        <p>Signed in as {session.email}.</p>
+        <h1>{t(active.code, "settings.heading")}</h1>
+        {/* A session without an email is possible on paper; the old copy
+            rendered "Signed in as ." when it happened. */}
+        {session.email && (
+          <p>{t(active.code, "settings.signedInAs", { email: session.email })}</p>
+        )}
       </div>
 
       <form action={updateLanguagesFormAction}>
         <div className="field">
-          <label>Languages for your feed</label>
+          <label>{t(active.code, "settings.languages.label")}</label>
           <p className="form-note" style={{ marginBlockStart: 0 }}>
-            Choose at least one. Your feed only ever shows languages you pick here.
+            {t(active.code, "settings.languages.note")}
           </p>
         </div>
         <ul className="checkbox-grid">
@@ -56,19 +67,24 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           ))}
         </ul>
         <button type="submit" className="button button--primary">
-          Save
+          {t(active.code, "settings.save")}
         </button>
       </form>
 
       <div className="page-header" style={{ marginBlockStart: "var(--space-8)" }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem" }}>Your data</h2>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem" }}>
+          {t(active.code, "settings.yourData")}
+        </h2>
+        {/* The link is the whole sentence rather than two words inside one.
+            A sentence split around an inline link only reassembles correctly
+            in languages that put the clause in the same place. */}
         <p>
-          Read what this applies to in the <Link href="/privacy">privacy policy</Link>.
+          <Link href="/privacy">{t(active.code, "settings.privacyPolicy")}</Link>
         </p>
       </div>
       <p>
         <a className="button button--secondary" href="/api/export" download="justnews-data.json">
-          Download your data
+          {t(active.code, "settings.download")}
         </a>
       </p>
       <DeleteAccountButton locale={active.code} />

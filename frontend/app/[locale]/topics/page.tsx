@@ -3,9 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getTopics } from "@/lib/api";
-import { getLocale, isLocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 
-export const metadata: Metadata = { title: "Topics" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t(isLocaleCode(locale) ? locale : "en", "topics.heading") };
+}
 
 export default async function TopicsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -17,13 +24,13 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
   return (
     <>
       <div className="page-header">
-        <h1>Topics</h1>
-        <p>Browse headlines by subject, using the IPTC Media Topics taxonomy.</p>
+        <h1>{t(active.code, "topics.heading")}</h1>
+        <p>{t(active.code, "topics.intro")}</p>
       </div>
 
       {topics.degraded ? (
         <p className="notice" role="status">
-          Topics are unavailable right now.
+          {t(active.code, "topics.degraded")}
         </p>
       ) : (
         <ul className="chip-list">

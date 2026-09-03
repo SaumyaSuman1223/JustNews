@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { defaultLocale, isLocaleCode, t, type LocaleCode } from "@/lib/i18n";
 import { safeNext } from "@/lib/safeNext";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -21,28 +22,31 @@ const MIN_PASSWORD = 8;
  * actually hit; anything unrecognised falls through unchanged rather than
  * being replaced by a vague catch-all that hides a real fault.
  */
-function readable(message: string): string {
+function readable(message: string, locale: LocaleCode): string {
   const text = message.toLowerCase();
   if (text.includes("invalid login credentials")) {
-    return "That email and password don't match an account. Check both, or create an account.";
+    return t(locale, "login.error.credentials");
   }
   if (text.includes("email not confirmed")) {
-    return "Confirm your email first - check your inbox for the link we sent when you signed up.";
+    return t(locale, "login.error.unconfirmed");
   }
   if (text.includes("already registered") || text.includes("already been registered")) {
-    return "There is already an account with that email. Sign in instead.";
+    return t(locale, "login.error.registered");
   }
   if (text.includes("for security purposes") || text.includes("rate limit")) {
-    return "Too many attempts just now. Wait a minute and try again.";
+    return t(locale, "login.error.rateLimit");
   }
   if (text.includes("failed to fetch") || text.includes("networkerror")) {
-    return "We could not reach the sign-in service. Check your connection and try again.";
+    return t(locale, "login.error.network");
   }
+  // Matched on Supabase's English text, and returned as-is when nothing
+  // matches: an untranslated real fault beats a translated vague one.
   return message;
 }
 
 export function LoginForm() {
-  const { locale } = useParams<{ locale: string }>();
+  const { locale: routeLocale } = useParams<{ locale: string }>();
+  const locale = isLocaleCode(routeLocale) ? routeLocale : defaultLocale;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("sign-in");
@@ -56,14 +60,13 @@ export function LoginForm() {
     return (
       <div className="narrow">
         <div className="page-header">
-          <h1>Sign in</h1>
+          <h1>{t(locale, "login.title")}</h1>
         </div>
         <p className="notice" role="status">
-          Accounts are not set up in this environment yet. Browsing, search and exploration all
-          work without one - saved articles, history and a personalised feed need sign-in.
+          {t(locale, "login.unavailable")}
         </p>
         <p>
-          <Link href={`/${locale}`}>Back to the front page</Link>
+          <Link href={`/${locale}`}>{t(locale, "article.backToFront")}</Link>
         </p>
       </div>
     );
@@ -74,7 +77,7 @@ export function LoginForm() {
     setError(null);
     setNotice(null);
     if (mode === "sign-up" && password.length < MIN_PASSWORD) {
-      setError(`Choose a password of at least ${MIN_PASSWORD} characters.`);
+      setError(t(locale, "login.minPassword", { count: MIN_PASSWORD }));
       return;
     }
     setPending(true);
@@ -95,12 +98,14 @@ export function LoginForm() {
           options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/${locale}` },
         });
         if (signUpError) throw signUpError;
-        setNotice("Check your email to confirm your account, then sign in.");
+        setNotice(t(locale, "login.checkEmail"));
         setMode("sign-in");
       }
     } catch (caught) {
       setError(
-        caught instanceof Error ? readable(caught.message) : "Something went wrong. Try again.",
+        caught instanceof Error
+          ? readable(caught.message, locale)
+          : t(locale, "login.error.generic"),
       );
     } finally {
       setPending(false);
@@ -110,20 +115,20 @@ export function LoginForm() {
   return (
     <div className="narrow">
       <div className="page-header">
-        <h1>{mode === "sign-in" ? "Sign in" : "Create an account"}</h1>
+        <h1>{t(locale, mode === "sign-in" ? "login.title" : "login.createHeading")}</h1>
         <p>
           {mode === "sign-in" ? (
             <>
-              New here?{" "}
+              {t(locale, "login.newHere")}{" "}
               <button type="button" className="link-button" onClick={() => setMode("sign-up")}>
-                Create an account
+                {t(locale, "login.createHeading")}
               </button>
             </>
           ) : (
             <>
-              Already have one?{" "}
+              {t(locale, "login.alreadyHaveOne")}{" "}
               <button type="button" className="link-button" onClick={() => setMode("sign-in")}>
-                Sign in
+                {t(locale, "login.title")}
               </button>
             </>
           )}
@@ -143,7 +148,7 @@ export function LoginForm() {
 
       <form className="form-panel" onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t(locale, "login.email")}</label>
           <input
             id="email"
             type="email"
@@ -154,7 +159,7 @@ export function LoginForm() {
           />
         </div>
         <div className="field">
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">{t(locale, "login.password")}</label>
           <input
             id="password"
             type="password"
@@ -166,7 +171,9 @@ export function LoginForm() {
           />
         </div>
         <button type="submit" className="button button--primary" disabled={pending}>
-          {pending ? "Please wait…" : mode === "sign-in" ? "Sign in" : "Create account"}
+          {pending
+            ? t(locale, "login.pending")
+            : t(locale, mode === "sign-in" ? "login.title" : "login.createSubmit")}
         </button>
       </form>
     </div>
