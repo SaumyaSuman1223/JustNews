@@ -132,6 +132,7 @@ export function ArticleCard({
         {signedIn && (
           <ArticleActions
             articleId={article.id}
+            locale={locale}
             surface={surface}
             saved={saved}
             revalidatePath={revalidatePath}

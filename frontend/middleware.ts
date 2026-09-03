@@ -19,6 +19,13 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/sup
  * impressions and interactions together (`session_id` on every interaction
  * log row) so they read as one session even across a sign-in, which matters
  * for the Stage 7 exploration deck's cold-start signal.
+ *
+ * It also forwards the request's own path and query string as headers, which
+ * is the only way a Server Component can read them: `next/navigation`'s
+ * `usePathname` is client-only, and the locale-segmented layout that needs
+ * this - so the language switcher can link to the page the reader is
+ * actually on, rather than always dropping them at the home page - renders
+ * on the server.
  */
 export async function middleware(request: NextRequest) {
   // Resolved before `response` exists, and re-applied to it below - the
@@ -27,7 +34,24 @@ export async function middleware(request: NextRequest) {
   const sessionId = request.cookies.get(BROWSING_SESSION_COOKIE)?.value ?? crypto.randomUUID();
   request.cookies.set(BROWSING_SESSION_COOKIE, sessionId);
 
-  let response = NextResponse.next({ request });
+  /**
+   * Rebuilds `NextResponse.next({ request })` with two extra request headers.
+   * A fresh `Headers` clone taken at the call site, not a snapshot held
+   * across the function: `request.cookies.set` mutates `request`'s own
+   * headers in place, and this runs after every such mutation below (once
+   * here, and again inside the Supabase cookie handler once it has written
+   * any refreshed auth cookies), so each clone picks up whatever is current
+   * at that point - the same guarantee `NextResponse.next({ request })`
+   * already gave the cookie flow, just carried over to these two headers.
+   */
+  function nextWithPathname() {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", request.nextUrl.pathname);
+    requestHeaders.set("x-search", request.nextUrl.search);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  let response = nextWithPathname();
 
   if (isSupabaseConfigured) {
     const supabase = createServerClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
@@ -39,7 +63,7 @@ export async function middleware(request: NextRequest) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          response = NextResponse.next({ request });
+          response = nextWithPathname();
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }

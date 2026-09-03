@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { Pagination } from "@/components/Pagination";
 import { getMe, getSaves, searchArticles } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
@@ -98,6 +99,18 @@ export default async function SearchPage({
           signedIn={Boolean(session)}
           revalidatePath={`/${active.code}/search?q=${encodeURIComponent(query)}`}
           layout="list"
+        />
+      )}
+
+      {/* The query rides in baseHref, so page two is still a search for the
+          same thing - this route has accepted a cursor since Stage 2 and
+          nothing ever linked to it. */}
+      {query.length >= 2 && (
+        <Pagination
+          locale={active.code}
+          baseHref={`/${active.code}/search?q=${encodeURIComponent(query)}`}
+          nextCursor={results.data.next_cursor}
+          onLaterPage={Boolean(cursor)}
         />
       )}
     </>

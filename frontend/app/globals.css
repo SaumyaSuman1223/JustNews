@@ -202,6 +202,39 @@ a {
   color: var(--accent);
 }
 
+/* Below 40rem - the same line every other narrow-screen rule in this file
+   uses - the masthead's three groups (wordmark, primary nav, language nav)
+   were flex items sharing one row, so each wrapped into fragments inside
+   whatever space the others left rather than using the full viewport width:
+   the wordmark took the first line's start, and Explore/Topics/Saved, the
+   search field and the account control broke wherever they ran out of the
+   leftover room beside it. Stacking the three groups full-width fixes that
+   without touching source order - nothing here is a keyboard-order change,
+   only how much width each group gets to lay out in. */
+@media (max-width: 39.9375rem) {
+  .masthead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+  }
+
+  .masthead-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .search-box {
+    align-self: stretch;
+  }
+
+  .search-box input {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
 /* --- feed: the card size set ---------------------------------------------
  *
  * Four sizes, no more, because the ranker decides the order and the page has
@@ -339,21 +372,24 @@ a {
   font-size: 1.05rem;
 }
 
-/* Deeper than the 16:9 default: a lead is the one image on the page with the
-   room to be looked at, and at 16:9 it leaves the headline column visibly
-   unbalanced beside it. */
-.card--lead .card__media {
-  aspect-ratio: 4 / 3;
-}
-
 /* Side by side once there is room for both to be worth looking at; stacked
-   below that, because a 40% column of photo next to three words is neither. */
+   below that, because a 40% column of photo next to three words is neither.
+   The deeper 4:3 ratio lives in this same query rather than applying always:
+   its reason is specifically the side-by-side column ("leaves the headline
+   column visibly unbalanced beside it"), which does not hold once the lead
+   is stacked. A stacked 4:3 lead on a 360px phone ran to roughly 246px of
+   image before a single word of the headline - taller than the 16:9 every
+   other card variant uses, for a reason that only applies at this width. */
 @media (min-width: 52rem) {
   .card--lead {
     display: grid;
     grid-template-columns: 1.15fr 1fr;
     gap: var(--space-6);
     align-items: start;
+  }
+
+  .card--lead .card__media {
+    aspect-ratio: 4 / 3;
   }
 }
 
@@ -452,6 +488,18 @@ a {
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-block-start: var(--space-2);
+}
+
+/* What a card says back after an action. Sized with the metadata row rather
+   than the headline - it is an answer, not news. */
+.card__status {
+  font-size: var(--type-meta);
+  color: var(--text-muted);
+  margin-block: var(--space-2) 0;
+}
+
+.card__status--error {
+  color: var(--danger);
 }
 
 .card__action {
@@ -703,14 +751,17 @@ a {
   cursor: pointer;
 }
 
+/* A <ul> since the panel stopped pretending to be an ARIA menu - list-style
+   and the browser's default indent go with it. */
 .account-menu__panel {
   position: absolute;
   inset-inline-end: 0;
-  margin-block-start: var(--space-2);
+  margin-block: var(--space-2) 0;
+  padding: var(--space-2);
+  list-style: none;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--space-2);
   min-width: 10rem;
   display: flex;
   flex-direction: column;
@@ -718,8 +769,13 @@ a {
   z-index: 10;
 }
 
+.account-menu__panel li {
+  display: flex;
+}
+
 .account-menu__panel a,
 .account-menu__panel button {
+  flex: 1;
   font: inherit;
   font-size: 0.85rem;
   text-align: start;
@@ -844,6 +900,18 @@ a.chip:hover {
 
 .outbound-cta {
   margin-block: var(--space-6);
+}
+
+/* The end of a run. Generous space above it so it reads as the boundary of
+   the list rather than another row in it, and centred because there is no
+   column here for it to align to - the feed above is a grid, this is one
+   decision. */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-block: var(--space-8) var(--space-6);
 }
 
 .related-heading {
@@ -1335,4 +1403,51 @@ a.chip:hover {
 
 .callout .coverage-group__heading {
   margin-block-start: 0;
+}
+
+/* --- target size ---------------------------------------------------------- */
+
+/* WCAG 2.2 AA is 2.5.8 Target Size (Minimum): 24x24 CSS pixels. Three
+   controls sat under it - the admin status pill, the masthead links, whose
+   box was only their text, and the trending headline links. The floor is set
+   here once rather than per component so a new control inherits it.
+
+   44px is 2.5.5 Target Size (Enhanced), which is Level AAA and not what this
+   project committed to. Applying it everywhere would inflate a design whose
+   whole argument is ordered density. So it lands only where a finger is
+   doing the pointing, which is where the size actually matters. */
+.masthead-links a,
+.locale-switcher a,
+.account-menu__trigger,
+.account-menu__panel a,
+.account-menu__panel button,
+.card__action,
+.chip,
+.pill,
+.trending__link,
+.link-button,
+.button {
+  min-block-size: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* A headline can run to several lines; centring it would leave the first line
+   sitting low against the number beside it. */
+.trending__link {
+  display: inline-block;
+}
+
+@media (pointer: coarse) {
+  .masthead-links a,
+  .locale-switcher a,
+  .account-menu__trigger,
+  .account-menu__panel a,
+  .account-menu__panel button,
+  .card__action,
+  .chip,
+  .button {
+    min-block-size: 44px;
+    padding-block: var(--space-2);
+  }
 }

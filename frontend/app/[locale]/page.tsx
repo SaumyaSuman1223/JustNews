@@ -6,6 +6,7 @@ import { BetaGateNotice } from "@/components/BetaGateNotice";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { FeedSkeleton } from "@/components/FeedSkeleton";
+import { Pagination } from "@/components/Pagination";
 import { TrendingRail } from "@/components/TrendingRail";
 import { getArticles, getFeed, getMe, getSaves, getStats, getTrending } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
@@ -25,10 +26,17 @@ export const metadata: Metadata = { description: null };
  * loading.tsx. Suspending just the part that waits on the API keeps the
  * skeleton and keeps the head intact.
  */
-export default async function FeedPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function FeedPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ cursor?: string }>;
+}) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  const { cursor } = await searchParams;
 
   return (
     <>
@@ -44,15 +52,24 @@ export default async function FeedPage({ params }: { params: Promise<{ locale: s
           with the shell. It lives on the two suspending routes rather than in
           the layout: in the layout it would also land on the article route,
           ahead of that article's own, more specific description. */}
-      <meta name="description" content="Personalised, multilingual news." />
-      <Suspense fallback={<FeedSkeleton />}>
-        <FeedBody active={active} />
+      <meta name="description" content={t(active.code, "site.description")} />
+      {/* Keyed on the cursor so moving to the next page shows the skeleton
+          again rather than holding the previous page's cards while the new
+          run loads. */}
+      <Suspense key={cursor ?? "start"} fallback={<FeedSkeleton />}>
+        <FeedBody active={active} cursor={cursor} />
       </Suspense>
     </>
   );
 }
 
-async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
+async function FeedBody({
+  active,
+  cursor,
+}: {
+  active: ReturnType<typeof getLocale>;
+  cursor?: string;
+}) {
   const session = await getSession();
 
   const auth = session
@@ -68,12 +85,12 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
 
   const [feed, stats, trending, savedIds] = await Promise.all([
     auth && hasBetaAccess
-      ? getFeed(auth, { locale: active.code, pageSize: 24 }).then((page) => ({
+      ? getFeed(auth, { locale: active.code, cursor, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
           items: page.data.items,
           nextCursor: page.data.next_cursor,
         }))
-      : getArticles({ languages, pageSize: 24 }).then((page) => ({
+      : getArticles({ languages, cursor, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
           // Uniform shape either way - an anonymous read has no impression
           // to report a click against, so there is nothing to attribute.
@@ -121,9 +138,19 @@ async function FeedBody({ active }: { active: ReturnType<typeof getLocale> }) {
         />
       )}
 
-      <TrendingRail articles={trending.data} locale={active.code} />
+      <Pagination
+        locale={active.code}
+        baseHref={`/${active.code}`}
+        nextCursor={feed.nextCursor}
+        onLaterPage={Boolean(cursor)}
+      />
 
-      {!stats.degraded && (
+      {/* Page one only. Trending and the corpus figures are a front-page
+          furniture, and repeating them under every run of 24 would make the
+          bottom of page four look like the bottom of page one. */}
+      {!cursor && <TrendingRail articles={trending.data} locale={active.code} />}
+
+      {!cursor && !stats.degraded && (
         // dt-then-dd per stat, each pair wrapped in its own div - the only
         // content model <dl> actually allows. <b> stood in for <dd> before,
         // which axe (rightly) flags: a <dl> whose direct children aren't

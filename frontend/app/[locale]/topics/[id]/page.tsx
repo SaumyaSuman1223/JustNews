@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { Pagination } from "@/components/Pagination";
 import { getArticles, getMe, getSaves, getTopics } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode, readerLanguages } from "@/lib/i18n";
+import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -22,17 +23,26 @@ export async function generateMetadata({
   const topicId = decodeURIComponent(id);
   const topics = await getTopics(isLocaleCode(locale) ? locale : "en");
   const topic = topics.data.find((item) => item.id === topicId);
-  if (!topic) return { title: "Topic" };
+  if (!topic) {
+    return { title: t(isLocaleCode(locale) ? locale : "en", "topics.fallbackTitle") };
+  }
   return {
     title: topic.label,
     alternates: { canonical: `/${locale}/topics/${encodeURIComponent(topic.id)}` },
   };
 }
 
-export default async function TopicDetailPage({ params }: { params: Promise<RouteParams> }) {
+export default async function TopicDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<RouteParams>;
+  searchParams: Promise<{ cursor?: string }>;
+}) {
   const { locale, id } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  const { cursor } = await searchParams;
   // The topic id contains a colon (medtop:01000000) - encoded when this page
   // is linked to, and not every router stage decodes it back automatically.
   const topicId = decodeURIComponent(id);
@@ -51,6 +61,7 @@ export default async function TopicDetailPage({ params }: { params: Promise<Rout
     getArticles({
       languages: readerLanguages(profile?.preferred_languages, active.code),
       topic: topicId,
+      cursor,
       pageSize: 24,
     }),
     auth
@@ -68,9 +79,12 @@ export default async function TopicDetailPage({ params }: { params: Promise<Rout
 
       {articles.data.items.length === 0 ? (
         <EmptyState
-          title={`Nothing tagged ${topic.label} in ${active.label} yet`}
-          body="Coverage of this topic in this language is still thin. It fills in as sources publish through the day."
-          action={{ href: `/${active.code}/topics`, label: "All topics" }}
+          title={t(active.code, "topics.empty.title", { topic: topic.label })}
+          body={t(active.code, "topics.empty.body")}
+          action={{
+            href: `/${active.code}/topics`,
+            label: t(active.code, "topics.allTopics"),
+          }}
         />
       ) : (
         <FeedList
@@ -85,6 +99,13 @@ export default async function TopicDetailPage({ params }: { params: Promise<Rout
           aboveFold
         />
       )}
+
+      <Pagination
+        locale={active.code}
+        baseHref={`/${active.code}/topics/${id}`}
+        nextCursor={articles.data.next_cursor}
+        onLaterPage={Boolean(cursor)}
+      />
     </>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { followSourceAction, unfollowSourceAction } from "@/lib/actions";
+import { t, type LocaleCode } from "@/lib/i18n";
 
 /**
  * Google News calls this a Preferred Source. Follows have only ever covered
@@ -16,31 +17,43 @@ import { followSourceAction, unfollowSourceAction } from "@/lib/actions";
 export function FollowSourceButton({
   sourceId,
   sourceName,
+  locale,
   following,
   revalidatePath,
 }: {
   sourceId: number;
   sourceName: string;
+  locale: LocaleCode;
   following: boolean;
   revalidatePath: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState(false);
 
   return (
-    <button
-      type="button"
-      className="card__action"
-      aria-pressed={following}
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          await (following
-            ? unfollowSourceAction(sourceId, revalidatePath)
-            : followSourceAction(sourceId, revalidatePath));
-        })
-      }
-    >
-      {following ? `Following ${sourceName}` : `Follow ${sourceName}`}
-    </button>
+    <>
+      <button
+        type="button"
+        className="card__action"
+        aria-pressed={following}
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            setFailed(false);
+            const ok = await (following
+              ? unfollowSourceAction(sourceId, revalidatePath)
+              : followSourceAction(sourceId, revalidatePath));
+            if (!ok) setFailed(true);
+          })
+        }
+      >
+        {t(locale, following ? "actions.following" : "actions.follow", { source: sourceName })}
+      </button>
+      {failed && (
+        <p className="card__status card__status--error" role="alert">
+          {t(locale, "actions.follow.failed")}
+        </p>
+      )}
+    </>
   );
 }

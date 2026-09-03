@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 
 import { AccountMenu } from "@/components/AccountMenu";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
@@ -22,7 +24,7 @@ export async function generateMetadata({
   const { locale } = await params;
   return {
     title: { default: "JustNews", template: "%s · JustNews" },
-    description: "Personalised, multilingual news.",
+    description: t(isLocaleCode(locale) ? locale : "en", "site.description"),
     // hreflang across every locale, so search engines serve the right one.
     alternates: {
       canonical: `/${locale}`,
@@ -49,6 +51,9 @@ export default async function LocaleLayout({
     ? ((await getMe({ accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }))
         ?.has_beta_access ?? false)
     : false;
+  const requestHeaders = await headers();
+  const pathname = requestHeaders.get("x-pathname") ?? `/${active.code}`;
+  const search = requestHeaders.get("x-search") ?? "";
 
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
@@ -84,21 +89,7 @@ export default async function LocaleLayout({
                 hasBetaAccess={hasBetaAccess}
               />
             </nav>
-            <nav aria-label={t(active.code, "nav.language")}>
-              <ul className="locale-switcher">
-                {locales.map((option) => (
-                  <li key={option.code}>
-                    <Link
-                      href={`/${option.code}`}
-                      lang={option.htmlLang}
-                      aria-current={option.code === active.code}
-                    >
-                      {option.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <LocaleSwitcher active={active} pathname={pathname} search={search} />
           </header>
           {/* tabIndex={-1}: without it, activating the skip link scrolls the
               viewport but never actually moves keyboard focus here, which
