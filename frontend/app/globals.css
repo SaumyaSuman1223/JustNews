@@ -502,6 +502,25 @@ a {
   color: var(--danger);
 }
 
+/* "Not interested," confirmed: the card steps its own content back rather
+   than only the text beneath it changing. Targeted at the specific elements
+   that are the article's content - .card__status is deliberately excluded,
+   because the confirmation explaining the dimming has to stay at full
+   contrast to be read, not dim along with what it is explaining. */
+.card--hidden .card__frame,
+.card--hidden .card__title,
+.card--hidden .card__snippet,
+.card--hidden .card__meta,
+.card--hidden .card__footnote {
+  opacity: 0.55;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.card--hidden .card__frame {
+  filter: grayscale(0.6);
+  transition: opacity var(--dur) var(--ease), filter var(--dur) var(--ease);
+}
+
 .card__action {
   font: inherit;
   font-size: 0.78rem;

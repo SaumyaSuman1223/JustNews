@@ -13,12 +13,17 @@ export function ArticleActions({
   surface,
   saved,
   revalidatePath,
+  onHidden,
 }: {
   articleId: number;
   locale: LocaleCode;
   surface: "feed" | "explore" | "search" | "topic";
   saved: boolean;
   revalidatePath: string;
+  /** Told once "Not interested" succeeds, so the card that owns this control
+   * can step its own content back rather than the confirmation being the
+   * only thing that changed. */
+  onHidden?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<Outcome>(null);
@@ -71,6 +76,7 @@ export function ArticleActions({
             setOutcome(null);
             const ok = await notInterestedAction(articleId, surface, revalidatePath);
             setOutcome(ok ? "hidden" : "hide-failed");
+            if (ok) onHidden?.();
           })
         }
       >
