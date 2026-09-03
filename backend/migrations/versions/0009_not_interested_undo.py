@@ -36,9 +36,7 @@ _NEW_TYPES = "'click', 'save', 'unsave', 'share', 'not_interested', 'not_interes
 
 def upgrade() -> None:
     op.drop_constraint(_CONSTRAINT, "interaction_events", type_="check")
-    op.create_check_constraint(
-        _CONSTRAINT, "interaction_events", f"event_type in ({_NEW_TYPES})"
-    )
+    op.create_check_constraint(_CONSTRAINT, "interaction_events", f"event_type in ({_NEW_TYPES})")
 
 
 def downgrade() -> None:
@@ -50,6 +48,4 @@ def downgrade() -> None:
     # writing a clean downgrade.
     op.execute("delete from interaction_events where event_type = 'not_interested_undo'")
     op.drop_constraint(_CONSTRAINT, "interaction_events", type_="check")
-    op.create_check_constraint(
-        _CONSTRAINT, "interaction_events", f"event_type in ({_OLD_TYPES})"
-    )
+    op.create_check_constraint(_CONSTRAINT, "interaction_events", f"event_type in ({_OLD_TYPES})")
