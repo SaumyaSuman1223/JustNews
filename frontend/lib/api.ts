@@ -114,6 +114,15 @@ export function getTopics(language: string): Promise<Degradable<Topic[]>> {
   return get<Topic[]>(`/v1/topics?language=${encodeURIComponent(language)}`, [], 3600);
 }
 
+export type SourceOption = components["schemas"]["SourceOut"];
+
+/** A discovery list for onboarding - the dozen sources most likely to be
+ * recognisable in one language. Not a directory; see the endpoint's own
+ * docstring for why there is no pagination here. */
+export function getSources(language: string): Promise<Degradable<SourceOption[]>> {
+  return get<SourceOption[]>(`/v1/sources?language=${encodeURIComponent(language)}`, [], 3600);
+}
+
 export function getStory(id: number): Promise<Degradable<StoryDetail | null>> {
   return get<StoryDetail | null>(`/v1/stories/${id}`, null, 60);
 }
@@ -389,6 +398,24 @@ export async function reportNotInterested(
 ): Promise<boolean> {
   const { error } = await authedClient(auth).POST("/v1/not-interested", {
     body: { article_id: params.articleId, surface: params.surface },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+/** Records a new event rather than deleting the not-interested one it
+ * reverses - see the endpoint's own docstring. Real undo, not a client-side
+ * illusion: the signal this sends is what excluded_article_ids actually
+ * reads on the reader's next feed request. */
+export async function undoNotInterested(
+  auth: AuthContext,
+  params: { articleId: number; surface: string },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).DELETE("/v1/not-interested/{article_id}", {
+    params: {
+      path: { article_id: params.articleId },
+      query: { surface: params.surface },
+    },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return !error;

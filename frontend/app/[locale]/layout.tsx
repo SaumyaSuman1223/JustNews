@@ -99,7 +99,7 @@ export default async function LocaleLayout({
             {children}
           </main>
           <footer className="site-footer">
-            <Link href="/privacy">{t(active.code, "nav.privacy")}</Link>
+            <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
           </footer>
         </div>
       </body>

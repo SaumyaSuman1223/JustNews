@@ -155,6 +155,7 @@ export function ArticleCard({
             saved={saved}
             revalidatePath={revalidatePath}
             onHidden={() => setHidden(true)}
+            onRestored={() => setHidden(false)}
           />
         )}
       </div>

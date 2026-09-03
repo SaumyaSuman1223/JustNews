@@ -50,6 +50,18 @@ export async function notInterestedAction(
   return ok;
 }
 
+export async function undoNotInterestedAction(
+  articleId: number,
+  surface: string,
+  path: string,
+): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  const ok = await api.undoNotInterested(auth, { articleId, surface });
+  if (ok) revalidatePath(path);
+  return ok;
+}
+
 export async function followTopicAction(topicId: string, path: string): Promise<void> {
   const auth = await authOrNull();
   if (!auth) return;
@@ -107,10 +119,20 @@ export async function completeOnboardingAction(locale: string, formData: FormDat
   if (auth) {
     const languages = formData.getAll("languages").map(String);
     const topicIds = formData.getAll("topics").map(String);
+    // Number, not String: SourceOut.id is an integer everywhere else in the
+    // API (FollowSourceButton, unfollowSourceAction), and a bare string id
+    // would silently fail every later `===` comparison against it.
+    const sourceIds = formData
+      .getAll("sources")
+      .map((value) => Number(value))
+      .filter((id) => Number.isInteger(id));
     if (languages.length > 0) {
       await api.updateMe(auth, languages);
     }
-    await Promise.all(topicIds.map((topicId) => api.followTopic(auth, topicId)));
+    await Promise.all([
+      ...topicIds.map((topicId) => api.followTopic(auth, topicId)),
+      ...sourceIds.map((sourceId) => api.followSource(auth, sourceId)),
+    ]);
   }
   redirect(`/${locale}`);
 }
