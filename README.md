@@ -23,7 +23,7 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** for the plan of record.
 - [ ] Stage 4 — Publisher & ops layer · **private beta opens**
 
 **Arc II — make it personal**
-- [ ] Stage 5 — Personalisation v1 (heuristic)
+- [x] Stage 5 — Personalisation v1 (heuristic)
 - [ ] Stage 6 — The FINDING model
 - [ ] Stage 7 — Exploration deck (cold start)
 

@@ -173,6 +173,7 @@ const en = {
   "onboarding.topics.note": "Optional — pick as many as you like.",
   "onboarding.continue": "Continue",
   "onboarding.skip": "Skip for now",
+  "onboarding.shapesFeed": "Both already shape your feed — not just saved for later.",
 
   "login.title": "Sign in",
   "login.createHeading": "Create an account",
@@ -384,6 +385,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "onboarding.topics.note": "Opcional — elige los que quieras.",
     "onboarding.continue": "Continuar",
     "onboarding.skip": "Ahora no",
+    "onboarding.shapesFeed": "Ambos ya dan forma a tu feed — no es solo para más tarde.",
 
     "login.title": "Iniciar sesión",
     "login.createHeading": "Crear una cuenta",
@@ -593,6 +595,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "onboarding.topics.note": "वैकल्पिक — जितने चाहें उतने चुनें।",
     "onboarding.continue": "आगे बढ़ें",
     "onboarding.skip": "अभी नहीं",
+    "onboarding.shapesFeed": "दोनों अभी से आपकी सुर्ख़ियों को आकार देते हैं — सिर्फ़ बाद के लिए सहेजे नहीं गए।",
 
     "login.title": "साइन इन",
     "login.createHeading": "खाता बनाएँ",
