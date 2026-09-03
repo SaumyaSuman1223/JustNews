@@ -37,6 +37,635 @@ export function getLocale(code: string): Locale {
   return locales.find((locale) => locale.code === code) ?? locales[0];
 }
 
+/**
+ * The reader's content languages, as the comma-separated string every
+ * `languages` query parameter takes (`en,es`).
+ *
+ * The active locale is the chrome's language, not the reader's answer to
+ * "what do you want to read", and those are different questions - a Hindi
+ * speaker reading the site in English still wants Hindi headlines. So a
+ * signed-in reader's stored choice wins outright, and the locale is only the
+ * anonymous fallback.
+ *
+ * Filtered to launch locales, because a language we do not ingest is an empty
+ * page, and never widened past what the reader picked: no query may return
+ * content in a language they did not ask for.
+ */
+export function readerLanguages(
+  preferred: readonly string[] | null | undefined,
+  active: LocaleCode,
+): string {
+  const chosen = (preferred ?? []).filter(isLocaleCode);
+  return chosen.length > 0 ? chosen.join(",") : active;
+}
+
+/**
+ * UI strings.
+ *
+ * A flat, explicit map per locale rather than a nested tree or a loader:
+ * `messages.en` types the key set, and the other locales are declared as
+ * `Record<MessageKey, string>`, so a missing translation is a `tsc` failure
+ * in CI rather than an English word appearing on a Hindi page. That check is
+ * the only thing that keeps this file honest as the string count grows.
+ *
+ * Article content is never routed through here - it arrives in whatever
+ * language it was published in, and says so.
+ */
+const en = {
+  "skip.toContent": "Skip to content",
+
+  "nav.primary": "Primary",
+  "nav.language": "Language",
+  "nav.explore": "Explore",
+  "nav.topics": "Topics",
+  "nav.saved": "Saved",
+  "nav.privacy": "Privacy",
+
+  "search.label": "Search headlines",
+  "search.placeholder": "Search headlines",
+  "search.submit": "Search",
+
+  "account.signIn": "Sign in",
+  "account.signOut": "Sign out",
+  "account.saved": "Saved",
+  "account.history": "History",
+  "account.settings": "Settings",
+  "account.chooseTopics": "Choose topics",
+  "account.enterInvite": "Enter invite code",
+
+  "beta.notice":
+    "JustNews is in private beta. You’re signed in, but you’ll need an invite code to unlock your personalised feed, saves and history.",
+  "beta.enterCode": "Enter your code",
+
+  "signIn.title": "Sign in to see this",
+  "signIn.body":
+    "This page shows things tied to your account, so it needs you signed in first.",
+
+  "feed.heading": "Feed",
+  "feed.degraded.personal":
+    "Your feed is unavailable right now, so this page may be out of date. Everything else still works.",
+  "feed.degraded.anonymous":
+    "Live headlines are unavailable right now, so this page may be out of date. Everything else still works.",
+  "feed.empty.title": "No headlines in your languages right now",
+  "feed.empty.body":
+    "We are still gathering today’s coverage. Explore is the same news without the personalisation, and it is worth a look in the meantime.",
+  "feed.empty.action": "Go to Explore",
+
+  "stats.articles": "articles",
+  "stats.sources": "sources",
+  "stats.languages": "languages",
+  "stats.stories": "stories",
+
+  "explore.heading": "Explore",
+  "explore.intro":
+    "The latest across every source we follow, ranked by recency and spread across topics — the same for everyone, whether or not you are signed in.",
+  "explore.degraded": "Live headlines are unavailable right now, so this page may be out of date.",
+  "explore.editions": "Editions",
+  "explore.empty.title": "Nothing to explore in your languages yet",
+  "explore.empty.body":
+    "No sources we follow have published in these languages recently. Changing your languages in Settings will show you what is running elsewhere.",
+  "explore.empty.action": "Browse topics",
+
+  "trending.heading": "Most read",
+
+  "blindspot.heading": "Not covered in your languages",
+  "blindspot.note":
+    "Being reported elsewhere right now, by outlets writing in a language you have not selected.",
+
+  "coverage.label": "Languages covering this story",
+
+  "article.notFound": "Not found",
+  "article.readFull": "Read the full story at {source}",
+  "article.otherLanguages.one": "Also covered in another language",
+  "article.otherLanguages.other": "Also covered in {count} other languages",
+  "article.otherSources.one": "Also reported by 1 other source",
+  "article.otherSources.other": "Also reported by {count} other sources",
+  "article.seeFullCoverage": "See full coverage",
+  "article.backToFront": "Back to the front page",
+
+  "story.coveredBy.one": "Covered by {count} source.",
+  "story.coveredBy.other": "Covered by {count} sources.",
+  "story.reportedIn": "Reported in {count} languages.",
+  "story.reports.one": "{count} report",
+  "story.reports.other": "{count} reports",
+
+  "settings.heading": "Settings",
+  "settings.signedInAs": "Signed in as {email}.",
+  "settings.languages.label": "Languages for your feed",
+  "settings.languages.note":
+    "Choose at least one. Your feed only ever shows languages you pick here.",
+  "settings.save": "Save",
+  "settings.yourData": "Your data",
+  "settings.privacyPolicy": "Read what this applies to in the privacy policy",
+  "settings.download": "Download your data",
+
+  "account.delete": "Delete my account",
+  "account.delete.warning":
+    "This removes your saves, follows and profile permanently. Your reading history is kept but no longer linked to you. This cannot be undone.",
+  "account.delete.confirm": "Yes, delete everything",
+  "account.delete.pending": "Deleting…",
+  "account.delete.cancel": "Cancel",
+
+  "onboarding.heading": "Get set up",
+  "onboarding.intro": "Two quick choices — both changeable later from Settings.",
+  "onboarding.languages.note": "Choose at least one.",
+  "onboarding.topics.label": "What are you interested in?",
+  "onboarding.topics.note": "Optional — pick as many as you like.",
+  "onboarding.continue": "Continue",
+  "onboarding.skip": "Skip for now",
+
+  "login.title": "Sign in",
+  "login.createHeading": "Create an account",
+  "login.createSubmit": "Create account",
+  "login.newHere": "New here?",
+  "login.alreadyHaveOne": "Already have one?",
+  "login.email": "Email",
+  "login.password": "Password",
+  "login.pending": "Please wait…",
+  "login.unavailable":
+    "Accounts are not set up in this environment yet. Browsing, search and exploration all work without one — saved articles, history and a personalised feed need sign-in.",
+  "login.minPassword": "Choose a password of at least {count} characters.",
+  "login.checkEmail": "Check your email to confirm your account, then sign in.",
+  "login.error.generic": "Something went wrong. Try again.",
+  "login.error.credentials":
+    "That email and password don’t match an account. Check both, or create an account.",
+  "login.error.unconfirmed":
+    "Confirm your email first — check your inbox for the link we sent when you signed up.",
+  "login.error.registered": "There is already an account with that email. Sign in instead.",
+  "login.error.rateLimit": "Too many attempts just now. Wait a minute and try again.",
+  "login.error.network": "We could not reach the sign-in service. Check your connection and try again.",
+
+  "invite.title": "Redeem your invite",
+  "invite.heading": "You’re invited",
+  "invite.intro":
+    "JustNews is in private beta. Enter your invite code to unlock your personalised feed.",
+  "invite.codeLabel": "Invite code",
+  "invite.pending": "Checking…",
+  "invite.submit": "Unlock",
+  "invite.failed": "That code did not work.",
+
+  "common.backToFeed": "Back to the feed",
+  "common.browseTopics": "Browse topics",
+
+  "saved.heading": "Saved",
+  "saved.degraded": "Saved articles are unavailable right now.",
+  "saved.empty.title": "Nothing saved yet",
+  "saved.empty.body":
+    "Every headline has a Save button. Saved stories stay here, and they keep working after the article scrolls off the feed.",
+
+  "history.heading": "History",
+  "history.intro": "Articles you have opened, most recent first.",
+  "history.degraded": "History is unavailable right now.",
+  "history.empty.title": "No reading history yet",
+  "history.empty.body": "Articles you open appear here, most recent first. Only you can see this.",
+  "history.viewed": "Viewed {time}",
+
+  "topics.heading": "Topics",
+  "topics.intro": "Browse headlines by subject, using the IPTC Media Topics taxonomy.",
+  "topics.degraded": "Topics are unavailable right now.",
+
+  "search.heading": "Search",
+  "search.titleWithQuery": "Search: {query}",
+  "search.intro": "Full text search over headlines and summaries in your languages.",
+  "search.degraded": "Search is unavailable right now.",
+  "search.browseInstead": "Browse by topic instead",
+  "search.tooShort": "Type at least two characters to search.",
+  "search.empty.title": "No headlines match “{query}”",
+  "search.empty.body":
+    "Try a shorter phrase, or a different language — the same story is often filed under quite different words.",
+
+  "edition.intro": "Reported by newsrooms in {name}, in {language}.",
+  "edition.degraded": "This edition is unavailable right now, so the page may be out of date.",
+  "edition.empty.title": "No headlines from this edition yet",
+  "edition.empty.body":
+    "This edition draws on publishers based in one country. It fills in as they publish.",
+
+  "notFound.heading": "That page does not exist",
+  "notFound.action": "Go to the front page",
+} as const;
+
+export type MessageKey = keyof typeof en;
+
+const messages: Record<LocaleCode, Record<MessageKey, string>> = {
+  en,
+  es: {
+    "skip.toContent": "Saltar al contenido",
+
+    "nav.primary": "Principal",
+    "nav.language": "Idioma",
+    "nav.explore": "Explorar",
+    "nav.topics": "Temas",
+    "nav.saved": "Guardados",
+    "nav.privacy": "Privacidad",
+
+    "search.label": "Buscar titulares",
+    "search.placeholder": "Buscar titulares",
+    "search.submit": "Buscar",
+
+    "account.signIn": "Iniciar sesión",
+    "account.signOut": "Cerrar sesión",
+    "account.saved": "Guardados",
+    "account.history": "Historial",
+    "account.settings": "Ajustes",
+    "account.chooseTopics": "Elegir temas",
+    "account.enterInvite": "Introducir código de invitación",
+
+    "beta.notice":
+      "JustNews está en beta privada. Has iniciado sesión, pero necesitas un código de invitación para desbloquear tu feed personalizado, tus guardados y tu historial.",
+    "beta.enterCode": "Introduce tu código",
+
+    "signIn.title": "Inicia sesión para ver esto",
+    "signIn.body":
+      "Esta página muestra cosas vinculadas a tu cuenta, así que primero tienes que iniciar sesión.",
+
+    "feed.heading": "Portada",
+    "feed.degraded.personal":
+      "Tu feed no está disponible ahora mismo, así que esta página puede estar desactualizada. Todo lo demás sigue funcionando.",
+    "feed.degraded.anonymous":
+      "Los titulares en directo no están disponibles ahora mismo, así que esta página puede estar desactualizada. Todo lo demás sigue funcionando.",
+    "feed.empty.title": "Ahora mismo no hay titulares en tus idiomas",
+    "feed.empty.body":
+      "Todavía estamos reuniendo la cobertura de hoy. Explorar son las mismas noticias sin la personalización, y merece la pena echarle un vistazo mientras tanto.",
+    "feed.empty.action": "Ir a Explorar",
+
+    "stats.articles": "artículos",
+    "stats.sources": "fuentes",
+    "stats.languages": "idiomas",
+    "stats.stories": "historias",
+
+    "explore.heading": "Explorar",
+    "explore.intro":
+      "Lo último de todas las fuentes que seguimos, ordenado por actualidad y repartido entre temas: igual para todo el mundo, hayas iniciado sesión o no.",
+    "explore.degraded":
+      "Los titulares en directo no están disponibles ahora mismo, así que esta página puede estar desactualizada.",
+    "explore.editions": "Ediciones",
+    "explore.empty.title": "Todavía no hay nada que explorar en tus idiomas",
+    "explore.empty.body":
+      "Ninguna de las fuentes que seguimos ha publicado en estos idiomas recientemente. Si cambias tus idiomas en Ajustes verás lo que está pasando en otros sitios.",
+    "explore.empty.action": "Explorar temas",
+
+    "trending.heading": "Lo más leído",
+
+    "blindspot.heading": "Sin cobertura en tus idiomas",
+    "blindspot.note":
+      "Se está informando de esto ahora mismo, por medios que escriben en un idioma que no has seleccionado.",
+
+    "coverage.label": "Idiomas que cubren esta historia",
+
+    "article.notFound": "No encontrado",
+    "article.readFull": "Leer la noticia completa en {source}",
+    "article.otherLanguages.one": "También cubierto en otro idioma",
+    "article.otherLanguages.other": "También cubierto en otros {count} idiomas",
+    "article.otherSources.one": "También informado por 1 fuente más",
+    "article.otherSources.other": "También informado por otras {count} fuentes",
+    "article.seeFullCoverage": "Ver la cobertura completa",
+    "article.backToFront": "Volver a la portada",
+
+    "story.coveredBy.one": "Cubierto por {count} fuente.",
+    "story.coveredBy.other": "Cubierto por {count} fuentes.",
+    "story.reportedIn": "Informado en {count} idiomas.",
+    "story.reports.one": "{count} información",
+    "story.reports.other": "{count} informaciones",
+
+    "settings.heading": "Ajustes",
+    "settings.signedInAs": "Sesión iniciada como {email}.",
+    "settings.languages.label": "Idiomas de tu feed",
+    "settings.languages.note":
+      "Elige al menos uno. Tu feed solo muestra los idiomas que elijas aquí.",
+    "settings.save": "Guardar",
+    "settings.yourData": "Tus datos",
+    "settings.privacyPolicy": "Consulta a qué se aplica esto en la política de privacidad",
+    "settings.download": "Descargar tus datos",
+
+    "account.delete": "Eliminar mi cuenta",
+    "account.delete.warning":
+      "Esto elimina permanentemente tus guardados, tus seguimientos y tu perfil. Tu historial de lectura se conserva, pero deja de estar vinculado a ti. Esto no se puede deshacer.",
+    "account.delete.confirm": "Sí, eliminarlo todo",
+    "account.delete.pending": "Eliminando…",
+    "account.delete.cancel": "Cancelar",
+
+    "onboarding.heading": "Vamos a configurarlo",
+    "onboarding.intro": "Dos decisiones rápidas — ambas se pueden cambiar luego en Ajustes.",
+    "onboarding.languages.note": "Elige al menos uno.",
+    "onboarding.topics.label": "¿Qué te interesa?",
+    "onboarding.topics.note": "Opcional — elige los que quieras.",
+    "onboarding.continue": "Continuar",
+    "onboarding.skip": "Ahora no",
+
+    "login.title": "Iniciar sesión",
+    "login.createHeading": "Crear una cuenta",
+    "login.createSubmit": "Crear cuenta",
+    "login.newHere": "¿Eres nuevo por aquí?",
+    "login.alreadyHaveOne": "¿Ya tienes una?",
+    "login.email": "Correo electrónico",
+    "login.password": "Contraseña",
+    "login.pending": "Un momento…",
+    "login.unavailable":
+      "Las cuentas todavía no están configuradas en este entorno. Navegar, buscar y explorar funcionan sin una — los artículos guardados, el historial y el feed personalizado necesitan iniciar sesión.",
+    "login.minPassword": "Elige una contraseña de al menos {count} caracteres.",
+    "login.checkEmail": "Revisa tu correo para confirmar la cuenta y luego inicia sesión.",
+    "login.error.generic": "Algo ha salido mal. Inténtalo de nuevo.",
+    "login.error.credentials":
+      "Ese correo y esa contraseña no coinciden con ninguna cuenta. Compruébalos o crea una cuenta.",
+    "login.error.unconfirmed":
+      "Confirma tu correo primero — busca en tu bandeja el enlace que te enviamos al registrarte.",
+    "login.error.registered": "Ya existe una cuenta con ese correo. Inicia sesión en su lugar.",
+    "login.error.rateLimit": "Demasiados intentos ahora mismo. Espera un minuto y vuelve a probar.",
+    "login.error.network":
+      "No hemos podido conectar con el servicio de inicio de sesión. Comprueba tu conexión y vuelve a intentarlo.",
+
+    "invite.title": "Canjear tu invitación",
+    "invite.heading": "Tienes una invitación",
+    "invite.intro":
+      "JustNews está en beta privada. Introduce tu código de invitación para desbloquear tu feed personalizado.",
+    "invite.codeLabel": "Código de invitación",
+    "invite.pending": "Comprobando…",
+    "invite.submit": "Desbloquear",
+    "invite.failed": "Ese código no ha funcionado.",
+
+    "common.backToFeed": "Volver al feed",
+    "common.browseTopics": "Explorar temas",
+
+    "saved.heading": "Guardados",
+    "saved.degraded": "Los artículos guardados no están disponibles ahora mismo.",
+    "saved.empty.title": "Todavía no has guardado nada",
+    "saved.empty.body":
+      "Cada titular tiene un botón de Guardar. Las historias guardadas se quedan aquí y siguen funcionando cuando el artículo ya no está en el feed.",
+
+    "history.heading": "Historial",
+    "history.intro": "Artículos que has abierto, del más reciente al más antiguo.",
+    "history.degraded": "El historial no está disponible ahora mismo.",
+    "history.empty.title": "Todavía no hay historial de lectura",
+    "history.empty.body":
+      "Los artículos que abras aparecen aquí, del más reciente al más antiguo. Solo tú puedes ver esto.",
+    "history.viewed": "Visto {time}",
+
+    "topics.heading": "Temas",
+    "topics.intro": "Explora titulares por materia, con la taxonomía IPTC Media Topics.",
+    "topics.degraded": "Los temas no están disponibles ahora mismo.",
+
+    "search.heading": "Buscar",
+    "search.titleWithQuery": "Buscar: {query}",
+    "search.intro": "Búsqueda de texto completo en titulares y resúmenes en tus idiomas.",
+    "search.degraded": "La búsqueda no está disponible ahora mismo.",
+    "search.browseInstead": "Explorar por tema en su lugar",
+    "search.tooShort": "Escribe al menos dos caracteres para buscar.",
+    "search.empty.title": "Ningún titular coincide con «{query}»",
+    "search.empty.body":
+      "Prueba con una frase más corta, o con otro idioma: la misma historia suele archivarse con palabras muy distintas.",
+
+    "edition.intro": "Informado por redacciones de {name}, en {language}.",
+    "edition.degraded":
+      "Esta edición no está disponible ahora mismo, así que la página puede estar desactualizada.",
+    "edition.empty.title": "Todavía no hay titulares de esta edición",
+    "edition.empty.body":
+      "Esta edición se nutre de medios con sede en un país. Se va llenando a medida que publican.",
+
+    "notFound.heading": "Esa página no existe",
+    "notFound.action": "Ir a la portada",
+  },
+  hi: {
+    "skip.toContent": "सामग्री पर जाएँ",
+
+    "nav.primary": "मुख्य",
+    "nav.language": "भाषा",
+    "nav.explore": "एक्सप्लोर",
+    "nav.topics": "विषय",
+    "nav.saved": "सहेजे गए",
+    "nav.privacy": "निजता",
+
+    "search.label": "सुर्ख़ियाँ खोजें",
+    "search.placeholder": "सुर्ख़ियाँ खोजें",
+    "search.submit": "खोजें",
+
+    "account.signIn": "साइन इन",
+    "account.signOut": "साइन आउट",
+    "account.saved": "सहेजे गए",
+    "account.history": "इतिहास",
+    "account.settings": "सेटिंग्स",
+    "account.chooseTopics": "विषय चुनें",
+    "account.enterInvite": "आमंत्रण कोड डालें",
+
+    "beta.notice":
+      "JustNews निजी बीटा में है। आप साइन इन हैं, लेकिन अपनी वैयक्तिकृत फ़ीड, सहेजे गए लेख और इतिहास खोलने के लिए आपको एक आमंत्रण कोड चाहिए।",
+    "beta.enterCode": "अपना कोड डालें",
+
+    "signIn.title": "इसे देखने के लिए साइन इन करें",
+    "signIn.body":
+      "यह पेज आपके खाते से जुड़ी चीज़ें दिखाता है, इसलिए पहले साइन इन करना ज़रूरी है।",
+
+    "feed.heading": "मुख्य पृष्ठ",
+    "feed.degraded.personal":
+      "आपकी फ़ीड अभी उपलब्ध नहीं है, इसलिए यह पेज पुराना हो सकता है। बाकी सब कुछ काम कर रहा है।",
+    "feed.degraded.anonymous":
+      "ताज़ा सुर्ख़ियाँ अभी उपलब्ध नहीं हैं, इसलिए यह पेज पुराना हो सकता है। बाकी सब कुछ काम कर रहा है।",
+    "feed.empty.title": "अभी आपकी भाषाओं में कोई सुर्ख़ी नहीं है",
+    "feed.empty.body":
+      "हम आज की कवरेज अब भी जुटा रहे हैं। एक्सप्लोर पर वही ख़बरें बिना वैयक्तिकरण के मिलती हैं, और तब तक देखने लायक है।",
+    "feed.empty.action": "एक्सप्लोर पर जाएँ",
+
+    "stats.articles": "लेख",
+    "stats.sources": "स्रोत",
+    "stats.languages": "भाषाएँ",
+    "stats.stories": "कहानियाँ",
+
+    "explore.heading": "एक्सप्लोर",
+    "explore.intro":
+      "हमारे सभी स्रोतों की ताज़ा ख़बरें, नएपन के क्रम में और विषयों में फैलाकर — सबके लिए एक जैसी, चाहे आप साइन इन हों या नहीं।",
+    "explore.degraded":
+      "ताज़ा सुर्ख़ियाँ अभी उपलब्ध नहीं हैं, इसलिए यह पेज पुराना हो सकता है।",
+    "explore.editions": "संस्करण",
+    "explore.empty.title": "आपकी भाषाओं में एक्सप्लोर करने के लिए अभी कुछ नहीं है",
+    "explore.empty.body":
+      "हम जिन स्रोतों को फ़ॉलो करते हैं, उनमें से किसी ने हाल में इन भाषाओं में कुछ नहीं छापा। सेटिंग्स में अपनी भाषाएँ बदलकर देखिए और कहाँ क्या चल रहा है।",
+    "explore.empty.action": "विषय देखें",
+
+    "trending.heading": "सबसे ज़्यादा पढ़े गए",
+
+    "blindspot.heading": "आपकी भाषाओं में कवर नहीं हुआ",
+    "blindspot.note":
+      "यह अभी कहीं और छप रहा है, ऐसे संस्थानों में जो उस भाषा में लिखते हैं जो आपने नहीं चुनी।",
+
+    "coverage.label": "इस कहानी को कवर करने वाली भाषाएँ",
+
+    "article.notFound": "नहीं मिला",
+    "article.readFull": "पूरी ख़बर {source} पर पढ़ें",
+    "article.otherLanguages.one": "एक और भाषा में भी कवर किया गया",
+    "article.otherLanguages.other": "{count} और भाषाओं में भी कवर किया गया",
+    "article.otherSources.one": "1 और स्रोत ने भी यह ख़बर दी",
+    "article.otherSources.other": "{count} और स्रोतों ने भी यह ख़बर दी",
+    "article.seeFullCoverage": "पूरी कवरेज देखें",
+    "article.backToFront": "मुख्य पृष्ठ पर लौटें",
+
+    "story.coveredBy.one": "{count} स्रोत ने कवर किया।",
+    "story.coveredBy.other": "{count} स्रोतों ने कवर किया।",
+    "story.reportedIn": "{count} भाषाओं में ख़बर दी गई।",
+    "story.reports.one": "{count} रिपोर्ट",
+    "story.reports.other": "{count} रिपोर्ट",
+
+    "settings.heading": "सेटिंग्स",
+    "settings.signedInAs": "{email} के रूप में साइन इन हैं।",
+    "settings.languages.label": "आपकी फ़ीड की भाषाएँ",
+    "settings.languages.note":
+      "कम से कम एक चुनें। आपकी फ़ीड सिर्फ़ वही भाषाएँ दिखाती है जो आप यहाँ चुनते हैं।",
+    "settings.save": "सहेजें",
+    "settings.yourData": "आपका डेटा",
+    "settings.privacyPolicy": "यह किस पर लागू होता है, यह निजता नीति में पढ़ें",
+    "settings.download": "अपना डेटा डाउनलोड करें",
+
+    "account.delete": "मेरा खाता हटाएँ",
+    "account.delete.warning":
+      "इससे आपके सहेजे गए लेख, फ़ॉलो और प्रोफ़ाइल हमेशा के लिए हट जाते हैं। आपका पढ़ने का इतिहास रखा जाता है, पर उसका आपसे कोई नाता नहीं रहता। यह वापस नहीं किया जा सकता।",
+    "account.delete.confirm": "हाँ, सब कुछ हटाएँ",
+    "account.delete.pending": "हटाया जा रहा है…",
+    "account.delete.cancel": "रहने दें",
+
+    "onboarding.heading": "शुरू करते हैं",
+    "onboarding.intro": "दो छोटे फ़ैसले — दोनों बाद में सेटिंग्स से बदले जा सकते हैं।",
+    "onboarding.languages.note": "कम से कम एक चुनें।",
+    "onboarding.topics.label": "आपकी दिलचस्पी किसमें है?",
+    "onboarding.topics.note": "वैकल्पिक — जितने चाहें उतने चुनें।",
+    "onboarding.continue": "आगे बढ़ें",
+    "onboarding.skip": "अभी नहीं",
+
+    "login.title": "साइन इन",
+    "login.createHeading": "खाता बनाएँ",
+    "login.createSubmit": "खाता बनाएँ",
+    "login.newHere": "यहाँ नए हैं?",
+    "login.alreadyHaveOne": "पहले से खाता है?",
+    "login.email": "ईमेल",
+    "login.password": "पासवर्ड",
+    "login.pending": "एक पल…",
+    "login.unavailable":
+      "इस माहौल में खाते अभी सेट नहीं हुए हैं। पढ़ना, खोजना और एक्सप्लोर करना बिना खाते के भी चलता है — सहेजे गए लेख, इतिहास और वैयक्तिकृत फ़ीड के लिए साइन इन चाहिए।",
+    "login.minPassword": "कम से कम {count} अक्षरों का पासवर्ड चुनें।",
+    "login.checkEmail": "अपना खाता पक्का करने के लिए ईमेल देखें, फिर साइन इन करें।",
+    "login.error.generic": "कुछ गड़बड़ हो गई। फिर कोशिश करें।",
+    "login.error.credentials":
+      "यह ईमेल और पासवर्ड किसी खाते से मेल नहीं खाते। दोनों जाँचें, या नया खाता बनाएँ।",
+    "login.error.unconfirmed":
+      "पहले अपना ईमेल पक्का करें — साइन अप के समय भेजा गया लिंक अपने इनबॉक्स में देखें।",
+    "login.error.registered": "इस ईमेल से पहले से एक खाता है। इसके बजाय साइन इन करें।",
+    "login.error.rateLimit": "अभी बहुत ज़्यादा कोशिशें हो गईं। एक मिनट रुककर फिर कोशिश करें।",
+    "login.error.network":
+      "हम साइन-इन सेवा तक नहीं पहुँच सके। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+
+    "invite.title": "अपना आमंत्रण भुनाएँ",
+    "invite.heading": "आप आमंत्रित हैं",
+    "invite.intro":
+      "JustNews निजी बीटा में है। अपनी वैयक्तिकृत फ़ीड खोलने के लिए अपना आमंत्रण कोड डालें।",
+    "invite.codeLabel": "आमंत्रण कोड",
+    "invite.pending": "जाँच रहे हैं…",
+    "invite.submit": "खोलें",
+    "invite.failed": "यह कोड काम नहीं आया।",
+
+    "common.backToFeed": "फ़ीड पर लौटें",
+    "common.browseTopics": "विषय देखें",
+
+    "saved.heading": "सहेजे गए",
+    "saved.degraded": "सहेजे गए लेख अभी उपलब्ध नहीं हैं।",
+    "saved.empty.title": "अभी तक कुछ सहेजा नहीं गया",
+    "saved.empty.body":
+      "हर सुर्ख़ी के साथ सहेजने का बटन है। सहेजी गई कहानियाँ यहीं रहती हैं, और लेख के फ़ीड से हट जाने के बाद भी काम करती रहती हैं।",
+
+    "history.heading": "इतिहास",
+    "history.intro": "आपके खोले हुए लेख, सबसे नए पहले।",
+    "history.degraded": "इतिहास अभी उपलब्ध नहीं है।",
+    "history.empty.title": "अभी पढ़ने का कोई इतिहास नहीं",
+    "history.empty.body":
+      "आप जो लेख खोलते हैं वे यहाँ दिखते हैं, सबसे नए पहले। यह सिर्फ़ आपको दिखता है।",
+    "history.viewed": "{time} देखा",
+
+    "topics.heading": "विषय",
+    "topics.intro": "IPTC मीडिया टॉपिक्स वर्गीकरण की मदद से विषय के हिसाब से सुर्ख़ियाँ देखें।",
+    "topics.degraded": "विषय अभी उपलब्ध नहीं हैं।",
+
+    "search.heading": "खोज",
+    "search.titleWithQuery": "खोज: {query}",
+    "search.intro": "आपकी भाषाओं में सुर्ख़ियों और सारांशों में पूरा-पाठ खोज।",
+    "search.degraded": "खोज अभी उपलब्ध नहीं है।",
+    "search.browseInstead": "इसके बजाय विषय के हिसाब से देखें",
+    "search.tooShort": "खोजने के लिए कम से कम दो अक्षर लिखें।",
+    "search.empty.title": "“{query}” से कोई सुर्ख़ी मेल नहीं खाती",
+    "search.empty.body":
+      "छोटा वाक्यांश आज़माएँ, या कोई दूसरी भाषा — वही ख़बर अक्सर बिल्कुल अलग शब्दों में दर्ज होती है।",
+
+    "edition.intro": "{name} की संपादकीय टीमों की ख़बरें, {language} में।",
+    "edition.degraded": "यह संस्करण अभी उपलब्ध नहीं है, इसलिए पेज पुराना हो सकता है।",
+    "edition.empty.title": "इस संस्करण से अभी कोई सुर्ख़ी नहीं",
+    "edition.empty.body":
+      "यह संस्करण एक देश के प्रकाशकों पर टिका है। जैसे-जैसे वे छापेंगे, यह भरता जाएगा।",
+
+    "notFound.heading": "यह पेज मौजूद नहीं है",
+    "notFound.action": "मुख्य पृष्ठ पर जाएँ",
+  },
+};
+
+/** Placeholders are `{name}`, filled from `vars`. */
+function interpolate(template: string, vars?: Record<string, string | number>): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in vars ? String(vars[name]) : whole,
+  );
+}
+
+/**
+ * Look up a UI string. Falls back to English rather than rendering the key,
+ * because a reader seeing an English word has lost less than a reader seeing
+ * `nav.explore`, and `tsc` is what stops it happening in the first place.
+ */
+export function t(
+  locale: LocaleCode,
+  key: MessageKey,
+  vars?: Record<string, string | number>,
+): string {
+  return interpolate(messages[locale]?.[key] ?? en[key], vars);
+}
+
+/**
+ * A message whose wording depends on a count.
+ *
+ * Listed explicitly rather than derived from the key names: every base here
+ * must have a `.one` and a `.other` in `en`, which makes them ordinary
+ * MessageKeys, which is what forces every other locale to translate them.
+ */
+type PluralBase =
+  | "article.otherLanguages"
+  | "article.otherSources"
+  | "story.coveredBy"
+  | "story.reports";
+
+const pluralRules = new Map<LocaleCode, Intl.PluralRules>();
+
+/**
+ * Plural-aware lookup. `count` is passed to the template as `{count}`.
+ *
+ * Intl decides the category rather than a `count === 1` check, because that
+ * check is an assumption about English that happens to survive Spanish and
+ * Hindi and will not survive Arabic - which the roadmap plans to add, and
+ * which has six. Categories we do not carry a string for fall back to
+ * `other`, so adding a locale is a translation job, not a code change.
+ */
+export function tPlural(
+  locale: LocaleCode,
+  base: PluralBase,
+  count: number,
+  vars?: Record<string, string | number>,
+): string {
+  let rules = pluralRules.get(locale);
+  if (!rules) {
+    rules = new Intl.PluralRules(locale);
+    pluralRules.set(locale, rules);
+  }
+  const category = rules.select(count);
+  const table = messages[locale] ?? en;
+  // The cast is the one place the key set is assembled at runtime; `base` is
+  // constrained above and `.other` is guaranteed to exist for each of them.
+  const exact = table[`${base}.${category}` as MessageKey];
+  const template = exact ?? table[`${base}.other` as MessageKey];
+  return interpolate(template, { count, ...vars });
+}
+
 /** Locale-aware relative time, e.g. "3 hours ago" / "منذ ٣ ساعات". */
 export function formatRelativeTime(iso: string, locale: LocaleCode): string {
   const seconds = Math.round((Date.parse(iso) - Date.now()) / 1000);
