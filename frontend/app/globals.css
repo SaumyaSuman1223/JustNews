@@ -846,6 +846,18 @@ a.chip:hover {
   margin-block: var(--space-6);
 }
 
+/* The end of a run. Generous space above it so it reads as the boundary of
+   the list rather than another row in it, and centred because there is no
+   column here for it to align to - the feed above is a grid, this is one
+   decision. */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-block: var(--space-8) var(--space-6);
+}
+
 .related-heading {
   font-family: var(--font-display);
   font-size: var(--type-section);

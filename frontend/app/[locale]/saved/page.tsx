@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { Pagination } from "@/components/Pagination";
 import { getSaves } from "@/lib/api";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
@@ -16,15 +17,22 @@ export async function generateMetadata({
   return { title: t(isLocaleCode(locale) ? locale : "en", "saved.heading") };
 }
 
-export default async function SavedPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SavedPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ cursor?: string }>;
+}) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  const { cursor } = await searchParams;
 
   const access = await requireBetaAccess(active.code, `/${active.code}/saved`);
   if (!access.ok) return access.element;
 
-  const page = await getSaves(access.auth);
+  const page = await getSaves(access.auth, cursor);
 
   return (
     <>
@@ -54,6 +62,13 @@ export default async function SavedPage({ params }: { params: Promise<{ locale: 
           layout="list"
         />
       )}
+
+      <Pagination
+        locale={active.code}
+        baseHref={`/${active.code}/saved`}
+        nextCursor={page.data.next_cursor}
+        onLaterPage={Boolean(cursor)}
+      />
     </>
   );
 }

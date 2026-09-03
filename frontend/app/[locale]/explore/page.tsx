@@ -6,6 +6,7 @@ import { BlindspotRail } from "@/components/BlindspotRail";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { FeedSkeleton } from "@/components/FeedSkeleton";
+import { Pagination } from "@/components/Pagination";
 import Link from "next/link";
 
 import { getBlindspots, getEditions, getExplore, getMe, getSaves } from "@/lib/api";
@@ -32,10 +33,17 @@ export async function generateMetadata({
 // attributed the same impression rows.
 export const dynamic = "force-dynamic";
 
-export default async function ExplorePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function ExplorePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ cursor?: string }>;
+}) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  const { cursor } = await searchParams;
 
   return (
     <>
@@ -54,14 +62,20 @@ export default async function ExplorePage({ params }: { params: Promise<{ locale
       {/* Suspended here rather than in a route-level loading.tsx: a streaming
           route flushes before Next resolves its metadata, which costs the
           page its meta description. See the note on the feed page. */}
-      <Suspense fallback={<FeedSkeleton />}>
-        <ExploreBody active={active} />
+      <Suspense key={cursor ?? "start"} fallback={<FeedSkeleton />}>
+        <ExploreBody active={active} cursor={cursor} />
       </Suspense>
     </>
   );
 }
 
-async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> }) {
+async function ExploreBody({
+  active,
+  cursor,
+}: {
+  active: ReturnType<typeof getLocale>;
+  cursor?: string;
+}) {
   // Deliberately no beta gate and no sign-in requirement: explore is the
   // surface a reader sees *before* they have either.
   const session = await getSession();
@@ -77,7 +91,7 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
   const languages = readerLanguages(profile?.preferred_languages, active.code);
 
   const [page, blindspots, editions, savedIds] = await Promise.all([
-    getExplore(auth, { locale: active.code, languages, pageSize: 24 }),
+    getExplore(auth, { locale: active.code, languages, cursor, pageSize: 24 }),
     // Blindspots are stories covered in *no* language the reader reads, so
     // this argument has to be the full set or the rail invents gaps that are
     // not there.
@@ -96,7 +110,10 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
         </p>
       )}
 
-      {editions.data.length > 0 && (
+      {/* The edition chips and the blindspot rail orient a reader arriving at
+          Explore. Page two is someone already reading; repeating them there
+          would push the headlines they asked for further down. */}
+      {!cursor && editions.data.length > 0 && (
         <nav aria-label={t(active.code, "explore.editions")}>
           <ul className="chip-list">
             {editions.data.map((edition) => (
@@ -110,7 +127,7 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
         </nav>
       )}
 
-      <BlindspotRail blindspots={blindspots.data} locale={active.code} />
+      {!cursor && <BlindspotRail blindspots={blindspots.data} locale={active.code} />}
 
       {page.data.items.length === 0 ? (
         <EmptyState
@@ -134,6 +151,13 @@ async function ExploreBody({ active }: { active: ReturnType<typeof getLocale> })
           revalidatePath={`/${active.code}/explore`}
         />
       )}
+
+      <Pagination
+        locale={active.code}
+        baseHref={`/${active.code}/explore`}
+        nextCursor={page.data.next_cursor}
+        onLaterPage={Boolean(cursor)}
+      />
     </>
   );
 }

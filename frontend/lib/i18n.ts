@@ -223,6 +223,10 @@ const en = {
   "topics.heading": "Topics",
   "topics.intro": "Browse headlines by subject, using the IPTC Media Topics taxonomy.",
   "topics.degraded": "Topics are unavailable right now.",
+  "topics.allTopics": "All topics",
+  "topics.empty.title": "Nothing tagged {topic} yet",
+  "topics.empty.body":
+    "Coverage of this topic in your languages is still thin. It fills in as sources publish through the day.",
 
   "search.heading": "Search",
   "search.titleWithQuery": "Search: {query}",
@@ -242,6 +246,10 @@ const en = {
 
   "notFound.heading": "That page does not exist",
   "notFound.action": "Go to the front page",
+
+  "pagination.label": "More headlines",
+  "pagination.next": "More headlines",
+  "pagination.latest": "Back to the latest",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -403,6 +411,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "topics.heading": "Temas",
     "topics.intro": "Explora titulares por materia, con la taxonomía IPTC Media Topics.",
     "topics.degraded": "Los temas no están disponibles ahora mismo.",
+    "topics.allTopics": "Todos los temas",
+    "topics.empty.title": "Todavía no hay nada etiquetado como {topic}",
+    "topics.empty.body":
+      "La cobertura de este tema en tus idiomas todavía es escasa. Se va llenando a medida que las fuentes publican durante el día.",
 
     "search.heading": "Buscar",
     "search.titleWithQuery": "Buscar: {query}",
@@ -423,6 +435,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "notFound.heading": "Esa página no existe",
     "notFound.action": "Ir a la portada",
+
+    "pagination.label": "Más titulares",
+    "pagination.next": "Más titulares",
+    "pagination.latest": "Volver a lo más reciente",
   },
   hi: {
     "skip.toContent": "सामग्री पर जाएँ",
@@ -579,6 +595,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "topics.heading": "विषय",
     "topics.intro": "IPTC मीडिया टॉपिक्स वर्गीकरण की मदद से विषय के हिसाब से सुर्ख़ियाँ देखें।",
     "topics.degraded": "विषय अभी उपलब्ध नहीं हैं।",
+    "topics.allTopics": "सभी विषय",
+    "topics.empty.title": "{topic} के साथ अभी कुछ नहीं है",
+    "topics.empty.body":
+      "आपकी भाषाओं में इस विषय की कवरेज अभी कम है। दिन भर में जैसे-जैसे स्रोत छापेंगे, यह भरता जाएगा।",
 
     "search.heading": "खोज",
     "search.titleWithQuery": "खोज: {query}",
@@ -598,6 +618,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "notFound.heading": "यह पेज मौजूद नहीं है",
     "notFound.action": "मुख्य पृष्ठ पर जाएँ",
+
+    "pagination.label": "और सुर्ख़ियाँ",
+    "pagination.next": "और सुर्ख़ियाँ",
+    "pagination.latest": "ताज़ा ख़बरों पर लौटें",
   },
 };
 

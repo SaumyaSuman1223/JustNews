@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { Pagination } from "@/components/Pagination";
 import { getArticles, getEditions } from "@/lib/api";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -31,10 +32,17 @@ export async function generateMetadata({
   };
 }
 
-export default async function EditionPage({ params }: { params: Promise<RouteParams> }) {
+export default async function EditionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<RouteParams>;
+  searchParams: Promise<{ cursor?: string }>;
+}) {
   const { locale, code } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
+  const { cursor } = await searchParams;
 
   const edition = await loadEdition(code);
   if (!edition) notFound();
@@ -44,6 +52,7 @@ export default async function EditionPage({ params }: { params: Promise<RoutePar
   const page = await getArticles({
     languages: edition.language,
     country: edition.country ?? undefined,
+    cursor,
     pageSize: 24,
   });
   const session = await getSession();
@@ -91,6 +100,13 @@ export default async function EditionPage({ params }: { params: Promise<RoutePar
           aboveFold
         />
       )}
+
+      <Pagination
+        locale={active.code}
+        baseHref={`/${active.code}/edition/${edition.code}`}
+        nextCursor={page.data.next_cursor}
+        onLaterPage={Boolean(cursor)}
+      />
     </>
   );
 }
