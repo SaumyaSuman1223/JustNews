@@ -67,7 +67,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"] if settings.app_env == "local" else [],
+        # localhost:3000 is the web app's dev server; the 8081 pair is Expo's
+        # web preview (`expo start --web`) - localhost and 127.0.0.1 are
+        # different origins to a browser, so both are listed rather than one.
+        allow_origins=(
+            ["http://localhost:3000", "http://localhost:8081", "http://127.0.0.1:8081"]
+            if settings.app_env == "local"
+            else []
+        ),
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["authorization", "content-type", "x-request-id"],
