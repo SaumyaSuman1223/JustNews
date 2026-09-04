@@ -11,8 +11,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "build:android:dev": "eas build --profile development --platform android",
-    "build:android:preview": "eas build --profile preview --platform android"
+    "build:android:dev": "npx eas-cli build --profile development --platform android",
+    "build:android:preview": "npx eas-cli build --profile preview --platform android"
   },
   "dependencies": {
     "@expo-google-fonts/playfair-display": "^0.4.2",
