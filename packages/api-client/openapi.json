@@ -528,6 +528,46 @@
         "title": "DeckOut",
         "type": "object"
       },
+      "EditionOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "language",
+          "country",
+          "is_default"
+        ],
+        "title": "EditionOut",
+        "type": "object"
+      },
       "FeatureFlagCreateIn": {
         "properties": {
           "description": {
@@ -1058,6 +1098,47 @@
           "created_at"
         ],
         "title": "InviteOut",
+        "type": "object"
+      },
+      "IssueEditionOut": {
+        "description": "One edition of the Tribune, for the selector.\n\nNot `EditionOut`: that name is taken by the *regional* edition in\nrouters/content.py, and two schemas sharing it makes the generated client\nnamespace both - which silently renames the existing one and breaks every\nfrontend type that referenced it. The schema layer is where ADR 0012's\n\"editions is already taken\" shows up in practice.",
+        "properties": {
+          "edition_slot": {
+            "title": "Edition Slot",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "published_on": {
+            "format": "date",
+            "title": "Published On",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "edition_slot",
+          "published_at",
+          "published_on",
+          "volume",
+          "number"
+        ],
+        "title": "IssueEditionOut",
         "type": "object"
       },
       "IssueOut": {
@@ -2089,86 +2170,6 @@
           "type"
         ],
         "title": "ValidationError",
-        "type": "object"
-      },
-      "justnews_api__routers__content__EditionOut": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "country": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Country"
-          },
-          "is_default": {
-            "title": "Is Default",
-            "type": "boolean"
-          },
-          "language": {
-            "title": "Language",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "name",
-          "language",
-          "country",
-          "is_default"
-        ],
-        "title": "EditionOut",
-        "type": "object"
-      },
-      "justnews_api__routers__issues__EditionOut": {
-        "properties": {
-          "edition_slot": {
-            "title": "Edition Slot",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "number": {
-            "title": "Number",
-            "type": "integer"
-          },
-          "published_at": {
-            "format": "date-time",
-            "title": "Published At",
-            "type": "string"
-          },
-          "published_on": {
-            "format": "date",
-            "title": "Published On",
-            "type": "string"
-          },
-          "volume": {
-            "title": "Volume",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "edition_slot",
-          "published_at",
-          "published_on",
-          "volume",
-          "number"
-        ],
-        "title": "EditionOut",
         "type": "object"
       }
     },
@@ -3723,7 +3724,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/justnews_api__routers__content__EditionOut"
+                    "$ref": "#/components/schemas/EditionOut"
                   },
                   "title": "Response Editions V1 Editions Get",
                   "type": "array"
@@ -4599,7 +4600,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/justnews_api__routers__issues__EditionOut"
+                    "$ref": "#/components/schemas/IssueEditionOut"
                   },
                   "title": "Response List Editions V1 Issues Get",
                   "type": "array"

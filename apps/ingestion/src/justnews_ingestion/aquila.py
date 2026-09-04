@@ -57,7 +57,11 @@ SECTION_ORDER: tuple[str, ...] = (
 )
 
 FRONT_PAGE_LEADS = 1
-FRONT_PAGE_SECONDARIES = 4
+# Three, not four. A front page is a fixed proportion (the frontend spec asks
+# for roughly 1.5:1) and the fourth column is what pushed it past that - a
+# page you have to scroll is not a page. This is an editorial call about how
+# much fits, which is exactly the kind of decision composition should own.
+FRONT_PAGE_SECONDARIES = 3
 FRONT_PAGE_BRIEFS = 7
 SECTION_LEADS = 1
 SECTION_SECONDARIES = 5

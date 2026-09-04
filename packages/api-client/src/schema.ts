@@ -1179,6 +1179,19 @@ export interface components {
             /** Cards */
             cards: components["schemas"]["DeckCardOut"][];
         };
+        /** EditionOut */
+        EditionOut: {
+            /** Code */
+            code: string;
+            /** Country */
+            country: string | null;
+            /** Is Default */
+            is_default: boolean;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+        };
         /** FeatureFlagCreateIn */
         FeatureFlagCreateIn: {
             /** Description */
@@ -1375,6 +1388,36 @@ export interface components {
             note: string | null;
             /** Uses */
             uses: number;
+        };
+        /**
+         * IssueEditionOut
+         * @description One edition of the Tribune, for the selector.
+         *
+         *     Not `EditionOut`: that name is taken by the *regional* edition in
+         *     routers/content.py, and two schemas sharing it makes the generated client
+         *     namespace both - which silently renames the existing one and breaks every
+         *     frontend type that referenced it. The schema layer is where ADR 0012's
+         *     "editions is already taken" shows up in practice.
+         */
+        IssueEditionOut: {
+            /** Edition Slot */
+            edition_slot: string;
+            /** Id */
+            id: number;
+            /** Number */
+            number: number;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /**
+             * Published On
+             * Format: date
+             */
+            published_on: string;
+            /** Volume */
+            volume: number;
         };
         /**
          * IssueOut
@@ -1764,40 +1807,6 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
-        };
-        /** EditionOut */
-        justnews_api__routers__content__EditionOut: {
-            /** Code */
-            code: string;
-            /** Country */
-            country: string | null;
-            /** Is Default */
-            is_default: boolean;
-            /** Language */
-            language: string;
-            /** Name */
-            name: string;
-        };
-        /** EditionOut */
-        justnews_api__routers__issues__EditionOut: {
-            /** Edition Slot */
-            edition_slot: string;
-            /** Id */
-            id: number;
-            /** Number */
-            number: number;
-            /**
-             * Published At
-             * Format: date-time
-             */
-            published_at: string;
-            /**
-             * Published On
-             * Format: date
-             */
-            published_on: string;
-            /** Volume */
-            volume: number;
         };
     };
     responses: never;
@@ -2643,7 +2652,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["justnews_api__routers__content__EditionOut"][];
+                    "application/json": components["schemas"]["EditionOut"][];
                 };
             };
             /** @description Validation Error */
@@ -3083,7 +3092,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["justnews_api__routers__issues__EditionOut"][];
+                    "application/json": components["schemas"]["IssueEditionOut"][];
                 };
             };
             /** @description Validation Error */

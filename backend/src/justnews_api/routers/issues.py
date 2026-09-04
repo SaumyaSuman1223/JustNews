@@ -19,7 +19,16 @@ from justnews_core.models import Issue
 router = APIRouter(prefix="/v1", tags=["aquila"])
 
 
-class EditionOut(BaseModel):
+class IssueEditionOut(BaseModel):
+    """One edition of the Tribune, for the selector.
+
+    Not `EditionOut`: that name is taken by the *regional* edition in
+    routers/content.py, and two schemas sharing it makes the generated client
+    namespace both - which silently renames the existing one and breaks every
+    frontend type that referenced it. The schema layer is where ADR 0012's
+    "editions is already taken" shows up in practice.
+    """
+
     id: int
     edition_slot: str
     published_at: datetime
@@ -28,7 +37,7 @@ class EditionOut(BaseModel):
     number: int
 
     @classmethod
-    def from_row(cls, issue: Issue) -> EditionOut:
+    def from_row(cls, issue: Issue) -> IssueEditionOut:
         return cls(
             id=issue.id,
             edition_slot=issue.edition_slot,
@@ -116,15 +125,15 @@ async def get_latest_issue(
     return _issue_out(view) if view is not None else None
 
 
-@router.get("/issues", response_model=list[EditionOut])
+@router.get("/issues", response_model=list[IssueEditionOut])
 async def list_editions(
     session: AsyncSession = Depends(get_public_session),
     locale: str = Query(default="en"),
     on: date | None = Query(default=None, description="Defaults to the latest issue's day."),
-) -> list[EditionOut]:
+) -> list[IssueEditionOut]:
     """The day's editions - morning, midday, evening - for the selector."""
     rows = await service.list_editions(session, locale=_locale(locale), on=on)
-    return [EditionOut.from_row(row) for row in rows]
+    return [IssueEditionOut.from_row(row) for row in rows]
 
 
 @router.get("/issues/{issue_id}", response_model=IssueOut)

@@ -30,9 +30,7 @@ async def _published_issue(session: AsyncSession, *, locale: str = "en") -> int:
             session, sources[i % 4], title=f"Story {i}", language=locale, minutes_ago=i * 2
         )
         if i % 2 == 0:
-            session.add(
-                ArticleTopic(article_id=article.id, topic_id=topic.id, is_primary=True)
-            )
+            session.add(ArticleTopic(article_id=article.id, topic_id=topic.id, is_primary=True))
     await session.commit()
 
     result = await compose_issue(session, locale=locale, edition_slot="morning")
@@ -56,7 +54,9 @@ class TestLatestIssue:
         assert body["volume"] >= 1 and body["number"] >= 1
         assert body["page_count"] == len(body["sections"])
         assert body["sections"][0]["page_no"] == 1
-        assert body["sections"][0]["title"] is None, "the front page has a masthead, not a section head"
+        assert body["sections"][0]["title"] is None, (
+            "the front page has a masthead, not a section head"
+        )
         # No article content: a page is its own request.
         assert "slots" not in body
 
@@ -102,9 +102,7 @@ class TestIssuePage:
         assert positions == sorted(positions), "slots arrive in reading order"
         assert body["slots"][0]["article"]["title"]
 
-    async def test_missing_page_is_404(
-        self, client: AsyncClient, session: AsyncSession
-    ) -> None:
+    async def test_missing_page_is_404(self, client: AsyncClient, session: AsyncSession) -> None:
         issue_id = await _published_issue(session)
         response = await client.get(f"/v1/issues/{issue_id}/pages/99", params={"locale": "en"})
         assert response.status_code == 404
@@ -157,9 +155,7 @@ class TestIssuePage:
         article.removed_reason = "test takedown"
         await session.commit()
 
-        body = (
-            await client.get(f"/v1/issues/{issue_id}/pages/1", params={"locale": "en"})
-        ).json()
+        body = (await client.get(f"/v1/issues/{issue_id}/pages/1", params={"locale": "en"})).json()
         served = [slot["article"]["id"] for slot in body["slots"]]
         assert lead_article_id not in served
 
@@ -192,9 +188,7 @@ class TestKillSwitch:
         self, client: AsyncClient, session: AsyncSession
     ) -> None:
         issue_id = await _published_issue(session)
-        session.add(
-            FeatureFlag(key="aquila", enabled=False, description="off for this test")
-        )
+        session.add(FeatureFlag(key="aquila", enabled=False, description="off for this test"))
         await session.commit()
 
         assert (await client.get("/v1/issues/latest", params={"locale": "en"})).json() is None
