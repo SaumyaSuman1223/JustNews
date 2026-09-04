@@ -119,7 +119,7 @@ async function FeedBody({
           title={t(active.code, "feed.empty.title")}
           body={t(active.code, "feed.empty.body")}
           action={{
-            href: `/${active.code}/explore`,
+            href: `/${active.code}/aquila`,
             label: t(active.code, "feed.empty.action"),
           }}
         />

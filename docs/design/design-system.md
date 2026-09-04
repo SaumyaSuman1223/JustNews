@@ -1,11 +1,43 @@
 # Design system — direction
 
-**Status:** direction agreed, visual design produced in Stage 3.
+**Status:** direction agreed; visual system revised 2026-09-04 to implement
+[`../JustNews_Design_and_Product_Direction.md`](../JustNews_Design_and_Product_Direction.md).
+That document is the product and design brief; this one is the system that
+implements it and holds the engineering constraints it does not cover.
 
 The site has to survive comparison with the Guardian, Reuters, the FT and
 Apple News. That standard is not met with a component library and a blue accent
 colour. It is met by getting three things right — typography, hierarchy, and
 restraint — and by refusing to let personalisation make the page feel arbitrary.
+
+## Visual identity
+
+**Modern Editorial Minimalism.** A newspaper thoughtfully redesigned for the
+digital age — roughly 80% editorial clarity, 20% newspaper character. The
+lineage is Swiss/International Typographic Style (grid, objectivity,
+asymmetry), Minimalism (reduction), Bauhaus (geometry, function), Plakatstil
+(bold headline, negative space), Scandinavian design (calm, restraint) and
+classic editorial layout (columns, page hierarchy, pull quotes).
+
+None of these is copied literally. The test for any screen is whether it reads
+as *quietly premium, editorial, intelligent and trustworthy* — and whether it
+could be mistaken for a SaaS dashboard. If it could, it is wrong.
+
+### One language, three personalities
+
+The three destinations (ADR 0011) share every token and differ in composition
+and density, never in visual system.
+
+| Destination | Personality | Reads as |
+|---|---|---|
+| **Home** | Calm, personal, intelligent | A personal briefing |
+| **Aquila** | Editorial, immersive, curated | A published newspaper |
+| **My Desk** | Personal, analytical | A research workspace |
+
+Aquila additionally takes a **dark immersive shell** (Deep Charcoal ground,
+paper sheet floating in it). This is a route-level surface treatment, not the
+application's dark mode; both exist, and the token layer must keep them
+separate.
 
 ## Principles
 
@@ -42,19 +74,40 @@ component is specified with its skeleton state and its reserved space.
 
 ## Foundations
 
-**Typography.** *(Latin-script primary; per-script stacks below.)* A serif for headlines and article body — it signals journalism
-and reads better at length — paired with a geometric sans for UI, metadata and
-labels. Variable fonts, subsetted, self-hosted, `font-display: swap` with a
-metric-matched fallback so there is no layout shift. A modular type scale with
-distinct steps for lead / section-lead / card / list / meta, so hierarchy is
-structural rather than ad hoc.
+**Typography.** *(Latin-script primary; per-script stacks below.)* A serif for
+headlines — it signals journalism and reads better at length — paired with a
+sans for UI, metadata and labels. **Cormorant Garamond** for display,
+**IBM Plex Sans** for interface. One display family only; a second would read
+as indecision. Self-hosted at build time via `next/font` and subsetted, with a
+metric-matched fallback so there is no layout shift.
 
-**Colour.** Near-black on off-white, not pure black on pure white. One accent,
-used for links, focus and live indicators, and nowhere else. Semantic tokens
-only (`--surface`, `--surface-raised`, `--text`, `--text-muted`, `--border`,
-`--accent`, `--live`, `--danger`) so light and dark are two values of one
-system rather than two designs. Every pairing verified at WCAG AA — 4.5:1 for
-body, 3:1 for large text and UI boundaries.
+The scale is named by role, not size — Display XL (front-page lead) / Display L
+(section) / Display M (story) / Body L / Body M / Body S / Label / Micro — so a
+component picks the step for what it *is* and hierarchy cannot drift into
+ad-hoc font sizes. Headlines are sentence case or editorial title case; ALL
+CAPS is for small letterspaced labels only.
+
+**Colour.** Warm paper and ink, not cool grey. Paper `#F5F1E8` as the ground,
+Paper Bright `#FBF9F4` for reading surfaces, Ink `#171717` for text, Warm Gray
+`#D8D2C7` for rules and borders, Muted `#77736C` for metadata, Deep Charcoal
+`#20211F` for Aquila's immersive shell.
+
+One accent — **Aquila Brass `#A28B68`** — for the active navigation indicator,
+edition markers, focus and small editorial highlights. Never as a large fill.
+No rainbow category colours, no purple AI gradients. Semantic colours (success,
+warning, error, info) stay muted and communicate state only; they are not part
+of the decorative palette.
+
+Semantic tokens only (`--surface`, `--surface-raised`, `--text`,
+`--text-muted`, `--border`, `--accent`, `--live`, `--danger`) so light and dark
+are two values of one system rather than two designs. Every pairing verified at
+WCAG AA — 4.5:1 for body, 3:1 for large text and UI boundaries. Warm low-contrast
+palettes fail this easily; verify rather than assume.
+
+**Surfaces.** Borders before shadows. `1px solid` warm gray separates; a shadow
+is reserved for something genuinely lifted off the page. Radius 0–4px on
+editorial surfaces, 6–10px on interface controls, larger only on mobile
+touch controls. Not every story is a floating rounded card.
 
 **Script coverage.** A Latin pairing cannot carry Arabic or Chinese. Each script
 gets a stack chosen for coverage and rendering quality, matched to the Latin faces
@@ -71,9 +124,20 @@ collapsing to 6 at tablet and 4 at mobile. Card sizes drawn from a fixed set —
 hero, wide, standard, list-row, compact — so any feed the ranker produces still
 composes.
 
-**Motion.** Almost none. Fades and small translations under 200 ms for state
-changes, a considered page transition on the article route, nothing decorative.
-`prefers-reduced-motion` disables all of it.
+**Motion.** Motion explains what changed; it never decorates. Three tiers, one
+easing family, decelerating — every transition here reports a state that has
+already happened.
+
+| Tier | Duration | For |
+|---|---|---|
+| Micro | 120–180ms | Hover, icon state, bookmark, toggle |
+| Standard | 200–300ms | Navigation, panels, menus, filters, cards |
+| Editorial | 350–600ms | Aquila page turns, major content changes, overlays |
+
+No bounce, no floating elements, no parallax, no entrance animations on load.
+`prefers-reduced-motion` replaces every editorial-tier transition with a
+crossfade and disables the rest — Aquila's page turn must remain fully usable
+without it.
 
 **Imagery.** Fixed aspect ratios per card size so images never cause layout
 shift, `next/image` with responsive `sizes`, a typographic placeholder when a
@@ -90,10 +154,22 @@ Reading: article header with byline and read time, body with pull quotes and
 inline media, source attribution block with an outbound link, related-stories
 rail, "more from this source", save/share/not-interested actions.
 
-System: header with search and account, mega-menu topic navigation, footer,
-command palette (`⌘K`), toast, empty states, skeletons for every async surface,
-error states that suggest a next action, and a cookie/consent banner that is not
-a dark pattern.
+System: left navigation rail (three primary destinations with subtitles, two
+secondary, two tertiary), mobile bottom tab bar, top bar with search and
+account, footer, command palette (`⌘K`), toast, empty states, skeletons for
+every async surface, error states that suggest a next action, and a
+cookie/consent banner that is not a dark pattern.
+
+Aquila: masthead, volume/date rule, front-page composition (lead, in-focus
+column, the brief, pull quote), section-page templates, page navigation
+(prev/next, `1 / 12` indicator, contents panel, page thumbnails), edition
+selector, and the paper sheet itself — a warm surface with a subtle
+stacked-edge treatment. Never a photographic paper texture and never simulated
+page physics; the direction doc rules both out and they read as pastiche.
+
+My Desk: topic tiles (add, remove, reorder), topic header with tabs, timeline
+rail, perspective groups (ADR 0013), topic overview, related topics, and an
+Analysis placeholder that promises nothing it cannot deliver.
 
 Global surfaces: language and edition switcher as a first-class control in the
 header, per-article language badge where it differs from the reader's default,
@@ -121,3 +197,24 @@ none of its personality.
 - **Arabic renders correctly with zero locale-specific CSS.** If a fix is needed
   for one locale, the underlying property was physical and should be logical.
 - No component assumes a string length. Test with German and with Chinese.
+- **No number on screen that does not come from a query.** Reader counts, story
+  counts and source counts are computed or absent. A plausible-looking figure
+  nobody can trace is a lie with a nice typeface.
+- **No article body text.** The product stores title, snippet, image, source,
+  author and canonical link, and links out. The story page is a coverage view,
+  never a reading view.
+
+## Anti-patterns
+
+The direction document lists these explicitly; they are the failure modes this
+system exists to prevent, and any of them appearing is a defect:
+
+generic AI-dashboard aesthetics · purple-blue gradients · glassmorphism ·
+everything in a rounded card · card grids as the answer to every layout ·
+heavy shadows · large navigation bars · rainbow category colour systems ·
+decorative icons · decorative motion · realistic paper textures and fake page
+physics · unreadably small "newspaper" type · density without hierarchy.
+
+The last two matter most, because they are what a newspaper-inspired interface
+fails into. The reference is a newspaper's *editorial logic* — hierarchy,
+columns, rules, restraint — not its physical appearance.

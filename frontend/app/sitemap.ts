@@ -19,7 +19,11 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/${locale.code}`, changeFrequency: "always" as const, priority: 1 },
-    { url: `${SITE_URL}/${locale.code}/topics`, changeFrequency: "daily" as const, priority: 0.5 },
+    // The three destinations (ADR 0011). Aquila outranks My Desk here because
+    // it is the same publication for every reader in a locale and therefore
+    // the one worth indexing; My Desk is personal and mostly signed-in.
+    { url: `${SITE_URL}/${locale.code}/aquila`, changeFrequency: "daily" as const, priority: 0.8 },
+    { url: `${SITE_URL}/${locale.code}/desk`, changeFrequency: "daily" as const, priority: 0.5 },
   ];
 
   const articleRoutes: MetadataRoute.Sitemap = articles.data.items.map((article) => ({

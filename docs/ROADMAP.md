@@ -178,6 +178,10 @@ Twelve stages, three arcs. **Arc I** builds a working site and puts it in front
 of invited users. **Arc II** makes it personal, using the data Arc I produced.
 **Arc III** launches it publicly and grows it.
 
+Cutting across them is **the editorial direction programme** (§5.1) — the
+product's information architecture and visual identity, agreed 2026-09-04. It
+is not a stage, because it changes surfaces owned by several.
+
 ---
 
 ### Arc I — Build the newspaper *(→ private beta)*
@@ -479,6 +483,45 @@ Load testing, a costed model of 10× and 100× traffic, the documented migration
 path off each free tier, a costed decision on a paid regional API instance if
 the latency data demands it, an adversarial security review, backup and restore
 drills, and a retention job that actually runs.
+
+---
+
+## 5.1 The editorial direction programme
+
+Agreed 2026-09-04, from
+[`JustNews_Design_and_Product_Direction.md`](JustNews_Design_and_Product_Direction.md).
+It reshapes the product around **three destinations** and adds the surface that
+makes JustNews a publication rather than a ranked list.
+
+> Home = what matters right now · **Aquila** = the world in context ·
+> **My Desk** = go deep on what I care about
+
+Decisions: [ADR 0011](decisions/0011-three-destination-ia.md) (the IA and route
+rename), [ADR 0012](decisions/0012-aquila-precomputed-issues.md) (Aquila as a
+published issue, composed offline three times a day),
+[ADR 0013](decisions/0013-perspectives-from-source-role.md) (Perspectives
+grounded in publisher role, not inferred from text).
+
+| Chunk | What | Depends on |
+|---|---|---|
+| 0 | ADRs, design system, this section | — |
+| 1 | Visual system: warm palette, Cormorant + IBM Plex, scale, motion tiers | 0 |
+| 2 | Shell: three destinations, route rename + redirects, mobile bottom nav | 1 |
+| 3 | Home as a personal briefing | 2 |
+| 4 | **Aquila** — issue schema, composer, publish cron, page reader | 2 |
+| 5 | My Desk — topic workspace, timeline, key developments | 2 |
+| 6 | Perspectives — source roles, grouped coverage | 5 |
+| 7 | Polish — skeletons, empty states, motion, a11y, story coverage page | all |
+
+**Relationship to the stages.** Chunks 1–3 and 7 are Stage 3's web app brought
+up to the agreed identity. Chunk 4 is new product and has no prior stage.
+Chunks 5–6 land the surfaces Stage 5's personalisation already feeds, and give
+Stage 6 a richer place to show its output. None of it changes the model work in
+Stage 6 or the launch gate in Stage 8.
+
+**What it does not include.** The Analysis workspace (direction doc §16) is
+deliberately deferred — it emerges inside My Desk once there is something real
+behind it, and it is not a navigation destination before then.
 
 ---
 

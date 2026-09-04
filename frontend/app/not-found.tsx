@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { fontVariables } from "@/lib/fonts";
 import { defaultLocale, getLocale, t } from "@/lib/i18n";
 
 /**
@@ -14,7 +15,7 @@ export default function NotFound() {
   const fallback = getLocale(defaultLocale);
 
   return (
-    <html lang={fallback.htmlLang} dir={fallback.dir}>
+    <html lang={fallback.htmlLang} dir={fallback.dir} className={fontVariables}>
       <body>
         <div className="shell">
           <main id="main" className="empty" style={{ marginBlockStart: "4rem" }}>

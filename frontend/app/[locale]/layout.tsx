@@ -7,11 +7,14 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavigationProgress } from "@/components/NavigationProgress";
+import { PrimaryNav } from "@/components/PrimaryNav";
 import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getConsentState } from "@/lib/consent";
+import { fontVariables } from "@/lib/fonts";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -63,7 +66,7 @@ export default async function LocaleLayout({
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
     // thing standing between us and a stylesheet fork for Arabic.
-    <html lang={active.htmlLang} dir={active.dir}>
+    <html lang={active.htmlLang} dir={active.dir} className={fontVariables}>
       <body>
         <Suspense fallback={null}>
           <NavigationProgress />
@@ -75,29 +78,19 @@ export default async function LocaleLayout({
           <header className="masthead">
             <Link href={`/${active.code}`} className="wordmark">
               Just<span>News</span>
+              <span className="wordmark__tagline">{t(active.code, "site.tagline")}</span>
             </Link>
-            <nav className="masthead-nav" aria-label={t(active.code, "nav.primary")}>
-              <ul className="masthead-links">
-                <li>
-                  <Link href={`/${active.code}/explore`}>{t(active.code, "nav.explore")}</Link>
-                </li>
-                <li>
-                  <Link href={`/${active.code}/topics`}>{t(active.code, "nav.topics")}</Link>
-                </li>
-                {session && (
-                  <li>
-                    <Link href={`/${active.code}/saved`}>{t(active.code, "nav.saved")}</Link>
-                  </li>
-                )}
-              </ul>
+            <PrimaryNav locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
+            <div className="masthead-tools">
               <SearchBox locale={active.code} />
               <AccountMenu
                 locale={active.code}
                 email={session?.email ?? null}
                 hasBetaAccess={hasBetaAccess}
               />
-            </nav>
+            </div>
             <LocaleSwitcher active={active} pathname={pathname} search={search} />
+            <p className="masthead-sign">{t(active.code, "site.sign")}</p>
           </header>
           {/* tabIndex={-1}: without it, activating the skip link scrolls the
               viewport but never actually moves keyboard focus here, which
@@ -111,6 +104,7 @@ export default async function LocaleLayout({
             <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
           </footer>
         </div>
+        <MobileTabBar locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
         {consent === null && <ConsentBanner locale={active.code} />}
       </body>
     </html>
