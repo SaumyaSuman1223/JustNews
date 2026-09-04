@@ -126,6 +126,9 @@ working.
 - [0008](docs/decisions/0008-beta-gate-and-admin-rls.md) — a beta gate separate from sign-in, and an RLS bypass for admin
 - [0009](docs/decisions/0009-ranked-feed-pagination.md) — a frozen-window cursor for the ranked feed
 - [0010](docs/decisions/0010-render-vercel-not-gcp.md) — Render and Vercel instead of GCP Cloud Run
+- [0011](docs/decisions/0011-three-destination-ia.md) — three destinations, not a category navbar
+- [0012](docs/decisions/0012-aquila-precomputed-issues.md) — The Aquila Tribune is a published issue, not a feed
+- [0013](docs/decisions/0013-perspectives-from-source-role.md) — perspectives grounded in who published, not inferred from text
 
 ## Content policy
 
