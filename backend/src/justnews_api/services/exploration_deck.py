@@ -127,7 +127,7 @@ def _weighted_sample(
     return chosen
 
 
-async def _sample_stratified(
+async def sample_stratified(
     session: AsyncSession,
     *,
     requested_languages: list[str] | None,
@@ -198,7 +198,7 @@ async def get_exploration_deck(
     requested_languages = parse_languages(languages)
     excluded = await interactions_repo.excluded_article_ids(session, user_id)
 
-    picked = await _sample_stratified(
+    picked = await sample_stratified(
         session,
         requested_languages=requested_languages,
         excluded=excluded,
