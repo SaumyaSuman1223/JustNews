@@ -669,3 +669,26 @@ class AdminAuditLog(Base):
     )
 
     __table_args__ = (Index("ix_admin_audit_log_created", created_at.desc()),)
+
+
+class Feedback(Base):
+    """Free text a reader sent in, from the footer link or account menu. No
+    email column - ``user_id`` is the identifier, matching CLAUDE.md's "log
+    user IDs, never emails," and it anonymizes the same way an interaction
+    row does on account deletion (``ondelete="SET NULL"``)."""
+
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL")
+    )
+    session_id: Mapped[str | None] = mapped_column(String(64))
+    locale: Mapped[str] = mapped_column(String(12), nullable=False)
+    path: Mapped[str | None] = mapped_column(Text)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (Index("ix_feedback_created", created_at.desc()),)

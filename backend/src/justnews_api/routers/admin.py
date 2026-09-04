@@ -388,3 +388,34 @@ async def create_invite(
 async def list_invites(session: AsyncSession = Depends(get_admin_session)) -> list[InviteOut]:
     invites = await invites_service.list_invites(session)
     return [InviteOut.model_validate(invite, from_attributes=True) for invite in invites]
+
+
+# --- feedback -----------------------------------------------------------
+
+
+class FeedbackEntryOut(BaseModel):
+    id: int
+    user_id: str | None
+    locale: str
+    path: str | None
+    message: str
+    created_at: datetime
+
+
+@router.get("/feedback", response_model=list[FeedbackEntryOut])
+async def list_feedback(
+    session: AsyncSession = Depends(get_admin_session),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[FeedbackEntryOut]:
+    entries = await service.list_feedback(session, limit=limit)
+    return [
+        FeedbackEntryOut(
+            id=entry.id,
+            user_id=str(entry.user_id) if entry.user_id else None,
+            locale=entry.locale,
+            path=entry.path,
+            message=entry.message,
+            created_at=entry.created_at,
+        )
+        for entry in entries
+    ]

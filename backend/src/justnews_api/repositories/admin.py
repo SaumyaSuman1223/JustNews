@@ -147,12 +147,16 @@ async def _active_users_by_bucket(
     (user_id, bucket) pairs, the same double-counting guard as
     ``active_user_count``, just grouped by bucket instead of collapsed to one
     total."""
+    # The explicit 'UTC' argument matters: date_trunc's two-argument form
+    # truncates in the session's timezone (whatever the connection happens to
+    # be set to), which would silently shift bucket boundaries away from the
+    # UTC dates CLAUDE.md requires everywhere else in this codebase.
     impressed = select(
-        func.date_trunc(granularity, Impression.served_at).label("bucket"),
+        func.date_trunc(granularity, Impression.served_at, "UTC").label("bucket"),
         Impression.user_id.label("user_id"),
     ).where(Impression.user_id.is_not(None), Impression.served_at >= since)
     interacted = select(
-        func.date_trunc(granularity, InteractionEvent.created_at).label("bucket"),
+        func.date_trunc(granularity, InteractionEvent.created_at, "UTC").label("bucket"),
         InteractionEvent.user_id.label("user_id"),
     ).where(InteractionEvent.user_id.is_not(None), InteractionEvent.created_at >= since)
     if locale:

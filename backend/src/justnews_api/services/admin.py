@@ -17,11 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import admin as repo
 from justnews_api.repositories import content as content_repo
+from justnews_api.repositories import feedback as feedback_repo
 from justnews_api.repositories import topics as topics_repo
 from justnews_api.repositories import users as users_repo
 from justnews_api.services.topics import label_for
 from justnews_core.errors import NotFoundError, ValidationError
-from justnews_core.models import AdminAuditLog, IngestRun, Topic, UserProfile
+from justnews_core.models import AdminAuditLog, Feedback, IngestRun, Topic, UserProfile
 
 MAX_TAKEDOWN_REASON_LENGTH = 500
 VALID_ROLES = ("reader", "admin")
@@ -133,6 +134,10 @@ async def get_analytics_overview(
 
 async def list_audit_log(session: AsyncSession, *, limit: int = 100) -> list[AdminAuditLog]:
     return await repo.list_audit_log(session, limit=limit)
+
+
+async def list_feedback(session: AsyncSession, *, limit: int = 100) -> list[Feedback]:
+    return await feedback_repo.list_feedback(session, limit=limit)
 
 
 @dataclass(frozen=True, slots=True)
