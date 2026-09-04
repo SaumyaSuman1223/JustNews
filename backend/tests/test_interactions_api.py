@@ -1,11 +1,17 @@
-"""Integration tests for click/history reporting and not-interested."""
+"""Integration tests for click/history reporting, not-interested, and share."""
 
 from __future__ import annotations
+
+import uuid
 
 from httpx import AsyncClient
 from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from justnews_core.db import set_current_user
+from justnews_core.models import InteractionEvent
 
 
 class TestReportClick:
@@ -139,5 +145,74 @@ class TestUndoNotInterested:
         headers = await make_beta_headers(session)
         response = await client.delete(
             f"/v1/not-interested/{article.id}", params={"surface": "feed"}, headers=headers
+        )
+        assert response.status_code == 204
+
+
+class TestReportShare:
+    async def test_records_a_share_event(self, client: AsyncClient, session: AsyncSession) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        user_id = uuid.uuid4()
+        headers = await make_beta_headers(session, user_id=str(user_id))
+        response = await client.post(
+            "/v1/share",
+            json={"article_id": article.id, "surface": "feed"},
+            headers=headers,
+        )
+        assert response.status_code == 204
+
+        await set_current_user(session, str(user_id))
+        rows = (
+            (
+                await session.execute(
+                    select(InteractionEvent).where(InteractionEvent.event_type == "share")
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(rows) == 1
+        assert rows[0].article_id == article.id
+        assert rows[0].surface == "feed"
+
+    async def test_invalid_surface_is_rejected(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        response = await client.post(
+            "/v1/share",
+            json={"article_id": article.id, "surface": "homepage"},
+            headers=headers,
+        )
+        assert response.status_code == 422
+
+    async def test_unknown_article_is_404(self, client: AsyncClient, session: AsyncSession) -> None:
+        headers = await make_beta_headers(session)
+        response = await client.post(
+            "/v1/share",
+            json={"article_id": 999999, "surface": "feed"},
+            headers=headers,
+        )
+        assert response.status_code == 404
+
+    async def test_onboarding_surface_is_accepted(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source)
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        response = await client.post(
+            "/v1/share",
+            json={"article_id": article.id, "surface": "onboarding"},
+            headers=headers,
         )
         assert response.status_code == 204

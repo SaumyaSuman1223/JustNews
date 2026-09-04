@@ -27,7 +27,7 @@ from justnews_core.errors import NotFoundError, ValidationError
 # work moved server-side into one query instead of several round trips.
 READING_MIX_SAMPLE = 150
 
-VALID_SURFACES = ("feed", "explore", "search", "topic")
+VALID_SURFACES = ("feed", "explore", "search", "topic", "onboarding")
 
 
 def _validate_surface(surface: str) -> None:
@@ -80,6 +80,29 @@ async def report_not_interested(
         session_id=session_id,
         article_id=article_id,
         event_type="not_interested",
+        surface=surface,
+        locale=article.language,
+    )
+
+
+async def report_share(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    session_id: str,
+    article_id: int,
+    surface: str,
+) -> None:
+    _validate_surface(surface)
+    article = await content_repo.get_article(session, article_id)
+    if article is None:
+        raise NotFoundError(f"No article with id {article_id}.")
+    await repo.record_event(
+        session,
+        user_id=user_id,
+        session_id=session_id,
+        article_id=article_id,
+        event_type="share",
         surface=surface,
         locale=article.language,
     )

@@ -28,6 +28,11 @@ class NotInterestedIn(BaseModel):
     surface: str
 
 
+class ShareIn(BaseModel):
+    article_id: int
+    surface: str
+
+
 class HistoryOut(BaseModel):
     article: ArticleOut
     viewed_at: datetime
@@ -83,6 +88,22 @@ async def report_not_interested(
     x_session_id: str | None = Header(default=None, alias="x-session-id"),
 ) -> None:
     await service.report_not_interested(
+        session,
+        user_id=principal.user_id,
+        session_id=x_session_id or UNCONSENTED_SESSION,
+        article_id=body.article_id,
+        surface=body.surface,
+    )
+
+
+@router.post("/share", status_code=status.HTTP_204_NO_CONTENT)
+async def report_share(
+    body: ShareIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+    x_session_id: str | None = Header(default=None, alias="x-session-id"),
+) -> None:
+    await service.report_share(
         session,
         user_id=principal.user_id,
         session_id=x_session_id or UNCONSENTED_SESSION,
