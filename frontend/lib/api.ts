@@ -68,6 +68,8 @@ export type FeatureFlag = components["schemas"]["FeatureFlagOut"];
 export type RetentionCohort = components["schemas"]["RetentionCohortOut"];
 export type ActivityEntry = components["schemas"]["ActivityEntryOut"];
 export type DeckCard = components["schemas"]["DeckCardOut"];
+export type TopicOverview = components["schemas"]["TopicOverviewOut"];
+export type RelatedTopic = components["schemas"]["RelatedTopicOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -138,6 +140,36 @@ export function getSources(language: string): Promise<Degradable<SourceOption[]>
 
 export function getStory(id: number): Promise<Degradable<StoryDetail | null>> {
   return get<StoryDetail | null>(`/v1/stories/${id}`, null, 60);
+}
+
+/** My Desk's Topic Overview panel - real counts, no pagination needed. */
+export function getTopicOverview(topicId: string): Promise<Degradable<TopicOverview | null>> {
+  return get<TopicOverview | null>(
+    `/v1/topics/${encodeURIComponent(topicId)}/overview`,
+    null,
+    120,
+  );
+}
+
+/** My Desk's Timeline and Key Developments tabs both read this same list -
+ * the timeline plots it by date, key developments re-sorts it by breadth of
+ * coverage. One fetch, two views. */
+export function getTopicStories(topicId: string, limit = 20): Promise<Degradable<Story[]>> {
+  const query = new URLSearchParams({ limit: String(limit) });
+  return get<Story[]>(`/v1/topics/${encodeURIComponent(topicId)}/stories?${query}`, [], 120);
+}
+
+export function getRelatedTopics(
+  topicId: string,
+  language: string,
+  limit = 6,
+): Promise<Degradable<RelatedTopic[]>> {
+  const query = new URLSearchParams({ language, limit: String(limit) });
+  return get<RelatedTopic[]>(
+    `/v1/topics/${encodeURIComponent(topicId)}/related?${query}`,
+    [],
+    3600,
+  );
 }
 
 /**
@@ -501,6 +533,18 @@ export async function unfollowTopic(auth: AuthContext, topicId: string): Promise
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return !error;
+}
+
+export async function reorderFollows(
+  auth: AuthContext,
+  topicIds: string[],
+): Promise<FollowOut[] | null> {
+  const { data, error } = await authedClient(auth).PUT("/v1/follows/order", {
+    body: { topic_ids: topicIds },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (error) return null;
+  return data ?? [];
 }
 
 export async function getHistory(
