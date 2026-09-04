@@ -30,6 +30,10 @@ ml/export/*.onnx
 .idea/
 .vscode/
 
+# claude code / impeccable skill local state
+.claude/
+**/.impeccable/
+
 # vendored reference code (FINDING clone) — not ours to commit
 resources/
 
