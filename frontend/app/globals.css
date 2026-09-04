@@ -625,7 +625,8 @@ a {
 .field input[type="email"],
 .field input[type="password"],
 .field input[type="text"],
-.field input[type="search"] {
+.field input[type="search"],
+.field textarea {
   font: inherit;
   font-size: 0.95rem;
   padding: 0.55rem var(--space-3);
@@ -635,7 +636,13 @@ a {
   color: var(--text);
 }
 
-.field input:focus-visible {
+.field textarea {
+  resize: vertical;
+  min-block-size: 8rem;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
   border-color: var(--accent);
 }
 

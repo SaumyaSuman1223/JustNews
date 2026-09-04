@@ -80,6 +80,7 @@ const en = {
   "nav.topics": "Topics",
   "nav.saved": "Saved",
   "nav.privacy": "Privacy",
+  "nav.feedback": "Send feedback",
 
   "search.label": "Search headlines",
   "search.placeholder": "Search headlines",
@@ -92,6 +93,7 @@ const en = {
   "account.settings": "Settings",
   "account.chooseTopics": "Choose topics",
   "account.enterInvite": "Enter invite code",
+  "account.feedback": "Send feedback",
 
   "beta.notice":
     "JustNews is in private beta. You’re signed in, but you’ll need an invite code to unlock your personalised feed, saves and history.",
@@ -261,6 +263,13 @@ const en = {
   "consent.settings.turnOn": "Turn on",
   "consent.settings.turnOff": "Turn off",
 
+  "feedback.heading": "Send feedback",
+  "feedback.body": "Tell us what's working, what isn't, or what you wish JustNews did.",
+  "feedback.placeholder": "What's on your mind?",
+  "feedback.submit": "Send",
+  "feedback.thanks": "Thanks — we read every one of these.",
+  "feedback.signInRequired": "Sign in to send feedback.",
+
   "privacy.englishOnly":
     "This policy is currently available in English only. Machine-translating legal text risks getting your rights wrong, which is worse than not translating it at all — we'd rather say so plainly than guess.",
 
@@ -311,6 +320,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "nav.topics": "Temas",
     "nav.saved": "Guardados",
     "nav.privacy": "Privacidad",
+    "nav.feedback": "Enviar comentarios",
 
     "search.label": "Buscar titulares",
     "search.placeholder": "Buscar titulares",
@@ -323,6 +333,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.settings": "Ajustes",
     "account.chooseTopics": "Elegir temas",
     "account.enterInvite": "Introducir código de invitación",
+    "account.feedback": "Enviar comentarios",
 
     "beta.notice":
       "JustNews está en beta privada. Has iniciado sesión, pero necesitas un código de invitación para desbloquear tu feed personalizado, tus guardados y tu historial.",
@@ -497,6 +508,13 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "consent.settings.turnOn": "Activar",
     "consent.settings.turnOff": "Desactivar",
 
+    "feedback.heading": "Enviar comentarios",
+    "feedback.body": "Cuéntanos qué funciona, qué no, o qué te gustaría que JustNews hiciera.",
+    "feedback.placeholder": "¿Qué tienes en mente?",
+    "feedback.submit": "Enviar",
+    "feedback.thanks": "Gracias — leemos todos los comentarios.",
+    "feedback.signInRequired": "Inicia sesión para enviar comentarios.",
+
     "privacy.englishOnly":
       "Esta política solo está disponible en inglés por ahora. Traducir texto legal automáticamente puede tergiversar tus derechos, lo cual es peor que no traducirlo — preferimos decirlo claramente antes que arriesgarnos.",
 
@@ -542,6 +560,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "nav.topics": "विषय",
     "nav.saved": "सहेजे गए",
     "nav.privacy": "निजता",
+    "nav.feedback": "प्रतिक्रिया भेजें",
 
     "search.label": "सुर्ख़ियाँ खोजें",
     "search.placeholder": "सुर्ख़ियाँ खोजें",
@@ -554,6 +573,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.settings": "सेटिंग्स",
     "account.chooseTopics": "विषय चुनें",
     "account.enterInvite": "आमंत्रण कोड डालें",
+    "account.feedback": "प्रतिक्रिया भेजें",
 
     "beta.notice":
       "JustNews निजी बीटा में है। आप साइन इन हैं, लेकिन अपनी वैयक्तिकृत फ़ीड, सहेजे गए लेख और इतिहास खोलने के लिए आपको एक आमंत्रण कोड चाहिए।",
@@ -725,6 +745,13 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "consent.settings.currentlyOff": "बंद — आपकी विज़िट दर्ज नहीं की जातीं।",
     "consent.settings.turnOn": "चालू करें",
     "consent.settings.turnOff": "बंद करें",
+
+    "feedback.heading": "प्रतिक्रिया भेजें",
+    "feedback.body": "बताएं कि क्या ठीक काम कर रहा है, क्या नहीं, या JustNews में आप क्या चाहते हैं।",
+    "feedback.placeholder": "आपके मन में क्या है?",
+    "feedback.submit": "भेजें",
+    "feedback.thanks": "धन्यवाद — हम हर प्रतिक्रिया पढ़ते हैं।",
+    "feedback.signInRequired": "प्रतिक्रिया भेजने के लिए साइन इन करें।",
 
     "privacy.englishOnly":
       "यह नीति अभी सिर्फ़ अंग्रेज़ी में उपलब्ध है। कानूनी पाठ का मशीनी अनुवाद आपके अधिकारों को ग़लत बता सकता है, जो बिना अनुवाद के छोड़ने से भी बुरा है — हम अंदाज़ा लगाने के बजाय साफ़-साफ़ यह बता देना बेहतर समझते हैं।",

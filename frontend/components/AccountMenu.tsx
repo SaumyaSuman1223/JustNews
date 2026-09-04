@@ -118,6 +118,11 @@ export function AccountMenu({
             </Link>
           </li>
           <li>
+            <Link href={`/${locale}/feedback`} onClick={() => setOpen(false)}>
+              {t(locale, "account.feedback")}
+            </Link>
+          </li>
+          <li>
             <button type="button" onClick={signOut}>
               {t(locale, "account.signOut")}
             </button>

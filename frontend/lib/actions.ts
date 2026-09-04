@@ -84,6 +84,16 @@ export async function unsaveArticleAction(articleId: number, path: string): Prom
   return ok;
 }
 
+export async function submitFeedbackAction(locale: string, formData: FormData): Promise<void> {
+  const auth = await authOrNull();
+  const message = String(formData.get("message") ?? "");
+  const path = String(formData.get("path") ?? "");
+  const ok = auth
+    ? await api.submitFeedback(auth, { message, locale, path: path || undefined })
+    : false;
+  redirect(`/${locale}/feedback?sent=${ok ? "1" : "0"}`);
+}
+
 export async function notInterestedAction(
   articleId: number,
   surface: string,

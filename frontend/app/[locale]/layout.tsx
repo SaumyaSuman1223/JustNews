@@ -103,6 +103,7 @@ export default async function LocaleLayout({
           </main>
           <footer className="site-footer">
             <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
+            <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
           </footer>
         </div>
         {consent === null && <ConsentBanner locale={active.code} />}

@@ -60,6 +60,7 @@ export type MeExport = components["schemas"]["MeExportOut"];
 export type AdminTopic = components["schemas"]["AdminTopicOut"];
 export type ArticleTopic = components["schemas"]["ArticleTopicOut"];
 export type ActiveUsersBucket = components["schemas"]["ActiveUsersBucketOut"];
+export type FeedbackEntry = components["schemas"]["FeedbackEntryOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -548,6 +549,24 @@ export async function createInvite(
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? null;
+}
+
+export async function submitFeedback(
+  auth: AuthContext,
+  params: { message: string; locale: string; path?: string },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/feedback", {
+    body: { message: params.message, locale: params.locale, path: params.path || null },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+export async function getAdminFeedback(auth: AuthContext): Promise<FeedbackEntry[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/feedback", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
 }
 
 export async function getDailyActiveUsers(auth: AuthContext): Promise<ActiveUsersBucket[]> {
