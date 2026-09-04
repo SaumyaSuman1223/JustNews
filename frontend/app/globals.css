@@ -811,6 +811,117 @@ a {
   inline-size: 100%;
 }
 
+/* --- auth card -------------------------------------------------------------
+ *
+ * Its own surface, slightly more generous than .form-panel's default padding
+ * and a softer corner - the one place in the product whose entire job is
+ * this one decision, so it earns a touch more room than a form dropped into
+ * an ordinary reading page. Still the same tokens as everywhere else:
+ * var(--surface), var(--border), var(--radius) - a different amount of the
+ * committed world, not a different world.
+ */
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 2);
+  padding: var(--space-8) var(--space-6);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 32px -16px rgba(0, 0, 0, 0.18);
+}
+
+.auth-card__brand {
+  display: flex;
+  justify-content: center;
+  margin-block-end: var(--space-6);
+}
+
+.auth-card__header {
+  text-align: center;
+  margin-block-end: var(--space-6);
+}
+
+.auth-card__header h1 {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-2);
+}
+
+.auth-card__header p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.auth-oauth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.65rem var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.auth-oauth:hover {
+  border-color: var(--text-muted);
+}
+
+.auth-oauth:active {
+  background: var(--surface-sub);
+}
+
+.auth-oauth:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-block: var(--space-6);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--border);
+}
+
+.auth-card__footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-block-start: var(--space-6);
+}
+
+/* Centers the card in whatever room the surrounding chrome leaves rather
+   than pinning to a fixed height - the same rough allowance regardless of
+   whether that chrome is the mobile top bar or the desktop sidebar. */
+.auth-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: calc(100dvh - 18rem);
+  padding-block: var(--space-8);
+}
+
 /* --- header nav / account / search --------------------------------------- */
 
 .masthead-nav {
