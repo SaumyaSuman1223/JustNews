@@ -1539,32 +1539,6 @@ a.chip:active {
   font-size: 0.9rem;
 }
 
-/* Site telemetry, so it reads as a footer strip rather than a dashboard
-   above the headlines. */
-.stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-6);
-  color: var(--text-muted);
-  font-size: var(--type-meta);
-  margin-block: var(--space-8) 0;
-  padding-block-start: var(--space-4);
-  border-block-start: 1px solid var(--border);
-  font-variant-numeric: tabular-nums;
-}
-
-.stats dt,
-.stats dd {
-  margin: 0;
-}
-
-.stats dd {
-  color: var(--text-mid);
-  font-size: 0.95rem;
-  display: block;
-  font-weight: 600;
-}
-
 /* The settings-page reading mix: a real proportion per language or topic, so
    the bar is drawn to the same discipline as any other chart - it earns its
    width from the reader's own numbers, not from being an app-shaped
@@ -2767,4 +2741,219 @@ a.chip:active {
     position: sticky;
     inset-block-start: var(--space-6);
   }
+}
+
+/* --- home: greeting, hero + rail, tabbed feed ------------------------------
+ *
+ * Frontend spec §13: a hero/secondary band with a right rail beside it, then
+ * a full-width personal feed below both. Single column until there is room
+ * for a 320px rail beside real content rather than beside itself. */
+
+.home-greeting {
+  margin-block-end: var(--space-8);
+}
+
+.home-greeting h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-display-xl);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.home {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home__hero {
+  min-width: 0;
+}
+
+.home__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.home__feed {
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .home {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    column-gap: var(--space-6);
+    grid-template-areas:
+      "hero rail"
+      "feed rail";
+  }
+
+  .home__hero {
+    grid-area: hero;
+  }
+
+  .home__rail {
+    grid-area: rail;
+  }
+
+  .home__feed {
+    grid-area: feed;
+  }
+}
+
+/* --- today at a glance ----------------------------------------------------- */
+
+.glance {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--space-6);
+}
+
+.glance__heading {
+  font-size: var(--type-micro);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+.glance__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.glance__list > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.glance dd {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance dt {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* --- trending, inside the rail ---------------------------------------------- */
+
+.trending--rail {
+  margin-block: 0;
+}
+
+/* --- the daily brief -------------------------------------------------------- */
+
+.brief {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--space-6);
+}
+
+.brief__heading {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin: 0 0 var(--space-3);
+}
+
+.brief__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.brief__list li {
+  padding-block: var(--space-2);
+  border-block-start: 1px solid var(--border);
+}
+
+.brief__list li:first-child {
+  border-block-start: none;
+  padding-block-start: 0;
+}
+
+.brief__list a {
+  font-size: 0.9rem;
+  line-height: 1.35;
+  transition: color var(--dur) var(--ease);
+}
+
+.brief__list a:hover {
+  color: var(--accent);
+}
+
+.brief__cta {
+  display: inline-flex;
+  align-items: center;
+  block-size: 2.5rem;
+  padding-inline: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.brief__cta:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* --- home tabs --------------------------------------------------------------- */
+
+.home-tabs {
+  border-block-end: 1px solid var(--border);
+  margin-block-end: var(--space-6);
+}
+
+.home-tabs ul {
+  display: flex;
+  gap: var(--space-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.home-tabs a {
+  display: inline-flex;
+  align-items: center;
+  block-size: 3rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  border-block-end: 2px solid transparent;
+  margin-block-end: -1px;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.home-tabs a:hover {
+  color: var(--text);
+}
+
+.home-tabs a[aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+  border-block-end-color: var(--accent);
 }

@@ -14,14 +14,21 @@ import { type LocaleCode, formatRelativeTime, t } from "@/lib/i18n";
 export function TrendingRail({
   articles,
   locale,
+  variant = "panel",
 }: {
   articles: Article[];
   locale: LocaleCode;
+  /** "rail" drops the panel's own margins - the rail column supplies the
+   * gap between modules instead, so a nested margin would double it. */
+  variant?: "panel" | "rail";
 }) {
   if (articles.length === 0) return null;
 
   return (
-    <section className="trending" aria-labelledby="trending-heading">
+    <section
+      className={`trending${variant === "rail" ? " trending--rail" : ""}`}
+      aria-labelledby="trending-heading"
+    >
       <h2 id="trending-heading" className="trending__heading">
         {t(locale, "trending.heading")}
       </h2>
