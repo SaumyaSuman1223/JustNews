@@ -67,6 +67,11 @@
   --space-24: 6rem; /* 96 - editorial section separation */
 
   --measure: 68ch;
+  /* Two radii, because the spec asks for two. Editorial surfaces - a card
+     that is really a piece of a page - stay nearly square; interface
+     controls get the softer corner. One token cannot serve both, and the
+     failure mode of trying is `rounded-2xl` on everything. */
+  --radius-editorial: 3px;
   --radius: 6px;
 
   /* Modular scale, named by role rather than by size, in the vocabulary
@@ -1027,7 +1032,7 @@ a {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 /* A rule between groups, not a heading: the split between the three
@@ -1043,7 +1048,8 @@ a {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  /* 66px tall with the subtitle, inside spec §6's 64-70px band. */
+  padding: 0.875rem var(--space-3);
   border-radius: var(--radius);
   color: var(--text-mid);
   transition:
@@ -1073,13 +1079,13 @@ a {
 }
 
 .rail-link__label {
-  font-size: var(--type-body-m);
+  font-size: 1.02rem;
   font-weight: 500;
   line-height: var(--leading-snug);
 }
 
 .rail-link__subtitle {
-  font-size: var(--type-micro);
+  font-size: var(--type-label);
   color: var(--text-muted);
   line-height: var(--leading-snug);
   text-wrap: balance;
@@ -1161,9 +1167,9 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 0.15rem;
-  /* 44px minimum touch target, per the design system's a11y line. */
-  min-block-size: 3rem;
-  padding-block: var(--space-2);
+  /* Spec §46: a 68-78px bar, comfortably past the 44px touch-target floor. */
+  min-block-size: 4.25rem;
+  padding-block: var(--space-3);
   color: var(--text-muted);
   transition: color var(--dur-micro) var(--ease);
 }
@@ -1193,12 +1199,18 @@ a {
      every row keeps it reachable through the whole scroll without that.
      Logical properties throughout, so the whole thing mirrors under
      dir="rtl" with no directional override. */
+  /* The rail is a fixed 20rem (320px) column against a fluid content area,
+     per the frontend spec §3. The shell itself spans the viewport and the
+     *content* carries the max-width, rather than the shell capping both -
+     capping the shell is what leaves a wide screen with a rail floating in
+     the middle of nowhere. */
   .shell {
-    max-width: 88rem;
+    max-width: none;
     display: grid;
-    grid-template-columns: 16rem minmax(0, 1fr);
-    column-gap: var(--space-8);
+    grid-template-columns: 20rem minmax(0, 1fr);
+    column-gap: var(--space-6);
     align-items: start;
+    padding-inline: 0;
     padding-block-end: var(--space-12);
   }
 
@@ -1213,8 +1225,8 @@ a {
     align-items: stretch;
     justify-content: flex-start;
     gap: var(--space-6);
-    padding-block: var(--space-6) 0;
-    padding-inline-end: var(--space-6);
+    padding-block: var(--space-12) 0;
+    padding-inline: var(--space-12) var(--space-8);
     border-block-end: none;
     border-inline-end: 1px solid var(--border);
     margin-block-end: 0;
@@ -1261,12 +1273,26 @@ a {
     border-block-start: 1px solid var(--border);
   }
 
-  .shell > main {
-    grid-column: 2;
-  }
-
+  .shell > main,
   .shell > .site-footer {
     grid-column: 2;
+    /* 1440px, spec §11. min() rather than max-width alone so the padding is
+       inside the cap rather than added to it. */
+    inline-size: min(100%, 90rem);
+    margin-inline: auto;
+    padding-inline: var(--space-8) var(--space-12);
+  }
+
+  .shell > main {
+    padding-block-start: var(--space-8);
+  }
+
+  /* Spec §9: no permanent full-width search form in the rail. Search is a
+     destination in the navigation; the field belongs to the surfaces that
+     are about searching. Below this breakpoint the field stays in the top
+     bar, where there is no rail to hold a nav item instead. */
+  .masthead .search-box {
+    display: none;
   }
 
   .tabbar {
@@ -1813,6 +1839,12 @@ a.chip:active {
 }
 
 .site-footer {
+  /* Flex with a gap, not two inline anchors: as plain inline elements the
+     links rendered as "PrivacySend feedback", with no space between them at
+     all - whitespace between JSX siblings is not preserved. */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
   margin-block-start: var(--space-8);
   padding-block-start: var(--space-4);
   border-block-start: 1px solid var(--border);
@@ -2161,5 +2193,578 @@ a.chip:active {
   .button {
     min-block-size: 44px;
     padding-block: var(--space-2);
+  }
+}
+
+/* --- Aquila: the immersive workspace ----------------------------------------
+ *
+ * Aquila is the one route that takes a dark ground in both themes. That is a
+ * surface treatment for a single destination, not the application's dark mode
+ * (design-system.md, "one language, three personalities"), which is why it
+ * reads --charcoal directly instead of the themed --ground: a reader who has
+ * chosen light does not get a light Aquila, because the paper needs something
+ * to sit *on*.
+ *
+ * Dimensions follow the frontend spec §25-29: a 900-1100px sheet at roughly
+ * 1.5:1, a 260-300px rail, and a 20-28px gap between them.
+ */
+
+.aquila {
+  display: grid;
+  gap: var(--space-6);
+  /* Bleeds past the content column's padding so the dark ground reaches the
+     viewport edge - a workspace with a paper margin around it reads as a
+     desk; the same thing inside a card does not.
+
+     The bleed has to match whatever padding the shell is actually using at
+     this width. Using the desktop values everywhere overshot the mobile
+     shell's 16px by 32px and put a horizontal scrollbar on the page, which
+     the frontend spec §24 rules out outright. */
+  margin-inline: calc(var(--space-4) * -1);
+  margin-block: 0;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  background: var(--charcoal);
+  /* The workspace is dark in both themes, so its own text tokens are fixed
+     rather than inherited - otherwise light mode renders ink on charcoal. */
+  --text: #ede9e0;
+  --text-mid: #c6c1b6;
+  --text-muted: #98938a;
+  --border: #34352f;
+  color: var(--text);
+}
+
+.aquila__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  min-inline-size: 0;
+}
+
+/* The sheet. A warm surface with a stacked edge, never a photographic paper
+   texture - the direction document bans "overly realistic newspaper
+   textures" and "fake paper physics" in the same breath as it asks for a
+   newspaper, and the pastiche version stops being readable by page two. */
+.aquila__sheet {
+  inline-size: min(100%, 68.75rem); /* 1100px */
+  /* The paper is light in both themes, so its colours are fixed here rather
+     than inherited - but fixed to the *accessible* values, not the direction
+     document's. Hardcoding #77736c and #a28b68 straight from the brief is
+     what axe caught at 4.48:1 and 3.1:1 on this surface; these are the same
+     corrections the root palette already carries, scoped to the sheet. */
+  --paper: #fbf9f4;
+  --paper-ink: #171717;
+  --paper-mid: #333333;
+  --paper-muted: #6b675f;
+  --paper-rule: #d8d2c7;
+  --paper-hair: #e4dfd3;
+  --paper-brass: #7a6444;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: var(--radius-editorial);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.28),
+    /* Two offset edges, which is what a small stack of pages looks like from
+       above. Cheap, and it stops at two - a deeper stack reads as a prop. */
+    6px 6px 0 -1px #f2eee3,
+    6px 6px 0 0 rgba(0, 0, 0, 0.22),
+    12px 12px 0 -1px #ece7db,
+    12px 12px 0 0 rgba(0, 0, 0, 0.16),
+    0 18px 40px -24px rgba(0, 0, 0, 0.6);
+  transition: opacity var(--dur-standard) var(--ease);
+}
+
+/* The page turn. A crossfade at the editorial tier rather than a rotation:
+   the spec allows stronger movement here, but a fold that has to fake paper
+   physics is the exact "AI slop" the spec is correcting for. What matters is
+   that the reader sees the page change - the fade says that in 240ms and
+   never delays reading. */
+.aquila__sheet[data-pending] {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aquila__sheet {
+    transition: none;
+  }
+  .aquila__sheet[data-pending] {
+    opacity: 1;
+  }
+}
+
+/* --- the paper itself ------------------------------------------------------ */
+
+.paper {
+  /* Spec §27: 32-44px top, 42-50px sides, 30-40px bottom. */
+  padding: var(--space-6) var(--space-12) var(--space-6);
+  container-type: inline-size;
+}
+
+.paper__masthead {
+  text-align: center;
+  padding-block-end: var(--space-2);
+}
+
+.paper__standfirst,
+.paper__strap {
+  font-size: var(--type-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+  margin: 0;
+}
+
+.paper__title {
+  font-family: var(--font-display);
+  /* Spec §27 puts the masthead at 70-90px of height; this is the type that
+     fills it. Fluid so a narrow viewport does not crop the wordmark. */
+  /* Sized so the whole masthead block lands near spec §27's 70-90px rather
+     than the 190px the display face wanted at full size. */
+  font-size: clamp(1.9rem, 0.9rem + 3.4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.02;
+  margin: var(--space-1) 0;
+}
+
+.paper__sectionhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block-end: var(--space-3);
+}
+
+.paper__sectionhead h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 1rem + 2vw, 2.2rem);
+  font-weight: 600;
+  margin: 0;
+}
+
+.paper__folio {
+  font-size: var(--type-label);
+  letter-spacing: 0.14em;
+  color: var(--paper-muted);
+}
+
+/* The volume/date/edition rule under the masthead. */
+.paper__rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-block: 1px solid var(--paper-rule);
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+}
+
+.paper__body {
+  display: grid;
+  gap: var(--space-6);
+  padding-block-start: var(--space-6);
+}
+
+/* Three columns once the sheet is wide enough - a container query, not a
+   viewport one, because the sheet's width is set by the workspace rather
+   than by the window.
+
+   Three, not two, because a page has to *be* a page: stacked in one column
+   the front page ran 1339px tall against the spec's 620-720, which is a
+   scroll, not a sheet. A newspaper solves exactly this by going sideways,
+   and so does this. */
+@container (min-width: 46rem) {
+  .paper__body {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    align-items: start;
+    gap: var(--space-4);
+    padding-block-start: var(--space-4);
+  }
+
+  .paper__lead {
+    grid-column: 1;
+  }
+
+  .paper__columns {
+    grid-column: 2;
+    /* The rules between columns are the page's own vertical rules. */
+    padding-inline: var(--space-4);
+    border-inline: 1px solid var(--paper-hair);
+  }
+
+  /* A section page carries no brief, so it is a two-column page. Without
+     this the third track stays reserved and the page reads as a column that
+     failed to load. */
+  .paper__body:not(:has(.paper__brief)) {
+    grid-template-columns: 1.5fr 1fr;
+  }
+
+  .paper__brief {
+    grid-column: 3;
+    /* In the third column the brief is a sidebar, so it takes a hairline
+       rather than the heavy rule it uses when stacked. */
+    border-block-start: none;
+    padding-block-start: 0;
+  }
+}
+
+.paper__lead-image {
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  margin-block-end: var(--space-4);
+  border-radius: var(--radius-editorial);
+}
+
+.paper__lead-headline {
+  font-family: var(--font-display);
+  /* Spec §27: 44-62px. */
+  font-size: clamp(1.8rem, 1.1rem + 2vw, 2.8rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  margin: 0 0 var(--space-3);
+  text-wrap: balance;
+}
+
+.paper__deck {
+  font-size: var(--type-body-m);
+  line-height: 1.55;
+  color: var(--paper-mid);
+  margin: 0 0 var(--space-3);
+  max-inline-size: 42ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.paper__columns {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.paper__column {
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--paper-hair);
+}
+
+.paper__column:last-child {
+  border-block-end: none;
+  padding-block-end: 0;
+}
+
+.paper__column-headline {
+  font-family: var(--font-display);
+  /* Spec §27: 24-34px, at the lower end - four of these share a column. */
+  font-size: clamp(1.15rem, 1rem + 0.3vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1.14;
+  margin: 0 0 var(--space-1);
+}
+
+.paper__column-deck {
+  font-size: var(--type-body-s);
+  line-height: 1.45;
+  color: var(--paper-mid);
+  margin: 0 0 var(--space-2);
+  /* Two lines. A standfirst on a page is a taste of the story, not the
+     story - and an uncapped one is what pushed the page past its height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.paper__byline {
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+  margin: 0;
+}
+
+.paper__brief {
+  padding-block-start: var(--space-4);
+  border-block-start: 2px solid var(--paper-ink);
+}
+
+.paper__brief-heading {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+}
+
+.paper__brief-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  counter-reset: brief;
+}
+
+.paper__brief-list li {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: var(--space-2);
+  font-size: var(--type-body-s);
+  line-height: 1.35;
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--paper-hair);
+}
+
+.paper__brief-list li:last-child {
+  border-block-end: none;
+}
+
+.paper__brief-number {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-label);
+  color: var(--paper-brass);
+}
+
+.paper a {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity var(--dur-micro) var(--ease);
+}
+
+.paper a:hover {
+  opacity: 0.62;
+}
+
+.paper__footer {
+  margin-block-start: var(--space-6);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--paper-rule);
+  text-align: center;
+  font-size: var(--type-micro);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+}
+
+.paper__empty {
+  padding-block: var(--space-12);
+  text-align: center;
+  color: var(--paper-muted);
+}
+
+/* --- page controls --------------------------------------------------------- */
+
+.aquila__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* Spec §28: 48-56px, and no giant buttons. */
+  min-block-size: 3rem;
+}
+
+.aquila__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    opacity var(--dur-micro) var(--ease);
+}
+
+.aquila__arrow:hover:not(:disabled) {
+  border-color: var(--brass);
+}
+
+.aquila__arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.aquila__folio {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-body-s);
+  letter-spacing: 0.08em;
+  color: var(--text-mid);
+  margin: 0;
+  min-inline-size: 4rem;
+  text-align: center;
+}
+
+.aquila__contents-toggle {
+  font: inherit;
+  font-size: var(--type-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.55rem var(--space-4);
+  cursor: pointer;
+  margin-inline-start: var(--space-3);
+  transition: border-color var(--dur-micro) var(--ease);
+}
+
+.aquila__contents-toggle:hover {
+  border-color: var(--brass);
+}
+
+.aquila__contents {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4);
+  inline-size: min(100%, 30rem);
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* --- the right rail: editions and pages ------------------------------------ */
+
+.aquila__rail {
+  /* Spec §26: 260-300px. */
+  inline-size: 100%;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.aquila__rail-heading {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: var(--space-4) 0 var(--space-1);
+}
+
+.aquila__editions,
+.aquila__pages,
+.aquila__contents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.aquila__editions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.aquila__edition {
+  display: grid;
+  gap: 0.1rem;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    background-color var(--dur-micro) var(--ease);
+}
+
+.aquila__edition:hover {
+  border-color: var(--brass);
+}
+
+/* Spec §29: a subtle border/accent, not three oversized cards. */
+.aquila__edition[aria-current="true"] {
+  border-color: var(--brass);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.aquila__edition-time {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-body-m);
+  font-weight: 600;
+}
+
+.aquila__edition-name {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.aquila__pages,
+.aquila__contents {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.aquila__pages button,
+.aquila__contents button {
+  inline-size: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font: inherit;
+  font-size: var(--type-body-s);
+  text-align: start;
+  color: var(--text-mid);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.aquila__pages button:hover,
+.aquila__contents button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.aquila__pages button[aria-current="true"],
+.aquila__contents button[aria-current="true"] {
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--brass);
+}
+
+.aquila__contents-no {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+}
+
+.aquila__sign {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+  margin-block-start: var(--space-6);
+}
+
+.aquila__note {
+  margin-block-start: var(--space-6);
+}
+
+/* The rail moves beside the sheet once there is room for both (spec §26). */
+@media (min-width: 64rem) {
+  .aquila {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: var(--space-6);
+    /* Matches .shell > main's own padding at this breakpoint, so the dark
+       ground reaches the rail on one side and the viewport on the other. */
+    margin-inline: calc(var(--space-8) * -1) calc(var(--space-12) * -1);
+    margin-block-start: calc(var(--space-8) * -1);
+    padding: var(--space-8) var(--space-12) var(--space-12);
+  }
+
+  .aquila__rail {
+    position: sticky;
+    inset-block-start: var(--space-6);
   }
 }

@@ -43,6 +43,9 @@ export type StoryDetail = components["schemas"]["StoryDetailOut"];
 export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
 export type Blindspot = components["schemas"]["BlindspotOut"];
 export type Edition = components["schemas"]["EditionOut"];
+export type Issue = components["schemas"]["IssueOut"];
+export type IssuePageContent = components["schemas"]["PageOut"];
+export type IssueEdition = components["schemas"]["IssueEditionOut"];
 export type SourceFollow = components["schemas"]["SourceFollowOut"];
 export type FeedPage = components["schemas"]["FeedPageOut"];
 export type MeProfile = components["schemas"]["MeOut"];
@@ -239,6 +242,100 @@ export async function getExplorationDeck(
     return { data: data.cards, degraded: false };
   } catch {
     return { data: [], degraded: true };
+  }
+}
+
+/**
+ * The Aquila Tribune (ADR 0012).
+ *
+ * `null` is an ordinary answer, not a failure: before a locale's first
+ * edition, after a thin-corpus skip, or with the flag off. The route renders
+ * its "no issue yet" state, which is a real state a publication has - so
+ * these deliberately do not use the Degradable wrapper, which would conflate
+ * "nothing published" with "the API is down".
+ */
+export async function getLatestIssue(
+  auth: AuthContext | null,
+  params: { locale: string },
+): Promise<Issue | null> {
+  const client = createApiClient(API_URL, {
+    accessToken: auth?.accessToken,
+    sessionId: auth?.sessionId ?? undefined,
+  });
+  try {
+    const { data, error } = await client.GET("/v1/issues/latest", {
+      params: { query: { locale: params.locale } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function getIssue(
+  auth: AuthContext | null,
+  params: { issueId: number; locale: string },
+): Promise<Issue | null> {
+  const client = createApiClient(API_URL, {
+    accessToken: auth?.accessToken,
+    sessionId: auth?.sessionId ?? undefined,
+  });
+  try {
+    const { data, error } = await client.GET("/v1/issues/{issue_id}", {
+      params: { path: { issue_id: params.issueId }, query: { locale: params.locale } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/** One page, with its articles. Logs impressions, so it is never cached. */
+export async function getIssuePage(
+  auth: AuthContext | null,
+  params: { issueId: number; pageNo: number; locale: string },
+): Promise<IssuePageContent | null> {
+  const client = createApiClient(API_URL, {
+    accessToken: auth?.accessToken,
+    sessionId: auth?.sessionId ?? undefined,
+  });
+  try {
+    const { data, error } = await client.GET("/v1/issues/{issue_id}/pages/{page_no}", {
+      params: {
+        path: { issue_id: params.issueId, page_no: params.pageNo },
+        query: { locale: params.locale },
+        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
+      },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function getIssueEditions(
+  auth: AuthContext | null,
+  params: { locale: string },
+): Promise<IssueEdition[]> {
+  const client = createApiClient(API_URL, {
+    accessToken: auth?.accessToken,
+    sessionId: auth?.sessionId ?? undefined,
+  });
+  try {
+    const { data, error } = await client.GET("/v1/issues", {
+      params: { query: { locale: params.locale } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return [];
+    return data;
+  } catch {
+    return [];
   }
 }
 

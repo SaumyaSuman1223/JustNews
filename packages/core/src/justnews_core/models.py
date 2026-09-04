@@ -17,7 +17,7 @@ Design notes that are not obvious from the column list:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, ClassVar
 
 from pgvector.sqlalchemy import HALFVEC, VECTOR
@@ -25,6 +25,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -565,7 +566,7 @@ class Impression(Base):
     __table_args__ = (
         CheckConstraint("propensity between 0 and 1", name="ck_impressions_propensity_range"),
         CheckConstraint(
-            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding')",
+            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding', 'aquila')",
             name="ck_impressions_surface",
         ),
         Index("ix_impressions_user_served", "user_id", served_at.desc()),
@@ -613,7 +614,7 @@ class InteractionEvent(Base):
             name="ck_interaction_events_type",
         ),
         CheckConstraint(
-            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding')",
+            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding', 'aquila')",
             name="ck_interaction_events_surface",
         ),
         Index(
@@ -711,4 +712,123 @@ class FeatureFlag(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+
+# --------------------------------------------------------------------------
+# The Aquila Tribune (ADR 0012)
+# --------------------------------------------------------------------------
+
+
+class Issue(Base):
+    """One published edition of The Aquila Tribune.
+
+    Composed once, offline, at its publish time, and never changed afterwards
+    (ADR 0012). Everything a reader sees in Aquila is a keyed read of frozen
+    rows, which is what makes the surface cheap enough to serve on a free tier
+    and what makes an archive possible at all.
+
+    Deliberately **not** ``editions``: that table already exists and means a
+    *regional* edition - a language/country pairing. Aquila's morning, midday
+    and evening are an ``edition_slot`` on an issue. Two concepts sharing one
+    name in a schema is a bug waiting to be written.
+    """
+
+    __tablename__ = "issues"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    # The locale the issue was composed for. Every reader of that locale sees
+    # the same paper - personalisation stops at Aquila's door, by design.
+    locale: Mapped[str] = mapped_column(String(12), nullable=False)
+    edition_slot: Mapped[str] = mapped_column(String(8), nullable=False)
+    # The calendar day the issue belongs to, and the instant it was composed.
+    # Both, because the day is what a masthead prints and what the unique
+    # constraint keys on, while the instant is what ordering needs.
+    published_on: Mapped[date] = mapped_column(Date, nullable=False)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Masthead numbering. Volume is the year offset and number is the issue's
+    # ordinal within it, so "Vol. 1 No. 42" is derivable rather than stored
+    # state that could drift.
+    volume: Mapped[int] = mapped_column(Integer, nullable=False)
+    number: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    pages: Mapped[list[IssuePage]] = relationship(
+        back_populates="issue", cascade="all, delete-orphan", order_by="IssuePage.page_no"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("locale", "published_on", "edition_slot", name="uq_issues_slot"),
+        CheckConstraint(
+            "edition_slot in ('morning', 'midday', 'evening')", name="ck_issues_edition_slot"
+        ),
+        Index("ix_issues_locale_published", "locale", published_at.desc()),
+    )
+
+
+class IssuePage(Base):
+    """One page of an issue.
+
+    ``topic_id`` is null on the front page, which draws from the whole corpus
+    rather than one section. Section pages carry the IPTC concept they were
+    composed from; their displayed name is that topic's label in the reader's
+    locale, looked up at render time (ADR 0006) rather than stored here as a
+    string that would need translating.
+    """
+
+    __tablename__ = "issue_pages"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    issue_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("issues.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    page_no: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    topic_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("topics.id", ondelete="SET NULL")
+    )
+
+    issue: Mapped[Issue] = relationship(back_populates="pages")
+    slots: Mapped[list[IssueSlot]] = relationship(
+        back_populates="page", cascade="all, delete-orphan", order_by="IssueSlot.position"
+    )
+
+    __table_args__ = (UniqueConstraint("issue_id", "page_no", name="uq_issue_pages_page_no"),)
+
+
+class IssueSlot(Base):
+    """One article, in one position, on one page.
+
+    ``role`` is the composition weight the page gives it - a lead runs large
+    with its image, a secondary runs as a column, a brief is one line in a
+    numbered list.
+
+    There is no 'quote' role. The mockups show a pull quote, and we have
+    nothing truthful to put in one: the product stores no article body, so any
+    quote would either be invented or lifted without attribution. The
+    publication's own standing lines carry that job instead - they are the
+    masthead speaking, not journalism attributed to someone who did not say it.
+
+    ``ondelete=CASCADE`` on the article: retention prunes articles at ninety
+    days, and a slot without its article has nothing to render. The archive is
+    therefore bounded by the retention window, which is a free-tier fact
+    rather than a design choice - ``retention.prune`` drops the emptied issues
+    so an archive never offers a page that would render blank.
+    """
+
+    __tablename__ = "issue_slots"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    page_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("issue_pages.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    article_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    role: Mapped[str] = mapped_column(String(12), nullable=False)
+
+    page: Mapped[IssuePage] = relationship(back_populates="slots")
+
+    __table_args__ = (
+        UniqueConstraint("page_id", "position", name="uq_issue_slots_position"),
+        CheckConstraint("role in ('lead', 'secondary', 'brief')", name="ck_issue_slots_role"),
     )
