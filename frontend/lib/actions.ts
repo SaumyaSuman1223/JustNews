@@ -133,18 +133,20 @@ export async function undoNotInterestedAction(
   return ok;
 }
 
-export async function followTopicAction(topicId: string, path: string): Promise<void> {
+export async function followTopicAction(topicId: string, path: string): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
-  await api.followTopic(auth, topicId);
-  revalidatePath(path);
+  if (!auth) return false;
+  const ok = await api.followTopic(auth, topicId);
+  if (ok) revalidatePath(path);
+  return ok;
 }
 
-export async function unfollowTopicAction(topicId: string, path: string): Promise<void> {
+export async function unfollowTopicAction(topicId: string, path: string): Promise<boolean> {
   const auth = await authOrNull();
-  if (!auth) return;
-  await api.unfollowTopic(auth, topicId);
-  revalidatePath(path);
+  if (!auth) return false;
+  const ok = await api.unfollowTopic(auth, topicId);
+  if (ok) revalidatePath(path);
+  return ok;
 }
 
 export async function followSourceAction(sourceId: number, path: string): Promise<boolean> {

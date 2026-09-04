@@ -811,6 +811,117 @@ a {
   inline-size: 100%;
 }
 
+/* --- auth card -------------------------------------------------------------
+ *
+ * Its own surface, slightly more generous than .form-panel's default padding
+ * and a softer corner - the one place in the product whose entire job is
+ * this one decision, so it earns a touch more room than a form dropped into
+ * an ordinary reading page. Still the same tokens as everywhere else:
+ * var(--surface), var(--border), var(--radius) - a different amount of the
+ * committed world, not a different world.
+ */
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 2);
+  padding: var(--space-8) var(--space-6);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 32px -16px rgba(0, 0, 0, 0.18);
+}
+
+.auth-card__brand {
+  display: flex;
+  justify-content: center;
+  margin-block-end: var(--space-6);
+}
+
+.auth-card__header {
+  text-align: center;
+  margin-block-end: var(--space-6);
+}
+
+.auth-card__header h1 {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-2);
+}
+
+.auth-card__header p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.auth-oauth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.65rem var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.auth-oauth:hover {
+  border-color: var(--text-muted);
+}
+
+.auth-oauth:active {
+  background: var(--surface-sub);
+}
+
+.auth-oauth:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-block: var(--space-6);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--border);
+}
+
+.auth-card__footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-block-start: var(--space-6);
+}
+
+/* Centers the card in whatever room the surrounding chrome leaves rather
+   than pinning to a fixed height - the same rough allowance regardless of
+   whether that chrome is the mobile top bar or the desktop sidebar. */
+.auth-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: calc(100dvh - 18rem);
+  padding-block: var(--space-8);
+}
+
 /* --- header nav / account / search --------------------------------------- */
 
 .masthead-nav {
@@ -841,6 +952,97 @@ a {
 
 .masthead-links a:active {
   opacity: 0.6;
+}
+
+/* --- sidebar navigation ----------------------------------------------------
+ *
+ * Below 64rem the masthead stays exactly the horizontal top bar it always
+ * was - the mobile stacking rules above already handle that well, and a
+ * persistent sidebar has nowhere to live on a phone or a narrow tablet. At
+ * 64rem and up - where the card grid itself already gains a fourth column -
+ * there is finally room for navigation to sit beside the content instead of
+ * above it.
+ *
+ * Sticky, not fixed: a fixed sidebar sits over the page regardless of its
+ * own height, which is exactly what clips a tall nav's own bottom item on a
+ * short viewport. Sticky within a grid cell that spans every row keeps it
+ * reachable through the whole scroll without that failure mode.
+ *
+ * inset-inline-start, not left: the grid and every rule below mirror for
+ * free under dir="rtl", the same promise every other rule in this file
+ * already keeps - nothing here is conditional on direction.
+ */
+@media (min-width: 64rem) {
+  .shell {
+    max-width: 88rem;
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    column-gap: var(--space-8);
+    align-items: start;
+  }
+
+  .masthead {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    position: sticky;
+    inset-block-start: var(--space-6);
+    max-block-size: calc(100dvh - var(--space-8));
+    overflow-y: auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--space-6);
+    padding-block: 0;
+    padding-inline-end: var(--space-6);
+    border-block-end: none;
+    border-inline-end: 1px solid var(--border);
+    margin-block-end: 0;
+  }
+
+  .masthead-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-6);
+  }
+
+  .masthead-links {
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: 0.95rem;
+  }
+
+  .masthead-links a {
+    display: block;
+    padding: 0.5rem var(--space-3);
+    border-radius: var(--radius);
+  }
+
+  .masthead-links a:hover {
+    background: var(--surface-sub);
+  }
+
+  .search-box input {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .account-menu__trigger {
+    inline-size: 100%;
+    text-align: start;
+  }
+
+  .locale-switcher {
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--border);
+  }
+
+  .shell > main {
+    grid-column: 2;
+  }
+
+  .shell > .site-footer {
+    grid-column: 2;
+  }
 }
 
 .search-box {

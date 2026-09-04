@@ -47,6 +47,22 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** for the plan of record.
 | ML | Frozen multilingual encoder + FINDING user tower, offline only | Local / Colab / Actions |
 | Mobile | Expo React Native | Stage 10 |
 
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| [`frontend/`](frontend/README.md) | Next.js web app |
+| [`backend/`](backend/README.md) | FastAPI API |
+| [`apps/ingestion/`](apps/ingestion/README.md) | RSS/GNews ingestion — runs as a scheduled GitHub Actions step, no deploy target |
+| [`apps/mobile/`](apps/mobile/README.md) | Expo React Native app (Stage 10) |
+| [`packages/core/`](packages/core/README.md) | Shared Python: settings, DB models, IPTC taxonomy — imported by `backend` and `apps/ingestion` |
+| [`packages/api-client/`](packages/api-client/README.md) | Generated TS client from the API's OpenAPI schema — consumed by `frontend` and `apps/mobile` |
+| [`ml/`](ml/README.md) | Offline FINDING training → ONNX export; never imported by `apps/` |
+| [`infra/`](infra/README.md) | Per-service Dockerfiles |
+| [`docs/`](docs/) | Roadmap, architecture, ADRs, design system, runbook |
+| [`scripts/`](scripts/README.md) | One-off/local dev scripts |
+| `testing/` | Shared pytest fixtures and factories, used across `backend`/`packages/core` tests |
+
 ## Quickstart
 
 Prerequisites: [uv](https://docs.astral.sh/uv/), [pnpm](https://pnpm.io), and
@@ -54,7 +70,8 @@ either Docker or nothing at all (there is a fallback for the database).
 
 ```bash
 git clone https://github.com/SaumyaSuman1223/JustNews && cd JustNews
-cp .env.example .env
+cp .env.example .env                          # backend + ingestion
+cp frontend/.env.example frontend/.env.local  # frontend
 make bootstrap          # uv sync + pnpm install
 make up                 # postgres + redis + api + web, via docker
 make migrate seed       # schema, then IPTC topics and ~50 feeds

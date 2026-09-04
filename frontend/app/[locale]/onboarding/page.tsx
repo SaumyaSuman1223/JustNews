@@ -3,12 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ExplorationDeck } from "@/components/ExplorationDeck";
+import { FollowTopicChip } from "@/components/FollowTopicChip";
 import { completeOnboardingAction } from "@/lib/actions";
 import {
   getExplorationDeck,
   getFollowedSources,
+  getFollows,
   getMe,
   getSources,
+  getTopics,
   type SourceOption,
 } from "@/lib/api";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
@@ -35,10 +38,12 @@ export default async function OnboardingPage({
   const access = await requireBetaAccess(active.code, `/${active.code}/onboarding`);
   if (!access.ok) return access.element;
 
-  const [deck, profile, followedSourceIds] = await Promise.all([
+  const [deck, profile, followedSourceIds, topics, followedTopicIds] = await Promise.all([
     getExplorationDeck(access.auth, { locale: active.code }),
     getMe(access.auth),
     getFollowedSources(access.auth).then((rows) => new Set(rows.map((row) => row.source_id))),
+    getTopics(active.code),
+    getFollows(access.auth).then((rows) => new Set(rows.map((row) => row.topic_id))),
   ]);
   const preferredLanguages = new Set(
     profile?.preferred_languages.length ? profile.preferred_languages : [active.code],
@@ -125,6 +130,35 @@ export default async function OnboardingPage({
           <ExplorationDeck cards={deck.data} locale={active.code} signedIn />
         ) : (
           <p className="empty">{t(active.code, "onboarding.deck.empty")}</p>
+        )}
+
+        {/* The deck infers interest from behaviour; this is the direct
+            alternative for a reader who already knows what they want and
+            would rather tap a category than sample twenty cards. Both
+            paths write the same UserFollow row - neither is more "real"
+            than the other. */}
+        {topics.data.length > 0 && (
+          <>
+            <div className="field" style={{ marginBlockStart: "var(--space-6)" }}>
+              <label>{t(active.code, "onboarding.categories.label")}</label>
+              <p className="form-note" style={{ marginBlockStart: 0 }}>
+                {t(active.code, "onboarding.categories.note")}
+              </p>
+            </div>
+            <ul className="chip-list">
+              {topics.data.map((topic) => (
+                <li key={topic.id}>
+                  <FollowTopicChip
+                    topicId={topic.id}
+                    label={topic.label}
+                    locale={active.code}
+                    following={followedTopicIds.has(topic.id)}
+                    revalidatePath={`/${active.code}/onboarding`}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
 
         {/* True today, not a promise about later: anyone who reaches this
