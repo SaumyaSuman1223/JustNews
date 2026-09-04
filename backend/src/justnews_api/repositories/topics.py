@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from justnews_core.models import ArticleTopic, Topic, TopicLabel
+from justnews_core.models import Article, ArticleTopic, StoryCluster, Topic, TopicLabel
 
 
 async def list_top_level_topics(session: AsyncSession) -> list[Topic]:
@@ -66,3 +69,69 @@ async def count_articles_by_topic(session: AsyncSession, topic_ids: list[str]) -
         .group_by(ArticleTopic.topic_id)
     )
     return dict(result.tuples().all())
+
+
+@dataclass(frozen=True, slots=True)
+class TopicOverview:
+    articles: int
+    sources: int
+    stories: int
+
+
+async def topic_overview(session: AsyncSession, topic_id: str) -> TopicOverview:
+    """My Desk's "Topic Overview" panel - real counts over exactly the set
+    `services.content.get_article_page`'s own `topic=` filter would return,
+    live articles only."""
+    result = await session.execute(
+        select(
+            func.count(func.distinct(Article.id)),
+            func.count(func.distinct(Article.source_id)),
+            func.count(func.distinct(Article.story_cluster_id)),
+        )
+        .select_from(ArticleTopic)
+        .join(Article, Article.id == ArticleTopic.article_id)
+        .where(ArticleTopic.topic_id == topic_id, Article.removed_at.is_(None))
+    )
+    articles, sources, stories = result.one()
+    return TopicOverview(articles=articles or 0, sources=sources or 0, stories=stories or 0)
+
+
+async def list_story_clusters_for_topic(
+    session: AsyncSession, *, topic_id: str, limit: int
+) -> list[StoryCluster]:
+    """My Desk's Timeline: every story with at least one live article tagged
+    this topic, most recently active first."""
+    result = await session.execute(
+        select(StoryCluster)
+        .join(Article, Article.story_cluster_id == StoryCluster.id)
+        .join(ArticleTopic, ArticleTopic.article_id == Article.id)
+        .where(ArticleTopic.topic_id == topic_id, Article.removed_at.is_(None))
+        .group_by(StoryCluster.id)
+        .order_by(StoryCluster.last_seen_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def related_topic_ids(
+    session: AsyncSession, topic_id: str, *, limit: int
+) -> list[tuple[str, int]]:
+    """Topics that most often appear on the same article as `topic_id` -
+    "related" as a real co-occurrence count, not a taxonomy-sibling lookup.
+
+    The IPTC hierarchy loader that would make `parent_id` siblings
+    meaningful does not exist yet (see `list_children`'s own note) - every
+    loaded topic sits at level 1, so a sibling query would return nothing.
+    Co-occurrence needs no taxonomy depth at all and is arguably closer to
+    what "related" means for a reader anyway.
+    """
+    other = aliased(ArticleTopic)
+    result = await session.execute(
+        select(other.topic_id, func.count(func.distinct(other.article_id)))
+        .join(ArticleTopic, ArticleTopic.article_id == other.article_id)
+        .where(ArticleTopic.topic_id == topic_id, other.topic_id != topic_id)
+        .group_by(other.topic_id)
+        .order_by(func.count(func.distinct(other.article_id)).desc())
+        .limit(limit)
+    )
+    return list(result.tuples().all())

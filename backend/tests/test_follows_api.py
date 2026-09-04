@@ -52,6 +52,75 @@ class TestFollows:
         response = await client.delete(f"/v1/follows/{topic.id}", headers=headers)
         assert response.status_code == 404
 
+    async def test_follows_come_back_in_position_order(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        first = await make_topic(session, topic_id="medtop:20000030", slug="order-first")
+        second = await make_topic(session, topic_id="medtop:20000031", slug="order-second")
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        await client.post("/v1/follows", json={"topic_id": first.id}, headers=headers)
+        await client.post("/v1/follows", json={"topic_id": second.id}, headers=headers)
+
+        listed = (await client.get("/v1/follows", headers=headers)).json()
+        assert [f["topic_id"] for f in listed] == [first.id, second.id]
+
+
+class TestReorderFollows:
+    async def test_reorders_to_the_given_order(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        first = await make_topic(session, topic_id="medtop:20000032", slug="reorder-first")
+        second = await make_topic(session, topic_id="medtop:20000033", slug="reorder-second")
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        await client.post("/v1/follows", json={"topic_id": first.id}, headers=headers)
+        await client.post("/v1/follows", json={"topic_id": second.id}, headers=headers)
+
+        response = await client.put(
+            "/v1/follows/order",
+            json={"topic_ids": [second.id, first.id]},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert [f["topic_id"] for f in response.json()] == [second.id, first.id]
+
+        listed = (await client.get("/v1/follows", headers=headers)).json()
+        assert [f["topic_id"] for f in listed] == [second.id, first.id]
+
+    async def test_a_partial_list_is_rejected(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        first = await make_topic(session, topic_id="medtop:20000034", slug="partial-first")
+        second = await make_topic(session, topic_id="medtop:20000035", slug="partial-second")
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        await client.post("/v1/follows", json={"topic_id": first.id}, headers=headers)
+        await client.post("/v1/follows", json={"topic_id": second.id}, headers=headers)
+
+        response = await client.put(
+            "/v1/follows/order", json={"topic_ids": [first.id]}, headers=headers
+        )
+        assert response.status_code == 422
+
+    async def test_an_unfollowed_topic_is_rejected(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        followed = await make_topic(session, topic_id="medtop:20000036", slug="unfollowed-a")
+        stranger = await make_topic(session, topic_id="medtop:20000037", slug="unfollowed-b")
+        await session.commit()
+
+        headers = await make_beta_headers(session)
+        await client.post("/v1/follows", json={"topic_id": followed.id}, headers=headers)
+
+        response = await client.put(
+            "/v1/follows/order", json={"topic_ids": [stranger.id]}, headers=headers
+        )
+        assert response.status_code == 422
+
 
 class TestExplorationDeckFollowBridge:
     """The exploration deck's compatibility bridge (services.exploration_deck

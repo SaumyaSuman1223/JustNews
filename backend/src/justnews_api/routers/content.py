@@ -66,6 +66,7 @@ class StoryOut(BaseModel):
     article_count: int
     source_count: int
     language_count: int
+    first_seen_at: datetime
     last_seen_at: datetime
 
     @classmethod
@@ -76,6 +77,7 @@ class StoryOut(BaseModel):
             article_count=cluster.article_count,
             source_count=cluster.source_count,
             language_count=cluster.language_count,
+            first_seen_at=cluster.first_seen_at,
             last_seen_at=cluster.last_seen_at,
         )
 
