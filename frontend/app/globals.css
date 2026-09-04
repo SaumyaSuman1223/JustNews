@@ -954,6 +954,97 @@ a {
   opacity: 0.6;
 }
 
+/* --- sidebar navigation ----------------------------------------------------
+ *
+ * Below 64rem the masthead stays exactly the horizontal top bar it always
+ * was - the mobile stacking rules above already handle that well, and a
+ * persistent sidebar has nowhere to live on a phone or a narrow tablet. At
+ * 64rem and up - where the card grid itself already gains a fourth column -
+ * there is finally room for navigation to sit beside the content instead of
+ * above it.
+ *
+ * Sticky, not fixed: a fixed sidebar sits over the page regardless of its
+ * own height, which is exactly what clips a tall nav's own bottom item on a
+ * short viewport. Sticky within a grid cell that spans every row keeps it
+ * reachable through the whole scroll without that failure mode.
+ *
+ * inset-inline-start, not left: the grid and every rule below mirror for
+ * free under dir="rtl", the same promise every other rule in this file
+ * already keeps - nothing here is conditional on direction.
+ */
+@media (min-width: 64rem) {
+  .shell {
+    max-width: 88rem;
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    column-gap: var(--space-8);
+    align-items: start;
+  }
+
+  .masthead {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    position: sticky;
+    inset-block-start: var(--space-6);
+    max-block-size: calc(100dvh - var(--space-8));
+    overflow-y: auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--space-6);
+    padding-block: 0;
+    padding-inline-end: var(--space-6);
+    border-block-end: none;
+    border-inline-end: 1px solid var(--border);
+    margin-block-end: 0;
+  }
+
+  .masthead-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-6);
+  }
+
+  .masthead-links {
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: 0.95rem;
+  }
+
+  .masthead-links a {
+    display: block;
+    padding: 0.5rem var(--space-3);
+    border-radius: var(--radius);
+  }
+
+  .masthead-links a:hover {
+    background: var(--surface-sub);
+  }
+
+  .search-box input {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .account-menu__trigger {
+    inline-size: 100%;
+    text-align: start;
+  }
+
+  .locale-switcher {
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--border);
+  }
+
+  .shell > main {
+    grid-column: 2;
+  }
+
+  .shell > .site-footer {
+    grid-column: 2;
+  }
+}
+
 .search-box {
   display: flex;
 }
