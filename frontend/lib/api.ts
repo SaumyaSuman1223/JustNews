@@ -57,6 +57,9 @@ export type AnalyticsOverview = components["schemas"]["AnalyticsOverviewOut"];
 export type AuditLogEntry = components["schemas"]["AuditLogEntryOut"];
 export type Invite = components["schemas"]["InviteOut"];
 export type MeExport = components["schemas"]["MeExportOut"];
+export type AdminTopic = components["schemas"]["AdminTopicOut"];
+export type ArticleTopic = components["schemas"]["ArticleTopicOut"];
+export type ActiveUsersBucket = components["schemas"]["ActiveUsersBucketOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -545,4 +548,54 @@ export async function createInvite(
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? null;
+}
+
+export async function getDailyActiveUsers(auth: AuthContext): Promise<ActiveUsersBucket[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/analytics/dau", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getWeeklyActiveUsers(auth: AuthContext): Promise<ActiveUsersBucket[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/analytics/wau", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getAdminTopics(
+  auth: AuthContext,
+  params: { language: string; query?: string },
+): Promise<AdminTopic[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/topics", {
+    params: { query: { language: params.language, q: params.query || undefined } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getArticleTopics(
+  auth: AuthContext,
+  articleId: number,
+  language: string,
+): Promise<ArticleTopic[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/articles/{article_id}/topics", {
+    params: { path: { article_id: articleId }, query: { language } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function setArticleTopics(
+  auth: AuthContext,
+  articleId: number,
+  params: { topicIds: string[]; primaryTopicId: string },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).PUT("/v1/admin/articles/{article_id}/topics", {
+    params: { path: { article_id: articleId } },
+    body: { topic_ids: params.topicIds, primary_topic_id: params.primaryTopicId },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
 }
