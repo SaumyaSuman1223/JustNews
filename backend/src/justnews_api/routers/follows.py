@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.auth import require_user
@@ -21,10 +21,19 @@ class FollowIn(BaseModel):
 class FollowOut(BaseModel):
     topic_id: str
     followed_at: datetime
+    position: int
+
+
+class ReorderFollowsIn(BaseModel):
+    topic_ids: list[str] = Field(
+        description="Every followed topic id, in the new display order.",
+    )
 
 
 def _to_out(followed: service.FollowedTopic) -> FollowOut:
-    return FollowOut(topic_id=followed.topic_id, followed_at=followed.followed_at)
+    return FollowOut(
+        topic_id=followed.topic_id, followed_at=followed.followed_at, position=followed.position
+    )
 
 
 @router.post("/follows", response_model=FollowOut, status_code=status.HTTP_201_CREATED)
@@ -51,6 +60,19 @@ async def list_follows(
     principal: Principal = Depends(require_user),
     session: AsyncSession = Depends(get_beta_session),
 ) -> list[FollowOut]:
+    followed = await service.list_followed(session, principal.user_id)
+    return [_to_out(item) for item in followed]
+
+
+# Its own route, not a PATCH on /follows: this replaces every followed
+# topic's position in one request - "reorder", not "update one follow".
+@router.put("/follows/order", response_model=list[FollowOut])
+async def reorder_follows(
+    body: ReorderFollowsIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+) -> list[FollowOut]:
+    await service.reorder_followed(session, principal.user_id, body.topic_ids)
     followed = await service.list_followed(session, principal.user_id)
     return [_to_out(item) for item in followed]
 

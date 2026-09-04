@@ -539,6 +539,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/follows/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Follows */
+        put: operations["reorder_follows_v1_follows_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/follows/sources": {
         parameters: {
             query?: never;
@@ -969,6 +986,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/topics/{topic_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Topic Overview */
+        get: operations["topic_overview_v1_topics__topic_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/topics/{topic_id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Topic Related */
+        get: operations["topic_related_v1_topics__topic_id__related_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/topics/{topic_id}/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Topic Stories
+         * @description My Desk's Timeline: this topic's own story clusters, most recently
+         *     active first - `StoryCluster.first_seen_at`/`last_seen_at` are what the
+         *     timeline plots, not an invented per-day rollup.
+         */
+        get: operations["topic_stories_v1_topics__topic_id__stories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trending": {
         parameters: {
             query?: never;
@@ -1287,6 +1360,8 @@ export interface components {
              * Format: date-time
              */
             followed_at: string;
+            /** Position */
+            position: number;
             /** Topic Id */
             topic_id: string;
         };
@@ -1563,6 +1638,25 @@ export interface components {
             /** Code */
             code: string;
         };
+        /** RelatedTopicOut */
+        RelatedTopicOut: {
+            /** Article Count */
+            article_count: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Slug */
+            slug: string;
+        };
+        /** ReorderFollowsIn */
+        ReorderFollowsIn: {
+            /**
+             * Topic Ids
+             * @description Every followed topic id, in the new display order.
+             */
+            topic_ids: string[];
+        };
         /** RetentionCohortOut */
         RetentionCohortOut: {
             /** Cohort Size */
@@ -1713,6 +1807,11 @@ export interface components {
         StoryOut: {
             /** Article Count */
             article_count: number;
+            /**
+             * First Seen At
+             * Format: date-time
+             */
+            first_seen_at: string;
             /** Id */
             id: number;
             /** Language Count */
@@ -1778,6 +1877,15 @@ export interface components {
             label: string;
             /** Slug */
             slug: string;
+        };
+        /** TopicOverviewOut */
+        TopicOverviewOut: {
+            /** Articles */
+            articles: number;
+            /** Sources */
+            sources: number;
+            /** Stories */
+            stories: number;
         };
         /** UserOut */
         UserOut: {
@@ -2866,6 +2974,39 @@ export interface operations {
             };
         };
     };
+    reorder_follows_v1_follows_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderFollowsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_source_follows_v1_follows_sources_get: {
         parameters: {
             query?: never;
@@ -3688,6 +3829,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TopicOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    topic_overview_v1_topics__topic_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicOverviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    topic_related_v1_topics__topic_id__related_get: {
+        parameters: {
+            query?: {
+                language?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                topic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatedTopicOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    topic_stories_v1_topics__topic_id__stories_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                topic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"][];
                 };
             };
             /** @description Validation Error */

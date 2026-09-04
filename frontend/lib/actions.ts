@@ -149,6 +149,14 @@ export async function unfollowTopicAction(topicId: string, path: string): Promis
   return ok;
 }
 
+export async function reorderFollowsAction(topicIds: string[], path: string): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  const result = await api.reorderFollows(auth, topicIds);
+  if (result) revalidatePath(path);
+  return result !== null;
+}
+
 export async function followSourceAction(sourceId: number, path: string): Promise<boolean> {
   const auth = await authOrNull();
   if (!auth) return false;

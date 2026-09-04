@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Select, delete, select
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,25 +17,35 @@ from justnews_core.models import Source, Topic, UserFollow, UserSourceFollow
 class FollowRow:
     topic_id: str
     created_at: datetime
+    position: int
 
 
 async def create_follow(session: AsyncSession, user_id: UUID, topic_id: str) -> FollowRow:
+    # Next position after the reader's current highest - a correlated
+    # subquery rather than a read-then-write, so the insert is one
+    # statement. Two follows racing the same millisecond could tie; that
+    # only affects display order, which a reorder always overwrites anyway.
+    next_position = (
+        select(func.coalesce(func.max(UserFollow.position), -1) + 1)
+        .where(UserFollow.user_id == user_id)
+        .scalar_subquery()
+    )
     stmt = (
         pg_insert(UserFollow)
-        .values(user_id=user_id, topic_id=topic_id)
+        .values(user_id=user_id, topic_id=topic_id, position=next_position)
         .on_conflict_do_nothing(constraint="uq_user_follows_user_topic")
-        .returning(UserFollow.created_at)
+        .returning(UserFollow.created_at, UserFollow.position)
     )
     result = await session.execute(stmt)
     row = result.first()
     if row is None:
         existing = await session.execute(
-            select(UserFollow.created_at).where(
+            select(UserFollow.created_at, UserFollow.position).where(
                 UserFollow.user_id == user_id, UserFollow.topic_id == topic_id
             )
         )
         row = existing.one()
-    return FollowRow(topic_id=topic_id, created_at=row.created_at)
+    return FollowRow(topic_id=topic_id, created_at=row.created_at, position=row.position)
 
 
 async def delete_follow(session: AsyncSession, user_id: UUID, topic_id: str) -> bool:
@@ -55,12 +65,27 @@ async def list_follows(session: AsyncSession, user_id: UUID) -> list[FollowRow]:
     result = await session.execute(
         select(UserFollow)
         .where(UserFollow.user_id == user_id)
-        .order_by(UserFollow.created_at.desc())
+        .order_by(UserFollow.position, UserFollow.created_at)
     )
     return [
-        FollowRow(topic_id=follow.topic_id, created_at=follow.created_at)
+        FollowRow(topic_id=follow.topic_id, created_at=follow.created_at, position=follow.position)
         for follow in result.scalars().all()
     ]
+
+
+async def reorder_follows(session: AsyncSession, user_id: UUID, topic_ids: list[str]) -> None:
+    """Rewrites every followed topic's position from `topic_ids`'s order.
+
+    The service layer has already checked `topic_ids` is exactly the
+    reader's current follow set (no more, no fewer) - this just writes the
+    index each one lands at.
+    """
+    for position, topic_id in enumerate(topic_ids):
+        await session.execute(
+            update(UserFollow)
+            .where(UserFollow.user_id == user_id, UserFollow.topic_id == topic_id)
+            .values(position=position)
+        )
 
 
 async def list_followed_topic_ids(session: AsyncSession, user_id: UUID) -> set[str]:

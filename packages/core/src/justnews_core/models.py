@@ -485,6 +485,10 @@ class UserFollow(Base):
     topic_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("topics.id", ondelete="CASCADE"), nullable=False
     )
+    # My Desk's reader-chosen tile order. Assigned at follow-time (next after
+    # the reader's current max) and rewritten wholesale by a reorder - see
+    # repositories.follows.
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow()
     )

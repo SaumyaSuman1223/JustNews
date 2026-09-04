@@ -9,20 +9,21 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import follows as repo
-from justnews_core.errors import NotFoundError
+from justnews_core.errors import NotFoundError, ValidationError
 
 
 @dataclass(frozen=True, slots=True)
 class FollowedTopic:
     topic_id: str
     followed_at: datetime
+    position: int
 
 
 async def follow_topic(session: AsyncSession, user_id: UUID, topic_id: str) -> FollowedTopic:
     if not await repo.topic_exists(session, topic_id):
         raise NotFoundError(f"No topic with id {topic_id!r}.")
     row = await repo.create_follow(session, user_id, topic_id)
-    return FollowedTopic(topic_id=row.topic_id, followed_at=row.created_at)
+    return FollowedTopic(topic_id=row.topic_id, followed_at=row.created_at, position=row.position)
 
 
 async def unfollow_topic(session: AsyncSession, user_id: UUID, topic_id: str) -> None:
@@ -32,7 +33,20 @@ async def unfollow_topic(session: AsyncSession, user_id: UUID, topic_id: str) ->
 
 async def list_followed(session: AsyncSession, user_id: UUID) -> list[FollowedTopic]:
     rows = await repo.list_follows(session, user_id)
-    return [FollowedTopic(topic_id=row.topic_id, followed_at=row.created_at) for row in rows]
+    return [
+        FollowedTopic(topic_id=row.topic_id, followed_at=row.created_at, position=row.position)
+        for row in rows
+    ]
+
+
+async def reorder_followed(session: AsyncSession, user_id: UUID, topic_ids: list[str]) -> None:
+    """My Desk's drag-to-reorder: `topic_ids` must be exactly the reader's
+    current follow set, in its new order - a partial list would leave the
+    topics left out with no defined position at all."""
+    current = await repo.list_followed_topic_ids(session, user_id)
+    if set(topic_ids) != current or len(topic_ids) != len(current):
+        raise ValidationError("The new order must include every followed topic exactly once.")
+    await repo.reorder_follows(session, user_id, topic_ids)
 
 
 @dataclass(frozen=True, slots=True)

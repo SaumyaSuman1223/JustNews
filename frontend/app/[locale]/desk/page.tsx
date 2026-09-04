@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
-import { getTopics } from "@/lib/api";
+import { AddTopicPicker } from "@/components/AddTopicPicker";
+import { DeskTiles, type DeskTile } from "@/components/DeskTiles";
+import { EmptyState } from "@/components/EmptyState";
+import { getFollows, getTopicOverview, getTopics } from "@/lib/api";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
+import { requireBetaAccess } from "@/lib/guards";
 
 export async function generateMetadata({
   params,
@@ -12,14 +15,14 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: t(isLocaleCode(locale) ? locale : "en", "topics.heading") };
+  return { title: t(isLocaleCode(locale) ? locale : "en", "nav.desk") };
 }
 
-function ChipListSkeleton() {
+function TilesSkeleton() {
   return (
-    <ul className="chip-list" aria-hidden="true">
-      {Array.from({ length: 12 }, (_, index) => (
-        <li key={index}>
+    <ul className="desk-tiles" aria-hidden="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <li className="desk-tile" key={index}>
           <div className="skeleton skeleton--chip" />
         </li>
       ))}
@@ -27,7 +30,7 @@ function ChipListSkeleton() {
   );
 }
 
-export default async function TopicsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function DeskPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
@@ -35,36 +38,60 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
   return (
     <>
       <div className="page-header">
-        <h1>{t(active.code, "topics.heading")}</h1>
-        <p>{t(active.code, "topics.intro")}</p>
+        <h1>{t(active.code, "nav.desk")}</h1>
+        <p>{t(active.code, "nav.desk.subtitle")}</p>
       </div>
-      <Suspense fallback={<ChipListSkeleton />}>
-        <TopicsBody locale={active.code} />
+      <Suspense fallback={<TilesSkeleton />}>
+        <DeskBody locale={active.code} />
       </Suspense>
     </>
   );
 }
 
-async function TopicsBody({ locale }: { locale: ReturnType<typeof getLocale>["code"] }) {
-  const topics = await getTopics(locale);
+async function DeskBody({ locale }: { locale: ReturnType<typeof getLocale>["code"] }) {
+  const access = await requireBetaAccess(locale, `/${locale}/desk`);
+  if (!access.ok) return access.element;
 
-  if (topics.degraded) {
-    return (
-      <p className="notice" role="status">
-        {t(locale, "topics.degraded")}
-      </p>
-    );
-  }
+  const [follows, topics] = await Promise.all([
+    getFollows(access.auth),
+    getTopics(locale),
+  ]);
+  const byId = new Map(topics.data.map((topic) => [topic.id, topic]));
+  const followedIds = new Set(follows.map((f) => f.topic_id));
+
+  const overviews = await Promise.all(
+    follows.map((follow) => getTopicOverview(follow.topic_id)),
+  );
+  const tiles: DeskTile[] = follows
+    .map((follow, index) => {
+      const topic = byId.get(follow.topic_id);
+      if (!topic) return null;
+      const overview = overviews[index];
+      return {
+        topicId: follow.topic_id,
+        label: topic.label,
+        articleCount: overview?.degraded || !overview?.data ? 0 : overview.data.articles,
+      };
+    })
+    .filter((tile): tile is DeskTile => tile !== null);
 
   return (
-    <ul className="chip-list">
-      {topics.data.map((topic) => (
-        <li key={topic.id}>
-          <Link className="chip" href={`/${locale}/desk/${encodeURIComponent(topic.id)}`}>
-            {topic.label}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <>
+      {tiles.length === 0 ? (
+        <EmptyState
+          title={t(locale, "desk.empty.title")}
+          body={t(locale, "desk.empty.body")}
+        />
+      ) : (
+        <DeskTiles tiles={tiles} locale={locale} revalidatePath={`/${locale}/desk`} />
+      )}
+
+      <AddTopicPicker
+        topics={topics.data}
+        followedIds={followedIds}
+        locale={locale}
+        revalidatePath={`/${locale}/desk`}
+      />
+    </>
   );
 }

@@ -817,6 +817,10 @@
             "title": "Followed At",
             "type": "string"
           },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
           "topic_id": {
             "title": "Topic Id",
             "type": "string"
@@ -824,7 +828,8 @@
         },
         "required": [
           "topic_id",
-          "followed_at"
+          "followed_at",
+          "position"
         ],
         "title": "FollowOut",
         "type": "object"
@@ -1503,6 +1508,51 @@
         "title": "RedeemIn",
         "type": "object"
       },
+      "RelatedTopicOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "label",
+          "article_count"
+        ],
+        "title": "RelatedTopicOut",
+        "type": "object"
+      },
+      "ReorderFollowsIn": {
+        "properties": {
+          "topic_ids": {
+            "description": "Every followed topic id, in the new display order.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Topic Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "topic_ids"
+        ],
+        "title": "ReorderFollowsIn",
+        "type": "object"
+      },
       "RetentionCohortOut": {
         "properties": {
           "cohort_size": {
@@ -1921,6 +1971,11 @@
             "title": "Article Count",
             "type": "integer"
           },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -1949,6 +2004,7 @@
           "article_count",
           "source_count",
           "language_count",
+          "first_seen_at",
           "last_seen_at"
         ],
         "title": "StoryOut",
@@ -2085,6 +2141,29 @@
           "label"
         ],
         "title": "TopicOut",
+        "type": "object"
+      },
+      "TopicOverviewOut": {
+        "properties": {
+          "articles": {
+            "title": "Articles",
+            "type": "integer"
+          },
+          "sources": {
+            "title": "Sources",
+            "type": "integer"
+          },
+          "stories": {
+            "title": "Stories",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articles",
+          "sources",
+          "stories"
+        ],
+        "title": "TopicOverviewOut",
         "type": "object"
       },
       "UserOut": {
@@ -4245,6 +4324,56 @@
         ]
       }
     },
+    "/v1/follows/order": {
+      "put": {
+        "operationId": "reorder_follows_v1_follows_order_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderFollowsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FollowOut"
+                  },
+                  "title": "Response Reorder Follows V1 Follows Order Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reorder Follows",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
     "/v1/follows/sources": {
       "get": {
         "operationId": "list_source_follows_v1_follows_sources_get",
@@ -5641,6 +5770,175 @@
           }
         },
         "summary": "List Topics",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/v1/topics/{topic_id}/overview": {
+      "get": {
+        "operationId": "topic_overview_v1_topics__topic_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicOverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Topic Overview",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/v1/topics/{topic_id}/related": {
+      "get": {
+        "operationId": "topic_related_v1_topics__topic_id__related_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "title": "Topic Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RelatedTopicOut"
+                  },
+                  "title": "Response Topic Related V1 Topics  Topic Id  Related Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Topic Related",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/v1/topics/{topic_id}/stories": {
+      "get": {
+        "description": "My Desk's Timeline: this topic's own story clusters, most recently\nactive first - `StoryCluster.first_seen_at`/`last_seen_at` are what the\ntimeline plots, not an invented per-day rollup.",
+        "operationId": "topic_stories_v1_topics__topic_id__stories_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "title": "Topic Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StoryOut"
+                  },
+                  "title": "Response Topic Stories V1 Topics  Topic Id  Stories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Topic Stories",
         "tags": [
           "topics"
         ]
