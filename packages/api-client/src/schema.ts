@@ -175,6 +175,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Feedback */
+        get: operations["list_feedback_v1_admin_feedback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/ingest-runs": {
         parameters: {
             query?: never;
@@ -395,6 +412,23 @@ export interface paths {
         get: operations["get_feed_v1_feed_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Feedback */
+        post: operations["submit_feedback_v1_feedback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -931,6 +965,43 @@ export interface components {
             items: components["schemas"]["FeedItemOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /** FeedbackEntryOut */
+        FeedbackEntryOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Locale */
+            locale: string;
+            /** Message */
+            message: string;
+            /** Path */
+            path: string | null;
+            /** User Id */
+            user_id: string | null;
+        };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Locale */
+            locale: string;
+            /** Message */
+            message: string;
+            /** Path */
+            path?: string | null;
+        };
+        /** FeedbackOut */
+        FeedbackOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
         };
         /** FollowIn */
         FollowIn: {
@@ -1691,6 +1762,37 @@ export interface operations {
             };
         };
     };
+    list_feedback_v1_admin_feedback_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackEntryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_ingest_runs_v1_admin_ingest_runs_get: {
         parameters: {
             query?: {
@@ -2089,6 +2191,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeedPageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_feedback_v1_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-session-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"];
                 };
             };
             /** @description Validation Error */
