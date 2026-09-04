@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.justnews.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#f7f8f7",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -25,6 +26,15 @@
       "bundler": "metro",
       "output": "single"
     },
-    "plugins": ["expo-router", "expo-font"]
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b13eeca5-8c16-481e-9204-7f976e11b03d"
+      }
+    }
   }
 }
