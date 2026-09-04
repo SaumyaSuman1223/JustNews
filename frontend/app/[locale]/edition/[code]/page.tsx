@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { PageHeaderSkeleton } from "@/components/PageHeaderSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { getArticles, getEditions } from "@/lib/api";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
@@ -44,6 +46,22 @@ export default async function EditionPage({
   const active = getLocale(locale);
   const { cursor } = await searchParams;
 
+  return (
+    <Suspense key={cursor ?? "start"} fallback={<PageHeaderSkeleton />}>
+      <EditionBody locale={active.code} code={code} cursor={cursor} />
+    </Suspense>
+  );
+}
+
+async function EditionBody({
+  locale,
+  code,
+  cursor,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+  code: string;
+  cursor?: string;
+}) {
   const edition = await loadEdition(code);
   if (!edition) notFound();
 
@@ -66,7 +84,7 @@ export default async function EditionPage({
             site, and the old copy claimed the page was in whichever language
             the chrome happened to be in. */}
         <p>
-          {t(active.code, "edition.intro", {
+          {t(locale, "edition.intro", {
             name: edition.name,
             language:
               locales.find((option) => option.code === edition.language)?.label ??
@@ -77,33 +95,33 @@ export default async function EditionPage({
 
       {page.degraded && (
         <p className="notice" role="status">
-          {t(active.code, "edition.degraded")}
+          {t(locale, "edition.degraded")}
         </p>
       )}
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title={t(active.code, "edition.empty.title")}
-          body={t(active.code, "edition.empty.body")}
+          title={t(locale, "edition.empty.title")}
+          body={t(locale, "edition.empty.body")}
           action={{
-            href: `/${active.code}/explore`,
-            label: t(active.code, "feed.empty.action"),
+            href: `/${locale}/explore`,
+            label: t(locale, "feed.empty.action"),
           }}
         />
       ) : (
         <FeedList
           items={page.data.items.map((article) => ({ article }))}
-          locale={active.code}
+          locale={locale}
           surface="topic"
           signedIn={Boolean(session)}
-          revalidatePath={`/${active.code}/edition/${edition.code}`}
+          revalidatePath={`/${locale}/edition/${edition.code}`}
           aboveFold
         />
       )}
 
       <Pagination
-        locale={active.code}
-        baseHref={`/${active.code}/edition/${edition.code}`}
+        locale={locale}
+        baseHref={`/${locale}/edition/${edition.code}`}
         nextCursor={page.data.next_cursor}
         onLaterPage={Boolean(cursor)}
       />

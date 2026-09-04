@@ -19,6 +19,7 @@ from justnews_api.routers.content import ArticleOut
 from justnews_api.services import admin as service
 from justnews_api.services import invites as invites_service
 from justnews_api.services.auth import Principal
+from justnews_core.models import FeatureFlag
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
@@ -162,6 +163,42 @@ async def set_user_role(
     )
 
 
+class ActivityEntryOut(BaseModel):
+    kind: str
+    occurred_at: datetime
+    article_id: int
+    article_title: str
+    surface: str
+    position: int | None
+    ranking_policy: str | None
+    event_type: str | None
+
+
+@router.get("/users/{user_id}/activity", response_model=list[ActivityEntryOut])
+async def user_activity(
+    user_id: str,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_admin_session),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> list[ActivityEntryOut]:
+    entries = await service.get_user_activity(
+        session, admin_user_id=principal.user_id, target_user_id=UUID(user_id), limit=limit
+    )
+    return [
+        ActivityEntryOut(
+            kind=entry.kind,
+            occurred_at=entry.occurred_at,
+            article_id=entry.article_id,
+            article_title=entry.article_title,
+            surface=entry.surface,
+            position=entry.position,
+            ranking_policy=entry.ranking_policy,
+            event_type=entry.event_type,
+        )
+        for entry in entries
+    ]
+
+
 # --- analytics ----------------------------------------------------------------
 
 
@@ -244,6 +281,40 @@ async def weekly_active_users(
         session, window_weeks=window_weeks, locale=locale
     )
     return [ActiveUsersBucketOut(bucket=b.bucket, active_users=b.active_users) for b in buckets]
+
+
+class CohortWeekOut(BaseModel):
+    week_offset: int
+    active_users: int
+
+
+class RetentionCohortOut(BaseModel):
+    cohort_week: datetime
+    cohort_size: int
+    weeks: list[CohortWeekOut]
+
+
+@router.get("/analytics/retention", response_model=list[RetentionCohortOut])
+async def retention_cohorts(
+    session: AsyncSession = Depends(get_admin_session),
+    window_weeks: int = Query(default=12, ge=1, le=52),
+    max_weeks_since: int = Query(default=8, ge=1, le=26),
+    locale: str | None = Query(default=None),
+) -> list[RetentionCohortOut]:
+    cohorts = await service.get_retention_cohorts(
+        session, window_weeks=window_weeks, max_weeks_since=max_weeks_since, locale=locale
+    )
+    return [
+        RetentionCohortOut(
+            cohort_week=cohort.cohort_week,
+            cohort_size=cohort.cohort_size,
+            weeks=[
+                CohortWeekOut(week_offset=w.week_offset, active_users=w.active_users)
+                for w in cohort.weeks
+            ],
+        )
+        for cohort in cohorts
+    ]
 
 
 # --- taxonomy ---------------------------------------------------------------
@@ -419,3 +490,71 @@ async def list_feedback(
         )
         for entry in entries
     ]
+
+
+# --- feature flags ------------------------------------------------------
+
+
+class FeatureFlagOut(BaseModel):
+    key: str
+    enabled: bool
+    description: str
+    updated_by: str | None
+    updated_at: datetime
+
+
+class FeatureFlagCreateIn(BaseModel):
+    key: str
+    description: str
+    enabled: bool = False
+
+
+class FeatureFlagSetIn(BaseModel):
+    enabled: bool
+
+
+def _flag_out(flag: FeatureFlag) -> FeatureFlagOut:
+    return FeatureFlagOut(
+        key=flag.key,
+        enabled=flag.enabled,
+        description=flag.description,
+        updated_by=str(flag.updated_by) if flag.updated_by else None,
+        updated_at=flag.updated_at,
+    )
+
+
+@router.get("/feature-flags", response_model=list[FeatureFlagOut])
+async def list_feature_flags(
+    session: AsyncSession = Depends(get_admin_session),
+) -> list[FeatureFlagOut]:
+    flags = await service.list_feature_flags(session)
+    return [_flag_out(flag) for flag in flags]
+
+
+@router.post("/feature-flags", response_model=FeatureFlagOut, status_code=201)
+async def create_feature_flag(
+    body: FeatureFlagCreateIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_admin_session),
+) -> FeatureFlagOut:
+    flag = await service.create_feature_flag(
+        session,
+        admin_user_id=principal.user_id,
+        key=body.key,
+        description=body.description,
+        enabled=body.enabled,
+    )
+    return _flag_out(flag)
+
+
+@router.put("/feature-flags/{key}", response_model=FeatureFlagOut)
+async def set_feature_flag(
+    key: str,
+    body: FeatureFlagSetIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_admin_session),
+) -> FeatureFlagOut:
+    flag = await service.set_feature_flag(
+        session, admin_user_id=principal.user_id, key=key, enabled=body.enabled
+    )
+    return _flag_out(flag)

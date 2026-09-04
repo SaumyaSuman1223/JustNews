@@ -148,6 +148,67 @@ a {
   }
 }
 
+/* --- navigation feedback -------------------------------------------------
+ *
+ * See components/NavigationProgress.tsx for why this exists: the App Router
+ * gives no built-in signal that a click started a navigation, which is what
+ * made every link on this site feel unresponsive between the click and the
+ * next page appearing. `inline-size` (not `transform: scaleX`) is what this
+ * uses: transform-origin has no logical "start" keyword, so a scaled bar
+ * would grow from the reader's *left* even in RTL. `inset-inline-start: 0`
+ * plus animating width grows from the reading-start edge in both
+ * directions, for free, the same way every other rule in this file gets RTL
+ * correctness structurally rather than as a per-locale fix.
+ */
+
+.nav-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 0;
+  block-size: 2px;
+  background: var(--accent);
+  opacity: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.nav-progress[data-state="loading"] {
+  opacity: 1;
+  animation: nav-progress-sweep 8s var(--ease) forwards;
+}
+
+.nav-progress[data-state="done"] {
+  inline-size: 100%;
+  opacity: 1;
+  transition:
+    inline-size 200ms var(--ease),
+    opacity 300ms var(--ease) 150ms;
+}
+
+.nav-progress[data-state="idle"] {
+  inline-size: 0;
+  opacity: 0;
+}
+
+@keyframes nav-progress-sweep {
+  0% {
+    inline-size: 0;
+  }
+  20% {
+    inline-size: 35%;
+  }
+  50% {
+    inline-size: 58%;
+  }
+  80% {
+    inline-size: 75%;
+  }
+  100% {
+    inline-size: 82%;
+  }
+}
+
 /* --- layout ------------------------------------------------------------ */
 
 .shell {
@@ -173,6 +234,11 @@ a {
   font-size: 1.6rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.wordmark:active {
+  opacity: 0.6;
 }
 
 .wordmark span {
@@ -194,6 +260,11 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-muted);
+  transition: opacity var(--dur) var(--ease);
+}
+
+.locale-switcher a:active {
+  opacity: 0.6;
 }
 
 .locale-switcher a[aria-current="true"] {
@@ -310,11 +381,15 @@ a {
 }
 
 .card__title a {
-  transition: color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 
 .card__title a:hover {
   color: var(--accent);
+}
+
+.card__title a:active {
+  opacity: 0.6;
 }
 
 /* Clamped, because the snippet comes from whatever the publisher put in
@@ -544,12 +619,17 @@ a {
   transition:
     color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    background-color var(--dur) var(--ease);
+    background-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
 
 .card__action:hover {
   color: var(--text);
   border-color: var(--text-muted);
+}
+
+.card__action:active {
+  transform: scale(0.96);
 }
 
 .card__action[aria-pressed="true"] {
@@ -588,6 +668,10 @@ a {
   filter: brightness(1.08);
 }
 
+.button--primary:active {
+  filter: brightness(0.96);
+}
+
 .button--secondary {
   background: var(--surface);
   border-color: var(--border);
@@ -598,10 +682,20 @@ a {
   border-color: var(--text-muted);
 }
 
+.button--secondary:active {
+  background: var(--surface-sub);
+}
+
 .button {
   transition:
     border-color var(--dur) var(--ease),
-    filter var(--dur) var(--ease);
+    filter var(--dur) var(--ease),
+    background-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.button:active {
+  transform: scale(0.98);
 }
 
 .button:disabled {
@@ -738,10 +832,15 @@ a {
 
 .masthead-links a {
   color: var(--text-mid);
+  transition: color var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 
 .masthead-links a:hover {
   color: var(--text);
+}
+
+.masthead-links a:active {
+  opacity: 0.6;
 }
 
 .search-box {
@@ -822,12 +921,18 @@ a {
   border-radius: var(--radius);
   color: var(--text-mid);
   cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .account-menu__panel a:hover,
 .account-menu__panel button:hover {
   background: var(--surface-sub);
   color: var(--text);
+}
+
+.account-menu__panel a:active,
+.account-menu__panel button:active {
+  background: var(--border);
 }
 
 /* --- topic chips, lists --------------------------------------------------- */
@@ -857,12 +962,17 @@ a {
   transition:
     color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    background-color var(--dur) var(--ease);
+    background-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
 
 a.chip:hover {
   border-color: var(--text-muted);
   color: var(--text);
+}
+
+a.chip:active {
+  transform: scale(0.96);
 }
 
 .chip[aria-current="true"],
@@ -1162,11 +1272,16 @@ a.chip:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-mid);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease), background-color var(--dur) var(--ease);
 }
 
 .admin-nav a:hover {
   border-color: var(--text-muted);
   color: var(--text);
+}
+
+.admin-nav a:active {
+  background: var(--surface-sub);
 }
 
 .admin-table {
@@ -1426,10 +1541,15 @@ a.chip:hover {
   font-weight: 600;
   line-height: 1.35;
   text-wrap: balance;
+  transition: color var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 
 .trending__link:hover {
   color: var(--accent);
+}
+
+.trending__link:active {
+  opacity: 0.6;
 }
 
 .trending__meta {
@@ -1488,6 +1608,24 @@ a.chip:hover {
 
 .skeleton--mid {
   inline-size: 75%;
+}
+
+/* Sized against --type-lead's own line-height, for a page-header h1 that is
+   itself data-dependent (a topic or edition's name) rather than static copy -
+   see PageHeaderSkeleton.tsx. */
+.skeleton--lead-title {
+  block-size: 2rem;
+  inline-size: 40%;
+  margin-block-end: var(--space-2);
+}
+
+/* Matches .chip's own footprint - not tied to an individual chip's label
+   width, since that's exactly the thing the real chip has and the skeleton
+   doesn't know yet. */
+.skeleton--chip {
+  border-radius: 999px;
+  block-size: 1.85rem;
+  inline-size: 5.5rem;
 }
 
 /* Editorially interesting, not a problem: the accent rule rather than the

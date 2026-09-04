@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { getAdminUsers } from "@/lib/api";
 import { requireAdmin } from "@/lib/adminGuard";
 import { setUserRoleAction } from "@/lib/adminActions";
@@ -45,7 +47,7 @@ export default async function AdminUsersPage() {
                 </td>
                 <td>{user.preferred_languages.join(", ") || "—"}</td>
                 <td>{new Date(user.created_at).toLocaleDateString("en")}</td>
-                <td>
+                <td style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   <form action={setUserRoleAction} className="inline-form" style={{ margin: 0 }}>
                     <input type="hidden" name="userId" value={user.id} />
                     <input
@@ -57,6 +59,9 @@ export default async function AdminUsersPage() {
                       {user.role === "admin" ? "Demote" : "Promote"}
                     </button>
                   </form>
+                  <Link href={`/admin/users/${user.id}/activity`} className="card__action">
+                    Activity
+                  </Link>
                 </td>
               </tr>
             ))}

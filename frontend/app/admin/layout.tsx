@@ -1,7 +1,9 @@
 import "@/app/globals.css";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+
+import { NavigationProgress } from "@/components/NavigationProgress";
 
 export const metadata = { title: "Admin · JustNews" };
 
@@ -15,6 +17,7 @@ const NAV = [
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/invites", label: "Invites" },
   { href: "/admin/feedback", label: "Feedback" },
+  { href: "/admin/flags", label: "Flags" },
   { href: "/admin/audit-log", label: "Audit log" },
 ];
 
@@ -26,6 +29,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <div className="admin-shell">
           <header className="admin-header">
             <span className="wordmark">JustNews admin</span>

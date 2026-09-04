@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { PageHeaderSkeleton } from "@/components/PageHeaderSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { getArticles, getMe, getSaves, getTopics } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
@@ -43,6 +45,23 @@ export default async function TopicDetailPage({
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
   const { cursor } = await searchParams;
+
+  return (
+    <Suspense key={cursor ?? "start"} fallback={<PageHeaderSkeleton />}>
+      <TopicDetailBody locale={active.code} id={id} cursor={cursor} />
+    </Suspense>
+  );
+}
+
+async function TopicDetailBody({
+  locale,
+  id,
+  cursor,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+  id: string;
+  cursor?: string;
+}) {
   // The topic id contains a colon (medtop:01000000) - encoded when this page
   // is linked to, and not every router stage decodes it back automatically.
   const topicId = decodeURIComponent(id);
@@ -57,9 +76,9 @@ export default async function TopicDetailPage({
     // The topic label follows the interface, not the reader's content
     // languages: this heading names the section they are standing in. The
     // articles under it follow the reader.
-    getTopics(active.code),
+    getTopics(locale),
     getArticles({
-      languages: readerLanguages(profile?.preferred_languages, active.code),
+      languages: readerLanguages(profile?.preferred_languages, locale),
       topic: topicId,
       cursor,
       pageSize: 24,
@@ -79,11 +98,11 @@ export default async function TopicDetailPage({
 
       {articles.data.items.length === 0 ? (
         <EmptyState
-          title={t(active.code, "topics.empty.title", { topic: topic.label })}
-          body={t(active.code, "topics.empty.body")}
+          title={t(locale, "topics.empty.title", { topic: topic.label })}
+          body={t(locale, "topics.empty.body")}
           action={{
-            href: `/${active.code}/topics`,
-            label: t(active.code, "topics.allTopics"),
+            href: `/${locale}/topics`,
+            label: t(locale, "topics.allTopics"),
           }}
         />
       ) : (
@@ -92,17 +111,17 @@ export default async function TopicDetailPage({
             article,
             saved: savedIds.has(article.id),
           }))}
-          locale={active.code}
+          locale={locale}
           surface="topic"
           signedIn={Boolean(session)}
-          revalidatePath={`/${active.code}/topics/${id}`}
+          revalidatePath={`/${locale}/topics/${id}`}
           aboveFold
         />
       )}
 
       <Pagination
-        locale={active.code}
-        baseHref={`/${active.code}/topics/${id}`}
+        locale={locale}
+        baseHref={`/${locale}/topics/${id}`}
         nextCursor={articles.data.next_cursor}
         onLaterPage={Boolean(cursor)}
       />

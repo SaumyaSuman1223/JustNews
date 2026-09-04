@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
@@ -64,6 +65,9 @@ export default async function LocaleLayout({
     // thing standing between us and a stylesheet fork for Arabic.
     <html lang={active.htmlLang} dir={active.dir}>
       <body>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <a className="skip-link" href="#main">
           {t(active.code, "skip.toContent")}
         </a>
