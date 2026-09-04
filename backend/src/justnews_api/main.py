@@ -22,6 +22,7 @@ from justnews_api.routers import (
     health,
     interactions,
     invites,
+    issues,
     me,
     saves,
     search,
@@ -98,6 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(content.router)
     app.include_router(feed.router)
     app.include_router(explore.router)
+    app.include_router(issues.router)
     app.include_router(exploration_deck.router)
     app.include_router(me.router)
     app.include_router(saves.router)

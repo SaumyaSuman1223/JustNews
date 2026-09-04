@@ -626,6 +626,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Editions
+         * @description The day's editions - morning, midday, evening - for the selector.
+         */
+        get: operations["list_editions_v1_issues_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/issues/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Latest Issue
+         * @description The current edition of The Aquila Tribune, or null.
+         *
+         *     Null is an ordinary response, not an error: before a locale's first
+         *     edition, after a thin-corpus skip, or with the flag off. A publication
+         *     that has not published yet is a real state, and 404 would make the client
+         *     treat it as a fault.
+         */
+        get: operations["get_latest_issue_v1_issues_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/issues/{issue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Issue
+         * @description One issue by id, including a back issue still inside the retention
+         *     window - the archive ADR 0012 buys by freezing composition.
+         */
+        get: operations["get_issue_v1_issues__issue_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/issues/{issue_id}/pages/{page_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Issue Page
+         * @description One page of an issue, with its articles.
+         *
+         *     Not behind the beta gate or `require_user`: Aquila is the same paper for
+         *     everyone, and a signed-out reader is exactly who it is for. Impressions
+         *     are logged against the browsing session, and only with consent - an
+         *     unconsented reader generates no rows at all rather than rows keyed on a
+         *     throwaway id, the same rule /v1/explore follows.
+         */
+        get: operations["get_issue_page_v1_issues__issue_id__pages__page_no__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -1087,19 +1179,6 @@ export interface components {
             /** Cards */
             cards: components["schemas"]["DeckCardOut"][];
         };
-        /** EditionOut */
-        EditionOut: {
-            /** Code */
-            code: string;
-            /** Country */
-            country: string | null;
-            /** Is Default */
-            is_default: boolean;
-            /** Language */
-            language: string;
-            /** Name */
-            name: string;
-        };
         /** FeatureFlagCreateIn */
         FeatureFlagCreateIn: {
             /** Description */
@@ -1297,6 +1376,38 @@ export interface components {
             /** Uses */
             uses: number;
         };
+        /**
+         * IssueOut
+         * @description An issue's masthead and contents. No article content - a page is a
+         *     separate request, because a reader turns to one page at a time and
+         *     shipping twelve pages of articles to render one is the wrong trade.
+         */
+        IssueOut: {
+            /** Edition Slot */
+            edition_slot: string;
+            /** Id */
+            id: number;
+            /** Locale */
+            locale: string;
+            /** Number */
+            number: number;
+            /** Page Count */
+            page_count: number;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /**
+             * Published On
+             * Format: date
+             */
+            published_on: string;
+            /** Sections */
+            sections: components["schemas"]["SectionOut"][];
+            /** Volume */
+            volume: number;
+        };
         /** LanguageCoverageOut */
         LanguageCoverageOut: {
             /** Article Count */
@@ -1359,6 +1470,17 @@ export interface components {
             article_id: number;
             /** Surface */
             surface: string;
+        };
+        /** PageOut */
+        PageOut: {
+            /** Page No */
+            page_no: number;
+            /** Slots */
+            slots: components["schemas"]["SlotOut"][];
+            /** Title */
+            title: string | null;
+            /** Topic Id */
+            topic_id: string | null;
         };
         /** RankingPolicyCtrOut */
         RankingPolicyCtrOut: {
@@ -1438,6 +1560,15 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** SectionOut */
+        SectionOut: {
+            /** Page No */
+            page_no: number;
+            /** Title */
+            title: string | null;
+            /** Topic Id */
+            topic_id: string | null;
+        };
         /** SetRoleIn */
         SetRoleIn: {
             /** Role */
@@ -1451,6 +1582,16 @@ export interface components {
             surface: string;
             /** Topic Id */
             topic_id?: string | null;
+        };
+        /** SlotOut */
+        SlotOut: {
+            article: components["schemas"]["ArticleOut"];
+            /** Impression Id */
+            impression_id: number | null;
+            /** Position */
+            position: number;
+            /** Role */
+            role: string;
         };
         /** SourceFollowIn */
         SourceFollowIn: {
@@ -1623,6 +1764,40 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** EditionOut */
+        justnews_api__routers__content__EditionOut: {
+            /** Code */
+            code: string;
+            /** Country */
+            country: string | null;
+            /** Is Default */
+            is_default: boolean;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+        };
+        /** EditionOut */
+        justnews_api__routers__issues__EditionOut: {
+            /** Edition Slot */
+            edition_slot: string;
+            /** Id */
+            id: number;
+            /** Number */
+            number: number;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /**
+             * Published On
+             * Format: date
+             */
+            published_on: string;
+            /** Volume */
+            volume: number;
         };
     };
     responses: never;
@@ -2468,7 +2643,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EditionOut"][];
+                    "application/json": components["schemas"]["justnews_api__routers__content__EditionOut"][];
                 };
             };
             /** @description Validation Error */
@@ -2877,6 +3052,140 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_editions_v1_issues_get: {
+        parameters: {
+            query?: {
+                locale?: string;
+                /** @description Defaults to the latest issue's day. */
+                on?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["justnews_api__routers__issues__EditionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_issue_v1_issues_latest_get: {
+        parameters: {
+            query?: {
+                locale?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_issue_v1_issues__issue_id__get: {
+        parameters: {
+            query?: {
+                locale?: string;
+            };
+            header?: never;
+            path: {
+                issue_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_issue_page_v1_issues__issue_id__pages__page_no__get: {
+        parameters: {
+            query?: {
+                locale?: string;
+            };
+            header?: {
+                "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
+            };
+            path: {
+                issue_id: number;
+                page_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -528,46 +528,6 @@
         "title": "DeckOut",
         "type": "object"
       },
-      "EditionOut": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "country": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Country"
-          },
-          "is_default": {
-            "title": "Is Default",
-            "type": "boolean"
-          },
-          "language": {
-            "title": "Language",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "name",
-          "language",
-          "country",
-          "is_default"
-        ],
-        "title": "EditionOut",
-        "type": "object"
-      },
       "FeatureFlagCreateIn": {
         "properties": {
           "description": {
@@ -1100,6 +1060,65 @@
         "title": "InviteOut",
         "type": "object"
       },
+      "IssueOut": {
+        "description": "An issue's masthead and contents. No article content - a page is a\nseparate request, because a reader turns to one page at a time and\nshipping twelve pages of articles to render one is the wrong trade.",
+        "properties": {
+          "edition_slot": {
+            "title": "Edition Slot",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "published_on": {
+            "format": "date",
+            "title": "Published On",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "locale",
+          "edition_slot",
+          "published_at",
+          "published_on",
+          "volume",
+          "number",
+          "page_count",
+          "sections"
+        ],
+        "title": "IssueOut",
+        "type": "object"
+      },
       "LanguageCoverageOut": {
         "properties": {
           "article_count": {
@@ -1253,6 +1272,51 @@
           "surface"
         ],
         "title": "NotInterestedIn",
+        "type": "object"
+      },
+      "PageOut": {
+        "properties": {
+          "page_no": {
+            "title": "Page No",
+            "type": "integer"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/SlotOut"
+            },
+            "title": "Slots",
+            "type": "array"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "page_no",
+          "topic_id",
+          "title",
+          "slots"
+        ],
+        "title": "PageOut",
         "type": "object"
       },
       "RankingPolicyCtrOut": {
@@ -1470,6 +1534,43 @@
         "title": "SearchPageOut",
         "type": "object"
       },
+      "SectionOut": {
+        "properties": {
+          "page_no": {
+            "title": "Page No",
+            "type": "integer"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "page_no",
+          "topic_id",
+          "title"
+        ],
+        "title": "SectionOut",
+        "type": "object"
+      },
       "SetRoleIn": {
         "properties": {
           "role": {
@@ -1510,6 +1611,40 @@
           "surface"
         ],
         "title": "ShareIn",
+        "type": "object"
+      },
+      "SlotOut": {
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/ArticleOut"
+          },
+          "impression_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impression Id"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "role",
+          "article",
+          "impression_id"
+        ],
+        "title": "SlotOut",
         "type": "object"
       },
       "SourceFollowIn": {
@@ -1954,6 +2089,86 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "justnews_api__routers__content__EditionOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "language",
+          "country",
+          "is_default"
+        ],
+        "title": "EditionOut",
+        "type": "object"
+      },
+      "justnews_api__routers__issues__EditionOut": {
+        "properties": {
+          "edition_slot": {
+            "title": "Edition Slot",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "published_on": {
+            "format": "date",
+            "title": "Published On",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "edition_slot",
+          "published_at",
+          "published_on",
+          "volume",
+          "number"
+        ],
+        "title": "EditionOut",
         "type": "object"
       }
     },
@@ -3508,7 +3723,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/EditionOut"
+                    "$ref": "#/components/schemas/justnews_api__routers__content__EditionOut"
                   },
                   "title": "Response Editions V1 Editions Get",
                   "type": "array"
@@ -4340,6 +4555,295 @@
         "summary": "Redeem Invite",
         "tags": [
           "invites"
+        ]
+      }
+    },
+    "/v1/issues": {
+      "get": {
+        "description": "The day's editions - morning, midday, evening - for the selector.",
+        "operationId": "list_editions_v1_issues_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Defaults to the latest issue's day.",
+            "in": "query",
+            "name": "on",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the latest issue's day.",
+              "title": "On"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/justnews_api__routers__issues__EditionOut"
+                  },
+                  "title": "Response List Editions V1 Issues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Editions",
+        "tags": [
+          "aquila"
+        ]
+      }
+    },
+    "/v1/issues/latest": {
+      "get": {
+        "description": "The current edition of The Aquila Tribune, or null.\n\nNull is an ordinary response, not an error: before a locale's first\nedition, after a thin-corpus skip, or with the flag off. A publication\nthat has not published yet is a real state, and 404 would make the client\ntreat it as a fault.",
+        "operationId": "get_latest_issue_v1_issues_latest_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/IssueOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Latest Issue V1 Issues Latest Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Latest Issue",
+        "tags": [
+          "aquila"
+        ]
+      }
+    },
+    "/v1/issues/{issue_id}": {
+      "get": {
+        "description": "One issue by id, including a back issue still inside the retention\nwindow - the archive ADR 0012 buys by freezing composition.",
+        "operationId": "get_issue_v1_issues__issue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Issue Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Issue",
+        "tags": [
+          "aquila"
+        ]
+      }
+    },
+    "/v1/issues/{issue_id}/pages/{page_no}": {
+      "get": {
+        "description": "One page of an issue, with its articles.\n\nNot behind the beta gate or `require_user`: Aquila is the same paper for\neveryone, and a signed-out reader is exactly who it is for. Impressions\nare logged against the browsing session, and only with consent - an\nunconsented reader generates no rows at all rather than rows keyed on a\nthrowaway id, the same rule /v1/explore follows.",
+        "operationId": "get_issue_page_v1_issues__issue_id__pages__page_no__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Issue Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page_no",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Page No",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Issue Page",
+        "tags": [
+          "aquila"
         ]
       }
     },
