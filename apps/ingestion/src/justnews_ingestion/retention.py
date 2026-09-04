@@ -17,7 +17,7 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.logging import get_logger
-from justnews_core.models import Article, StoryCluster
+from justnews_core.models import Article, Issue, IssuePage, IssueSlot, StoryCluster
 from justnews_core.settings import Settings
 
 log = get_logger(__name__)
@@ -28,6 +28,7 @@ class PruneResult:
     cutoff: datetime
     articles_deleted: int
     clusters_deleted: int
+    issues_deleted: int = 0
 
 
 async def prune(
@@ -47,12 +48,29 @@ async def prune(
         delete(StoryCluster).where(StoryCluster.id.in_(orphan_clusters))
     )
 
-    result = PruneResult(cutoff, articles.rowcount or 0, clusters.rowcount or 0)
+    # An issue whose articles have aged out has nothing left to render - the
+    # slots cascaded away with them. Aquila's archive is therefore bounded by
+    # the retention window, and this is what stops it offering a back issue
+    # that would open blank.
+    empty_issues = select(Issue.id).where(
+        ~select(IssueSlot.id)
+        .join(IssuePage, IssuePage.id == IssueSlot.page_id)
+        .where(IssuePage.issue_id == Issue.id)
+        .exists()
+    )
+    issues: CursorResult[Any] = await session.execute(  # type: ignore[assignment]
+        delete(Issue).where(Issue.id.in_(empty_issues))
+    )
+
+    result = PruneResult(
+        cutoff, articles.rowcount or 0, clusters.rowcount or 0, issues.rowcount or 0
+    )
     log.info(
         "retention_pruned",
         cutoff=cutoff.isoformat(),
         articles_deleted=result.articles_deleted,
         clusters_deleted=result.clusters_deleted,
+        issues_deleted=result.issues_deleted,
     )
     return result
 

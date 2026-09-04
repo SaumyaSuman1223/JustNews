@@ -1,0 +1,66 @@
+name: aquila
+
+# The Aquila Tribune publishes three times a day (ADR 0012). Each run composes
+# one edition per locale and freezes it: an issue is an artifact, not a view,
+# so this is the only thing that ever decides what Aquila shows.
+#
+# A separate workflow from `ingest`, not a branch inside it. The ingest cron
+# runs every fifteen minutes and is the Supabase keep-alive; folding a
+# thrice-daily job into it would mean either 96 runs a day checking whether
+# they are the publishing one, or a schedule that serves neither purpose well.
+# They also fail differently: a missed ingest run is invisible, a missed
+# edition is a paper that does not exist.
+on:
+  schedule:
+    # 06:00, 14:00 and 22:00 UTC, offset by seven minutes for the same reason
+    # ingest.yml is - GitHub's own docs name the exact hour as the most
+    # congested scheduling window on public repos, and a late edition is worse
+    # here than a late feed poll.
+    - cron: "7 6,14,22 * * *"
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: Which edition to compose (defaults to the most recent publish time)
+        type: choice
+        options: ["", morning, midday, evening]
+        default: ""
+      locales:
+        description: Comma-separated locales to compose
+        type: string
+        default: en,es,hi
+
+concurrency:
+  # Two runs composing the same edition would race on the unique constraint;
+  # one would fail rather than corrupt anything, but a red workflow for a
+  # duplicate schedule trigger is noise, not signal.
+  group: aquila
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # No embeddings extra and no model cache: composition is a selection
+      # over articles that were embedded when they were ingested. Nothing here
+      # runs a model, which is why this job starts in seconds rather than the
+      # minutes a cold ingest run takes.
+      - name: Install the ingestion CLI
+        run: uv sync --frozen --package justnews-ingestion --dev
+
+      - name: Compose the edition
+        run: |
+          uv run justnews-ingest compose-aquila \
+            ${{ inputs.slot && format('--slot {0}', inputs.slot) || '' }} \
+            --locales "${{ inputs.locales || 'en,es,hi' }}"

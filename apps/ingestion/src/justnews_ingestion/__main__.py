@@ -21,6 +21,7 @@ from justnews_core.embedding import build_embedder
 from justnews_core.logging import configure_logging, get_logger
 from justnews_core.settings import get_settings
 from justnews_ingestion import retention
+from justnews_ingestion.aquila import compose_issue, current_slot
 from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.gnews import get_quota, search
 from justnews_ingestion.pipeline import run_ingestion
@@ -82,6 +83,7 @@ async def _cmd_prune(_: argparse.Namespace) -> int:
         "cutoff": result.cutoff,
         "articles_deleted": result.articles_deleted,
         "clusters_deleted": result.clusters_deleted,
+        "issues_deleted": result.issues_deleted,
         "articles_remaining": articles,
         "database_bytes": size,
         "free_tier_fraction": round(fraction, 3),
@@ -93,6 +95,27 @@ async def _cmd_prune(_: argparse.Namespace) -> int:
         )
         log.warning("database_size_alert", fraction=round(fraction, 3), bytes=size)
     _print(payload)
+    return 0
+
+
+async def _cmd_compose_aquila(args: argparse.Namespace) -> int:
+    """Publish one edition of The Aquila Tribune, per locale.
+
+    Composes for every launch locale in one run: the three publish windows
+    are shared, and a paper missing in Spanish because its own workflow run
+    failed is a worse outcome than one run that reports per-locale results.
+    A locale whose corpus is too thin is skipped, not failed - see
+    `compose_issue`.
+    """
+    slot = args.slot or current_slot()
+    results = []
+    async with session_scope() as session:
+        for locale in args.locales.split(","):
+            locale = locale.strip()
+            if not locale:
+                continue
+            results.append(asdict(await compose_issue(session, locale=locale, edition_slot=slot)))
+    _print({"edition_slot": slot, "issues": results})
     return 0
 
 
@@ -160,6 +183,17 @@ def build_parser() -> argparse.ArgumentParser:
         "retire-languages",
         help="deactivate sources and feeds for languages this product no longer ships",
     )
+    aquila = sub.add_parser(
+        "compose-aquila", help="publish one edition of The Aquila Tribune per locale"
+    )
+    aquila.add_argument(
+        "--slot",
+        default=None,
+        choices=["morning", "midday", "evening"],
+        help="which edition; defaults to whichever publish time most recently passed",
+    )
+    aquila.add_argument("--locales", default="en,es,hi", help="comma-separated locales to compose")
+
     sub.add_parser("prune", help="apply the retention window and report database size")
     sub.add_parser("stats", help="corpus size, language spread and quota usage")
 
@@ -177,6 +211,7 @@ _COMMANDS = {
     "reclassify": _cmd_reclassify,
     "retire-languages": _cmd_retire_languages,
     "prune": _cmd_prune,
+    "compose-aquila": _cmd_compose_aquila,
     "stats": _cmd_stats,
     "gnews": _cmd_gnews,
 }
