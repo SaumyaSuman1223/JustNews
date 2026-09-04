@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from justnews_api.repositories.content import ArticleRow
 
@@ -27,6 +27,12 @@ FOLLOWED_TOPIC_BOOST = 1.6
 POPULARITY_WEIGHT = 0.35
 SOURCE_TRUST_FLOOR = 0.5  # a low-trust source is deprioritised, never zeroed out
 MMR_LAMBDA = 0.7  # relevance vs diversity trade-off
+
+# How far back "recent" reaches for the popularity signal (recent_click_counts).
+# Lives here, not in feed.py, so services.exploration_deck can share it
+# without importing feed.py (which itself imports exploration_deck for the
+# feed-wide exploration mix - a cycle this avoids).
+POPULARITY_WINDOW = timedelta(days=7)
 
 
 @dataclass(frozen=True, slots=True)

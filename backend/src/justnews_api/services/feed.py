@@ -58,7 +58,6 @@ HEURISTIC_RANKER_FLAG = "heuristic_ranker"
 # request (see services.ranking - both passes are near-linear in this size).
 CANDIDATE_POOL_SIZE = 200
 SEEN_WINDOW = timedelta(days=14)
-POPULARITY_WINDOW = timedelta(days=7)
 
 HEURISTIC_POLICY = "heuristic_v1"
 CHRONOLOGICAL_POLICY = "chronological"
@@ -235,7 +234,7 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
     # SQLAlchemy does not support issuing concurrent queries on.
     topic_ids_by_article = await ranking_repo.topic_ids_by_article(session, candidate_ids)
     click_counts = await ranking_repo.recent_click_counts(
-        session, candidate_ids, since=now - POPULARITY_WINDOW
+        session, candidate_ids, since=now - ranking.POPULARITY_WINDOW
     )
     followed_topic_ids = await follows_repo.list_followed_topic_ids(session, request.user_id)
     seen_ids = await ranking_repo.seen_article_ids(

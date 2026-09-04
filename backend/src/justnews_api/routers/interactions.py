@@ -21,6 +21,9 @@ class ClickIn(BaseModel):
     surface: str
     position: int | None = None
     impression_id: int | None = None
+    # Only ever sent by the exploration deck (surface="onboarding") - see
+    # services.exploration_deck.record_deck_engagement.
+    topic_id: str | None = None
 
 
 class NotInterestedIn(BaseModel):
@@ -31,6 +34,7 @@ class NotInterestedIn(BaseModel):
 class ShareIn(BaseModel):
     article_id: int
     surface: str
+    topic_id: str | None = None
 
 
 class HistoryOut(BaseModel):
@@ -58,6 +62,7 @@ async def report_click(
         surface=body.surface,
         position=body.position,
         impression_id=body.impression_id,
+        topic_id=body.topic_id,
     )
 
 
@@ -109,6 +114,7 @@ async def report_share(
         session_id=x_session_id or UNCONSENTED_SESSION,
         article_id=body.article_id,
         surface=body.surface,
+        topic_id=body.topic_id,
     )
 
 
