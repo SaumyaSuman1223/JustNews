@@ -1,5 +1,10 @@
-import type { ActiveUsersBucket } from "@/lib/api";
-import { getAnalyticsOverview, getDailyActiveUsers, getWeeklyActiveUsers } from "@/lib/api";
+import type { ActiveUsersBucket, RetentionCohort } from "@/lib/api";
+import {
+  getAnalyticsOverview,
+  getDailyActiveUsers,
+  getRetentionCohorts,
+  getWeeklyActiveUsers,
+} from "@/lib/api";
 import { requireAdmin } from "@/lib/adminGuard";
 
 export const metadata = { title: "Analytics · Admin" };
@@ -43,14 +48,53 @@ function ActiveUsersChart({ buckets, dateStyle }: { buckets: ActiveUsersBucket[]
   );
 }
 
+function RetentionTable({ cohorts }: { cohorts: RetentionCohort[] }) {
+  const maxOffset = Math.max(0, ...cohorts.flatMap((c) => c.weeks.map((w) => w.week_offset)));
+  const offsets = Array.from({ length: maxOffset + 1 }, (_, i) => i);
+
+  return (
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Cohort week</th>
+            <th>Size</th>
+            {offsets.map((offset) => (
+              <th key={offset}>+{offset}w</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {cohorts.map((cohort) => {
+            const byOffset = new Map(cohort.weeks.map((w) => [w.week_offset, w.active_users]));
+            return (
+              <tr key={cohort.cohort_week}>
+                <td>{new Date(cohort.cohort_week).toLocaleDateString("en")}</td>
+                <td>{cohort.cohort_size}</td>
+                {offsets.map((offset) => {
+                  const active = byOffset.get(offset);
+                  const pct = active !== undefined ? Math.round((active / cohort.cohort_size) * 100) : null;
+                  return <td key={offset}>{pct === null ? "—" : `${pct}%`}</td>;
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {cohorts.length === 0 && <p className="empty">No cohorts in this window yet.</p>}
+    </div>
+  );
+}
+
 export default async function AdminAnalyticsPage() {
   const access = await requireAdmin();
   if (!access.ok) return access.element;
 
-  const [overview, dau, wau] = await Promise.all([
+  const [overview, dau, wau, retention] = await Promise.all([
     getAnalyticsOverview(access.auth),
     getDailyActiveUsers(access.auth),
     getWeeklyActiveUsers(access.auth),
+    getRetentionCohorts(access.auth),
   ]);
 
   return (
@@ -66,6 +110,14 @@ export default async function AdminAnalyticsPage() {
 
       <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem" }}>Weekly active users</h2>
       <ActiveUsersChart buckets={wau} dateStyle="week" />
+
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem" }}>Retention</h2>
+      <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+        Cohorts are the week a reader redeemed their invite, not account creation. Every cell is
+        a percentage of that cohort&rsquo;s own size, shown next to it so a small cohort
+        doesn&rsquo;t read as more meaningful than it is.
+      </p>
+      <RetentionTable cohorts={retention} />
 
       <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem" }}>
         Experiment: heuristic ranker vs chronological

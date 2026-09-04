@@ -57,3 +57,19 @@ export async function setArticleTopicsAction(articleId: number, formData: FormDa
   await api.setArticleTopics(auth, articleId, { topicIds, primaryTopicId });
   revalidatePath(`/admin/articles/${articleId}/topics`);
 }
+
+export async function createFeatureFlagAction(formData: FormData): Promise<void> {
+  const auth = await adminAuthOrNull();
+  if (!auth) return;
+  const key = String(formData.get("key") ?? "");
+  const description = String(formData.get("description") ?? "");
+  await api.createFeatureFlag(auth, { key, description, enabled: false });
+  revalidatePath("/admin/flags");
+}
+
+export async function setFeatureFlagAction(key: string, enabled: boolean): Promise<void> {
+  const auth = await adminAuthOrNull();
+  if (!auth) return;
+  await api.setFeatureFlag(auth, key, enabled);
+  revalidatePath("/admin/flags");
+}

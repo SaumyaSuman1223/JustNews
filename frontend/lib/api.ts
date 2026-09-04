@@ -61,6 +61,9 @@ export type AdminTopic = components["schemas"]["AdminTopicOut"];
 export type ArticleTopic = components["schemas"]["ArticleTopicOut"];
 export type ActiveUsersBucket = components["schemas"]["ActiveUsersBucketOut"];
 export type FeedbackEntry = components["schemas"]["FeedbackEntryOut"];
+export type FeatureFlag = components["schemas"]["FeatureFlagOut"];
+export type RetentionCohort = components["schemas"]["RetentionCohortOut"];
+export type ActivityEntry = components["schemas"]["ActivityEntryOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -581,6 +584,52 @@ export async function getWeeklyActiveUsers(auth: AuthContext): Promise<ActiveUse
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? [];
+}
+
+export async function getRetentionCohorts(auth: AuthContext): Promise<RetentionCohort[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/analytics/retention", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getUserActivity(auth: AuthContext, userId: string): Promise<ActivityEntry[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/users/{user_id}/activity", {
+    params: { path: { user_id: userId } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getFeatureFlags(auth: AuthContext): Promise<FeatureFlag[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/feature-flags", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function createFeatureFlag(
+  auth: AuthContext,
+  params: { key: string; description: string; enabled: boolean },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/admin/feature-flags", {
+    body: { key: params.key, description: params.description, enabled: params.enabled },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+export async function setFeatureFlag(
+  auth: AuthContext,
+  key: string,
+  enabled: boolean,
+): Promise<boolean> {
+  const { error } = await authedClient(auth).PUT("/v1/admin/feature-flags/{key}", {
+    params: { path: { key } },
+    body: { enabled },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
 }
 
 export async function getAdminTopics(
