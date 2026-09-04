@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import Select, func, select, tuple_
+from sqlalchemy import Select, delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.language import tsvector_config
@@ -20,6 +20,7 @@ from justnews_core.models import (
     InteractionEvent,
     Source,
     StoryCluster,
+    Topic,
 )
 
 
@@ -189,6 +190,48 @@ async def get_articles_by_id(
         return {}
     result = await session.execute(_base_query().where(Article.id.in_(set(article_ids))))
     return {article.id: ArticleRow.from_pair(article, source) for article, source in result.all()}
+
+
+async def get_article_topics(session: AsyncSession, article_id: int) -> list[tuple[Topic, bool]]:
+    result = await session.execute(
+        select(Topic, ArticleTopic.is_primary)
+        .join(ArticleTopic, ArticleTopic.topic_id == Topic.id)
+        .where(ArticleTopic.article_id == article_id)
+        .order_by(ArticleTopic.is_primary.desc(), Topic.id)
+    )
+    return list(result.tuples().all())
+
+
+async def set_article_topics(
+    session: AsyncSession, article_id: int, assignments: list[tuple[str, bool]]
+) -> None:
+    """Full replace, not a diff - the same posture the onboarding topic
+    picker's own submit already takes toward a checked-box set, and the one
+    that lets the editor enforce "never leave an article with zero topics"
+    as a single invariant on the replacement set rather than reasoning
+    about adds and removes separately.
+
+    Stable against ingestion's own backfill: `classify.py`'s backfill only
+    ever touches articles with zero `article_topics` rows (an
+    `on_conflict_do_nothing` insert), so a manual override here is never
+    silently reclassified - the one case that *would* look untagged to the
+    backfill (deleting every topic) is exactly what the caller's
+    zero-topic rejection exists to prevent.
+    """
+    await session.execute(delete(ArticleTopic).where(ArticleTopic.article_id == article_id))
+    session.add_all(
+        [
+            ArticleTopic(
+                article_id=article_id,
+                topic_id=topic_id,
+                is_primary=is_primary,
+                confidence=1.0,
+                assigned_by="manual",
+            )
+            for topic_id, is_primary in assignments
+        ]
+    )
+    await session.flush()
 
 
 async def search_articles(

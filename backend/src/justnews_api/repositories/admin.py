@@ -140,6 +140,49 @@ async def active_user_count(session: AsyncSession, since: datetime) -> int:
     return result.scalar() or 0
 
 
+async def _active_users_by_bucket(
+    session: AsyncSession, since: datetime, granularity: str, *, locale: str | None
+) -> list[dict[str, Any]]:
+    """Shared by the DAU and WAU queries - a UNION of impressed and interacted
+    (user_id, bucket) pairs, the same double-counting guard as
+    ``active_user_count``, just grouped by bucket instead of collapsed to one
+    total."""
+    impressed = select(
+        func.date_trunc(granularity, Impression.served_at).label("bucket"),
+        Impression.user_id.label("user_id"),
+    ).where(Impression.user_id.is_not(None), Impression.served_at >= since)
+    interacted = select(
+        func.date_trunc(granularity, InteractionEvent.created_at).label("bucket"),
+        InteractionEvent.user_id.label("user_id"),
+    ).where(InteractionEvent.user_id.is_not(None), InteractionEvent.created_at >= since)
+    if locale:
+        impressed = impressed.where(Impression.locale == locale)
+        interacted = interacted.where(InteractionEvent.locale == locale)
+    subquery = impressed.union(interacted).subquery()
+    query = (
+        select(subquery.c.bucket, func.count(func.distinct(subquery.c.user_id)))
+        .group_by(subquery.c.bucket)
+        .order_by(subquery.c.bucket)
+    )
+    rows = await session.execute(query)
+    return [{"bucket": row[0], "active_users": row[1]} for row in rows]
+
+
+async def active_users_by_day(
+    session: AsyncSession, since: datetime, *, locale: str | None = None
+) -> list[dict[str, Any]]:
+    return await _active_users_by_bucket(session, since, "day", locale=locale)
+
+
+async def active_users_by_week(
+    session: AsyncSession, since: datetime, *, locale: str | None = None
+) -> list[dict[str, Any]]:
+    # Fixed weekly buckets (date_trunc('week', ...)), not a rolling 7-day
+    # count - a true rolling WAU needs a correlated subquery per day, which
+    # is more machinery than beta-scale traffic currently justifies.
+    return await _active_users_by_bucket(session, since, "week", locale=locale)
+
+
 async def ctr_by_surface(
     session: AsyncSession, since: datetime, *, locale: str | None = None
 ) -> list[dict[str, Any]]:

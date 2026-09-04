@@ -17,9 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import admin as repo
 from justnews_api.repositories import content as content_repo
+from justnews_api.repositories import topics as topics_repo
 from justnews_api.repositories import users as users_repo
+from justnews_api.services.topics import label_for
 from justnews_core.errors import NotFoundError, ValidationError
-from justnews_core.models import AdminAuditLog, IngestRun, UserProfile
+from justnews_core.models import AdminAuditLog, IngestRun, Topic, UserProfile
 
 MAX_TAKEDOWN_REASON_LENGTH = 500
 VALID_ROLES = ("reader", "admin")
@@ -131,3 +133,111 @@ async def get_analytics_overview(
 
 async def list_audit_log(session: AsyncSession, *, limit: int = 100) -> list[AdminAuditLog]:
     return await repo.list_audit_log(session, limit=limit)
+
+
+@dataclass(frozen=True, slots=True)
+class ActiveUsersBucket:
+    bucket: datetime
+    active_users: int
+
+
+async def get_active_users_by_day(
+    session: AsyncSession, *, window_days: int = 30, locale: str | None = None
+) -> list[ActiveUsersBucket]:
+    if not 1 <= window_days <= 90:
+        raise ValidationError("window_days must be between 1 and 90.")
+    since = datetime.now(UTC) - timedelta(days=window_days)
+    rows = await repo.active_users_by_day(session, since, locale=locale)
+    return [
+        ActiveUsersBucket(bucket=row["bucket"], active_users=row["active_users"]) for row in rows
+    ]
+
+
+async def get_active_users_by_week(
+    session: AsyncSession, *, window_weeks: int = 12, locale: str | None = None
+) -> list[ActiveUsersBucket]:
+    if not 1 <= window_weeks <= 52:
+        raise ValidationError("window_weeks must be between 1 and 52.")
+    since = datetime.now(UTC) - timedelta(weeks=window_weeks)
+    rows = await repo.active_users_by_week(session, since, locale=locale)
+    return [
+        ActiveUsersBucket(bucket=row["bucket"], active_users=row["active_users"]) for row in rows
+    ]
+
+
+@dataclass(frozen=True, slots=True)
+class TopicWithCount:
+    topic: Topic
+    label: str
+    article_count: int
+
+
+async def list_topics_for_admin(
+    session: AsyncSession,
+    *,
+    parent: str | None,
+    query: str | None,
+    language: str,
+) -> list[TopicWithCount]:
+    topics = (
+        await topics_repo.search_topics(session, query=query, language=language, limit=50)
+        if query
+        else await topics_repo.list_children(session, parent)
+    )
+    counts = await topics_repo.count_articles_by_topic(session, [topic.id for topic in topics])
+    return [
+        TopicWithCount(
+            topic=topic, label=label_for(topic, language), article_count=counts.get(topic.id, 0)
+        )
+        for topic in topics
+    ]
+
+
+async def get_article_topics(
+    session: AsyncSession, *, article_id: int, language: str
+) -> list[tuple[Topic, str, bool]]:
+    article = await content_repo.get_article_including_removed(session, article_id)
+    if article is None:
+        raise NotFoundError(f"No article with id {article_id}.")
+    assignments = await content_repo.get_article_topics(session, article_id)
+    return [(topic, label_for(topic, language), is_primary) for topic, is_primary in assignments]
+
+
+async def set_article_topics(
+    session: AsyncSession,
+    *,
+    admin_user_id: UUID,
+    article_id: int,
+    topic_ids: list[str],
+    primary_topic_id: str,
+) -> None:
+    if not topic_ids:
+        raise ValidationError("An article must carry at least one topic.")
+    if primary_topic_id not in topic_ids:
+        raise ValidationError("primary_topic_id must be one of topic_ids.")
+    article = await content_repo.get_article_including_removed(session, article_id)
+    if article is None:
+        raise NotFoundError(f"No article with id {article_id}.")
+    for topic_id in topic_ids:
+        topic = await topics_repo.get_topic(session, topic_id)
+        if topic is None or not topic.active:
+            raise ValidationError(f"No active topic with id {topic_id}.")
+
+    before = await content_repo.get_article_topics(session, article_id)
+    await content_repo.set_article_topics(
+        session,
+        article_id,
+        [(topic_id, topic_id == primary_topic_id) for topic_id in topic_ids],
+    )
+    await repo.record_action(
+        session,
+        admin_user_id=admin_user_id,
+        action="article_topics_override",
+        target_type="article",
+        target_id=str(article_id),
+        details={
+            "before": [topic.id for topic, _ in before],
+            "after": topic_ids,
+            "primary": primary_topic_id,
+        },
+    )
