@@ -31,6 +31,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `/${locale}`,
       languages: Object.fromEntries(locales.map((l) => [l.htmlLang, `/${l.code}`])),
+      types: { "application/rss+xml": `/${locale}/rss.xml` },
     },
   };
 }
