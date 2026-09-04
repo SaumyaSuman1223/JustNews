@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/analytics/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retention Cohorts */
+        get: operations["retention_cohorts_v1_admin_analytics_retention_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/analytics/wau": {
         parameters: {
             query?: never;
@@ -175,6 +192,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/feature-flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Feature Flags */
+        get: operations["list_feature_flags_v1_admin_feature_flags_get"];
+        put?: never;
+        /** Create Feature Flag */
+        post: operations["create_feature_flag_v1_admin_feature_flags_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/feature-flags/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Feature Flag */
+        put: operations["set_feature_flag_v1_admin_feature_flags__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/feedback": {
         parameters: {
             query?: never;
@@ -270,6 +322,23 @@ export interface paths {
         };
         /** List Users */
         get: operations["list_users_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{user_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User Activity */
+        get: operations["user_activity_v1_admin_users__user_id__activity_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -812,6 +881,28 @@ export interface components {
              */
             bucket: string;
         };
+        /** ActivityEntryOut */
+        ActivityEntryOut: {
+            /** Article Id */
+            article_id: number;
+            /** Article Title */
+            article_title: string;
+            /** Event Type */
+            event_type: string | null;
+            /** Kind */
+            kind: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Position */
+            position: number | null;
+            /** Ranking Policy */
+            ranking_policy: string | null;
+            /** Surface */
+            surface: string;
+        };
         /** AdminTopicOut */
         AdminTopicOut: {
             /** Article Count */
@@ -940,6 +1031,13 @@ export interface components {
             /** Surface */
             surface: string;
         };
+        /** CohortWeekOut */
+        CohortWeekOut: {
+            /** Active Users */
+            active_users: number;
+            /** Week Offset */
+            week_offset: number;
+        };
         /** EditionOut */
         EditionOut: {
             /** Code */
@@ -952,6 +1050,39 @@ export interface components {
             language: string;
             /** Name */
             name: string;
+        };
+        /** FeatureFlagCreateIn */
+        FeatureFlagCreateIn: {
+            /** Description */
+            description: string;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Key */
+            key: string;
+        };
+        /** FeatureFlagOut */
+        FeatureFlagOut: {
+            /** Description */
+            description: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Key */
+            key: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by: string | null;
+        };
+        /** FeatureFlagSetIn */
+        FeatureFlagSetIn: {
+            /** Enabled */
+            enabled: boolean;
         };
         /** FeedItemOut */
         FeedItemOut: {
@@ -1217,6 +1348,18 @@ export interface components {
         RedeemIn: {
             /** Code */
             code: string;
+        };
+        /** RetentionCohortOut */
+        RetentionCohortOut: {
+            /** Cohort Size */
+            cohort_size: number;
+            /**
+             * Cohort Week
+             * Format: date-time
+             */
+            cohort_week: string;
+            /** Weeks */
+            weeks: components["schemas"]["CohortWeekOut"][];
         };
         /** SaveIn */
         SaveIn: {
@@ -1536,6 +1679,39 @@ export interface operations {
             };
         };
     };
+    retention_cohorts_v1_admin_analytics_retention_get: {
+        parameters: {
+            query?: {
+                window_weeks?: number;
+                max_weeks_since?: number;
+                locale?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionCohortOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     weekly_active_users_v1_admin_analytics_wau_get: {
         parameters: {
             query?: {
@@ -1762,6 +1938,94 @@ export interface operations {
             };
         };
     };
+    list_feature_flags_v1_admin_feature_flags_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagOut"][];
+                };
+            };
+        };
+    };
+    create_feature_flag_v1_admin_feature_flags_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureFlagCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_feature_flag_v1_admin_feature_flags__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureFlagSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_feedback_v1_admin_feedback_get: {
         parameters: {
             query?: {
@@ -1950,6 +2214,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    user_activity_v1_admin_users__user_id__activity_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityEntryOut"][];
                 };
             };
             /** @description Validation Error */

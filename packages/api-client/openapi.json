@@ -20,6 +20,76 @@
         "title": "ActiveUsersBucketOut",
         "type": "object"
       },
+      "ActivityEntryOut": {
+        "properties": {
+          "article_id": {
+            "title": "Article Id",
+            "type": "integer"
+          },
+          "article_title": {
+            "title": "Article Title",
+            "type": "string"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "ranking_policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ranking Policy"
+          },
+          "surface": {
+            "title": "Surface",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "occurred_at",
+          "article_id",
+          "article_title",
+          "surface",
+          "position",
+          "ranking_policy",
+          "event_type"
+        ],
+        "title": "ActivityEntryOut",
+        "type": "object"
+      },
       "AdminTopicOut": {
         "properties": {
           "article_count": {
@@ -384,6 +454,24 @@
         "title": "ClickIn",
         "type": "object"
       },
+      "CohortWeekOut": {
+        "properties": {
+          "active_users": {
+            "title": "Active Users",
+            "type": "integer"
+          },
+          "week_offset": {
+            "title": "Week Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "week_offset",
+          "active_users"
+        ],
+        "title": "CohortWeekOut",
+        "type": "object"
+      },
       "EditionOut": {
         "properties": {
           "code": {
@@ -422,6 +510,83 @@
           "is_default"
         ],
         "title": "EditionOut",
+        "type": "object"
+      },
+      "FeatureFlagCreateIn": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "description"
+        ],
+        "title": "FeatureFlagCreateIn",
+        "type": "object"
+      },
+      "FeatureFlagOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "key",
+          "enabled",
+          "description",
+          "updated_by",
+          "updated_at"
+        ],
+        "title": "FeatureFlagOut",
+        "type": "object"
+      },
+      "FeatureFlagSetIn": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "FeatureFlagSetIn",
         "type": "object"
       },
       "FeedItemOut": {
@@ -1135,6 +1300,33 @@
           "code"
         ],
         "title": "RedeemIn",
+        "type": "object"
+      },
+      "RetentionCohortOut": {
+        "properties": {
+          "cohort_size": {
+            "title": "Cohort Size",
+            "type": "integer"
+          },
+          "cohort_week": {
+            "format": "date-time",
+            "title": "Cohort Week",
+            "type": "string"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/CohortWeekOut"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cohort_week",
+          "cohort_size",
+          "weeks"
+        ],
+        "title": "RetentionCohortOut",
         "type": "object"
       },
       "SaveIn": {
@@ -1872,6 +2064,88 @@
         ]
       }
     },
+    "/v1/admin/analytics/retention": {
+      "get": {
+        "operationId": "retention_cohorts_v1_admin_analytics_retention_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "window_weeks",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 52,
+              "minimum": 1,
+              "title": "Window Weeks",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_weeks_since",
+            "required": false,
+            "schema": {
+              "default": 8,
+              "maximum": 26,
+              "minimum": 1,
+              "title": "Max Weeks Since",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RetentionCohortOut"
+                  },
+                  "title": "Response Retention Cohorts V1 Admin Analytics Retention Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retention Cohorts",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/analytics/wau": {
       "get": {
         "operationId": "weekly_active_users_v1_admin_analytics_wau_get",
@@ -2263,6 +2537,137 @@
         ]
       }
     },
+    "/v1/admin/feature-flags": {
+      "get": {
+        "operationId": "list_feature_flags_v1_admin_feature_flags_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureFlagOut"
+                  },
+                  "title": "Response List Feature Flags V1 Admin Feature Flags Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Feature Flags",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_feature_flag_v1_admin_feature_flags_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureFlagCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureFlagOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Feature Flag",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/feature-flags/{key}": {
+      "put": {
+        "operationId": "set_feature_flag_v1_admin_feature_flags__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureFlagSetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureFlagOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Feature Flag",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/feedback": {
       "get": {
         "operationId": "list_feedback_v1_admin_feedback_get",
@@ -2635,6 +3040,69 @@
           }
         ],
         "summary": "List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{user_id}/activity": {
+      "get": {
+        "operationId": "user_activity_v1_admin_users__user_id__activity_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityEntryOut"
+                  },
+                  "title": "Response User Activity V1 Admin Users  User Id  Activity Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "User Activity",
         "tags": [
           "admin"
         ]
