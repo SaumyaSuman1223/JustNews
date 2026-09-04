@@ -64,6 +64,7 @@ export type FeedbackEntry = components["schemas"]["FeedbackEntryOut"];
 export type FeatureFlag = components["schemas"]["FeatureFlagOut"];
 export type RetentionCohort = components["schemas"]["RetentionCohortOut"];
 export type ActivityEntry = components["schemas"]["ActivityEntryOut"];
+export type DeckCard = components["schemas"]["DeckCardOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -216,6 +217,28 @@ export async function getFeed(
     // network-level one (DNS, connection refused, timeout) throws instead.
     // The API being unreachable is exactly the case this must degrade for.
     return { data: EMPTY_FEED, degraded: true };
+  }
+}
+
+/** The Stage 7 exploration deck - onboarding's replacement for the old
+ * topic-picker checkboxes. Authenticated, like getFeed: the deck is only
+ * ever reached from the already beta-gated /onboarding page. */
+export async function getExplorationDeck(
+  auth: AuthContext,
+  params: { locale: string; languages?: string },
+): Promise<Degradable<DeckCard[]>> {
+  try {
+    const { data, error } = await authedClient(auth).GET("/v1/exploration-deck", {
+      params: {
+        query: { locale: params.locale, languages: params.languages },
+        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
+      },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (error || !data) return { data: [], degraded: true };
+    return { data: data.cards, degraded: false };
+  } catch {
+    return { data: [], degraded: true };
   }
 }
 
@@ -398,7 +421,13 @@ export async function getHistory(
 
 export async function reportClick(
   auth: AuthContext,
-  params: { articleId: number; surface: string; position?: number; impressionId?: number },
+  params: {
+    articleId: number;
+    surface: string;
+    position?: number;
+    impressionId?: number;
+    topicId?: string;
+  },
 ): Promise<void> {
   await authedClient(auth).POST("/v1/history", {
     body: {
@@ -406,9 +435,21 @@ export async function reportClick(
       surface: params.surface,
       position: params.position,
       impression_id: params.impressionId,
+      topic_id: params.topicId,
     },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
+}
+
+export async function reportShare(
+  auth: AuthContext,
+  params: { articleId: number; surface: string; topicId?: string },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/share", {
+    body: { article_id: params.articleId, surface: params.surface, topic_id: params.topicId },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
 }
 
 export async function reportNotInterested(

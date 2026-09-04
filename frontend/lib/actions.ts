@@ -106,6 +106,21 @@ export async function notInterestedAction(
   return ok;
 }
 
+/** General-purpose, not deck-specific - a share is a strong engagement
+ * signal worth collecting anywhere ArticleActions already appears, the same
+ * reasoning notInterestedAction isn't gated to one surface either. No
+ * revalidatePath: unlike save/not-interested, a share doesn't change what
+ * this card should render. */
+export async function shareArticleAction(
+  articleId: number,
+  surface: string,
+  topicId?: string,
+): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  return api.reportShare(auth, { articleId, surface, topicId });
+}
+
 export async function undoNotInterestedAction(
   articleId: number,
   surface: string,

@@ -31,8 +31,13 @@ export interface ArticleCardProps {
   article: Article;
   locale: LocaleCode;
   /** Where this card was shown - logged with the click, for later analysis. */
-  surface: "feed" | "explore" | "search" | "topic";
+  surface: "feed" | "explore" | "search" | "topic" | "onboarding";
   position: number;
+  /** The exploration deck's own topic for this card - only ever set on
+   * surface="onboarding". Carried on the click report so
+   * services.exploration_deck.record_deck_engagement can count it toward
+   * the UserFollow bridge; every other surface leaves this unset. */
+  topicId?: string;
   /** The impression this card was served under, if any - lets a click be
    * attributed to the exact serving policy (Stage 5's A/B split) rather
    * than guessed at. Anonymous and non-feed surfaces have none. */
@@ -61,6 +66,7 @@ export function ArticleCard({
   locale,
   surface,
   position,
+  topicId,
   impressionId,
   signedIn,
   saved = false,
@@ -88,6 +94,7 @@ export function ArticleCard({
         surface,
         position,
         impressionId: impressionId ?? undefined,
+        topicId,
       }),
       keepalive: true,
     });
@@ -152,6 +159,7 @@ export function ArticleCard({
             articleId={article.id}
             locale={locale}
             surface={surface}
+            topicId={topicId}
             saved={saved}
             revalidatePath={revalidatePath}
             onHidden={() => setHidden(true)}

@@ -35,16 +35,17 @@ export async function POST(request: Request): Promise<Response> {
   ) {
     return NextResponse.json({ ok: false }, { status: 422 });
   }
-  const { articleId, surface, position, impressionId } = body as {
+  const { articleId, surface, position, impressionId, topicId } = body as {
     articleId: number;
     surface: string;
     position?: number;
     impressionId?: number;
+    topicId?: string;
   };
 
   await reportClick(
     { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() },
-    { articleId, surface, position, impressionId },
+    { articleId, surface, position, impressionId, topicId },
   );
   return NextResponse.json({ ok: true });
 }
