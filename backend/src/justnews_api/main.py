@@ -16,6 +16,7 @@ from justnews_api.routers import (
     content,
     explore,
     feed,
+    feedback,
     follows,
     health,
     interactions,
@@ -103,6 +104,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(topics.router)
     app.include_router(search.router)
     app.include_router(invites.router)
+    app.include_router(feedback.router)
     app.include_router(admin.router)
     return app
 

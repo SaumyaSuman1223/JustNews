@@ -10,9 +10,11 @@ const NAV = [
   { href: "/admin/sources", label: "Sources" },
   { href: "/admin/ingest-runs", label: "Ingest runs" },
   { href: "/admin/articles", label: "Moderation" },
+  { href: "/admin/taxonomy", label: "Taxonomy" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/invites", label: "Invites" },
+  { href: "/admin/feedback", label: "Feedback" },
   { href: "/admin/audit-log", label: "Audit log" },
 ];
 

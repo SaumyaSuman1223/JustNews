@@ -22,6 +22,8 @@
 import { createApiClient } from "@justnews/api-client";
 import type { components } from "@justnews/api-client";
 
+import { hasAnalyticsConsent } from "@/lib/consent";
+
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 // Render's free tier spins the API down after 15 minutes idle and cold-starts
 // on the next request - measured around 22s. Nothing pings it to stay warm
@@ -55,6 +57,10 @@ export type AnalyticsOverview = components["schemas"]["AnalyticsOverviewOut"];
 export type AuditLogEntry = components["schemas"]["AuditLogEntryOut"];
 export type Invite = components["schemas"]["InviteOut"];
 export type MeExport = components["schemas"]["MeExportOut"];
+export type AdminTopic = components["schemas"]["AdminTopicOut"];
+export type ArticleTopic = components["schemas"]["ArticleTopicOut"];
+export type ActiveUsersBucket = components["schemas"]["ActiveUsersBucketOut"];
+export type FeedbackEntry = components["schemas"]["FeedbackEntryOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -166,11 +172,15 @@ export function searchArticles(params: {
 
 interface AuthContext {
   accessToken: string;
-  sessionId: string;
+  /** `null` pre-consent - see lib/consent.ts. createApiClient already omits
+   * the x-session-id header on a falsy value, so `null` here needs no
+   * special casing beyond satisfying its own narrower `sessionId?: string`
+   * parameter type. */
+  sessionId: string | null;
 }
 
 function authedClient({ accessToken, sessionId }: AuthContext) {
-  return createApiClient(API_URL, { accessToken, sessionId });
+  return createApiClient(API_URL, { accessToken, sessionId: sessionId ?? undefined });
 }
 
 const EMPTY_FEED: FeedPage = { items: [], next_cursor: null };
@@ -180,6 +190,10 @@ export async function getFeed(
   params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
 ): Promise<Degradable<FeedPage>> {
   try {
+    // Fails closed server-side too (see routers/feed.py), but the header is
+    // only ever sent as the literal string "granted" - never "denied" or
+    // omitted-as-false - so there is no ambiguity for the backend to resolve
+    // either way.
     const { data, error } = await authedClient(auth).GET("/v1/feed", {
       params: {
         query: {
@@ -188,6 +202,7 @@ export async function getFeed(
           cursor: params.cursor,
           page_size: params.pageSize ?? 20,
         },
+        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -217,7 +232,7 @@ export async function getExplore(
 ): Promise<Degradable<FeedPage>> {
   const client = createApiClient(API_URL, {
     accessToken: auth?.accessToken,
-    sessionId: auth?.sessionId,
+    sessionId: auth?.sessionId ?? undefined,
   });
   try {
     const { data, error } = await client.GET("/v1/explore", {
@@ -228,6 +243,7 @@ export async function getExplore(
           cursor: params.cursor,
           page_size: params.pageSize ?? 20,
         },
+        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -533,4 +549,72 @@ export async function createInvite(
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? null;
+}
+
+export async function submitFeedback(
+  auth: AuthContext,
+  params: { message: string; locale: string; path?: string },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).POST("/v1/feedback", {
+    body: { message: params.message, locale: params.locale, path: params.path || null },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
+}
+
+export async function getAdminFeedback(auth: AuthContext): Promise<FeedbackEntry[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/feedback", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getDailyActiveUsers(auth: AuthContext): Promise<ActiveUsersBucket[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/analytics/dau", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getWeeklyActiveUsers(auth: AuthContext): Promise<ActiveUsersBucket[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/analytics/wau", {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getAdminTopics(
+  auth: AuthContext,
+  params: { language: string; query?: string },
+): Promise<AdminTopic[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/topics", {
+    params: { query: { language: params.language, q: params.query || undefined } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function getArticleTopics(
+  auth: AuthContext,
+  articleId: number,
+  language: string,
+): Promise<ArticleTopic[]> {
+  const { data } = await authedClient(auth).GET("/v1/admin/articles/{article_id}/topics", {
+    params: { path: { article_id: articleId }, query: { language } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return data ?? [];
+}
+
+export async function setArticleTopics(
+  auth: AuthContext,
+  articleId: number,
+  params: { topicIds: string[]; primaryTopicId: string },
+): Promise<boolean> {
+  const { error } = await authedClient(auth).PUT("/v1/admin/articles/{article_id}/topics", {
+    params: { path: { article_id: articleId } },
+    body: { topic_ids: params.topicIds, primary_topic_id: params.primaryTopicId },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
 }

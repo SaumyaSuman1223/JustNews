@@ -113,6 +113,15 @@ jobs:
           bash scripts/smoke-web.sh
           pnpm --filter @justnews/web test:e2e
 
+      - name: Structured data has the fields a NewsArticle needs
+        # Its own server, its own stub API (scripts/stub-api.mjs), on ports
+        # the step above never touches - the rest of this job's e2e suite
+        # runs with no live API at all, deliberately (see
+        # accessibility.spec.ts), and this is the one test that needs one.
+        # `next start` here reuses this job's earlier `pnpm build`, so this
+        # does not rebuild.
+        run: pnpm --filter @justnews/web test:e2e:structured-data
+
   api-client:
     # The typed client is generated, not hand-written - this regenerates it
     # from the current API and fails if that differs from what's committed,

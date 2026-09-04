@@ -244,6 +244,7 @@ class TestHeuristicFeedEndpoint:
 
         user_id = find_user_id_for_policy(HEURISTIC_POLICY)
         headers = await make_beta_headers(session, user_id=user_id)
+        headers["x-analytics-consent"] = "granted"
         response = await client.get("/v1/feed", headers=headers)
         assert response.status_code == 200
 

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { getRemovedArticles } from "@/lib/api";
 import { requireAdmin } from "@/lib/adminGuard";
 import { restoreArticleAction, takedownArticleAction } from "@/lib/adminActions";
@@ -43,12 +45,15 @@ export default async function AdminArticlesPage() {
                 <td>{article.id}</td>
                 <td style={{ whiteSpace: "normal", maxWidth: "28rem" }}>{article.title}</td>
                 <td>{article.source_name}</td>
-                <td>
+                <td style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   <form action={restoreArticleAction.bind(null, article.id)}>
                     <button type="submit" className="card__action">
                       Restore
                     </button>
                   </form>
+                  <Link href={`/admin/articles/${article.id}/topics`} className="card__action">
+                    Topics
+                  </Link>
                 </td>
               </tr>
             ))}

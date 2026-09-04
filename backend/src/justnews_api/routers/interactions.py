@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, Query, status
@@ -12,6 +11,7 @@ from justnews_api.core.db import get_beta_session
 from justnews_api.routers.content import ArticleOut
 from justnews_api.services import interactions as service
 from justnews_api.services.auth import Principal
+from justnews_core.consent import UNCONSENTED_SESSION
 
 router = APIRouter(prefix="/v1", tags=["interactions"])
 
@@ -48,7 +48,7 @@ async def report_click(
     await service.report_click(
         session,
         user_id=principal.user_id,
-        session_id=x_session_id or uuid.uuid4().hex,
+        session_id=x_session_id or UNCONSENTED_SESSION,
         article_id=body.article_id,
         surface=body.surface,
         position=body.position,
@@ -85,7 +85,7 @@ async def report_not_interested(
     await service.report_not_interested(
         session,
         user_id=principal.user_id,
-        session_id=x_session_id or uuid.uuid4().hex,
+        session_id=x_session_id or UNCONSENTED_SESSION,
         article_id=body.article_id,
         surface=body.surface,
     )
@@ -104,7 +104,7 @@ async def undo_not_interested(
     await service.undo_not_interested(
         session,
         user_id=principal.user_id,
-        session_id=x_session_id or uuid.uuid4().hex,
+        session_id=x_session_id or UNCONSENTED_SESSION,
         article_id=article_id,
         surface=surface,
     )

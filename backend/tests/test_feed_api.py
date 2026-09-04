@@ -50,6 +50,7 @@ class TestFeed:
         user_id = find_user_id_for_policy(CHRONOLOGICAL_POLICY)
         headers = await make_beta_headers(session, user_id=user_id)
         headers["x-session-id"] = "sess-1"
+        headers["x-analytics-consent"] = "granted"
         await client.get("/v1/feed", headers=headers)
 
         # RLS on impressions is FORCE-enabled - even this test session must

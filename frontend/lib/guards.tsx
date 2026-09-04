@@ -9,7 +9,8 @@ import { getSession } from "@/lib/session";
 
 export interface AuthContext {
   accessToken: string;
-  sessionId: string;
+  /** `null` pre-consent - see lib/consent.ts and getBrowsingSessionId. */
+  sessionId: string | null;
 }
 
 export type BetaAccessResult =

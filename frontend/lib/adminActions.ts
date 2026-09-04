@@ -48,3 +48,12 @@ export async function createInviteAction(formData: FormData): Promise<void> {
   await api.createInvite(auth, { note, maxUses });
   revalidatePath("/admin/invites");
 }
+
+export async function setArticleTopicsAction(articleId: number, formData: FormData): Promise<void> {
+  const auth = await adminAuthOrNull();
+  if (!auth) return;
+  const topicIds = formData.getAll("topicIds").map(String);
+  const primaryTopicId = String(formData.get("primaryTopicId") ?? "");
+  await api.setArticleTopics(auth, articleId, { topicIds, primaryTopicId });
+  revalidatePath(`/admin/articles/${articleId}/topics`);
+}

@@ -5,10 +5,12 @@ import { headers } from "next/headers";
 import Link from "next/link";
 
 import { AccountMenu } from "@/components/AccountMenu";
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { getConsentState } from "@/lib/consent";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -29,6 +31,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `/${locale}`,
       languages: Object.fromEntries(locales.map((l) => [l.htmlLang, `/${l.code}`])),
+      types: { "application/rss+xml": `/${locale}/rss.xml` },
     },
   };
 }
@@ -54,6 +57,7 @@ export default async function LocaleLayout({
   const requestHeaders = await headers();
   const pathname = requestHeaders.get("x-pathname") ?? `/${active.code}`;
   const search = requestHeaders.get("x-search") ?? "";
+  const consent = await getConsentState();
 
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
@@ -100,8 +104,10 @@ export default async function LocaleLayout({
           </main>
           <footer className="site-footer">
             <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
+            <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
           </footer>
         </div>
+        {consent === null && <ConsentBanner locale={active.code} />}
       </body>
     </html>
   );

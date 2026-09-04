@@ -73,10 +73,20 @@ export default async function PrivacyPage({
 
       <h2>Cookies and similar technology</h2>
       <p>
-        A session cookie from our authentication provider keeps you signed in. A second cookie
-        groups activity from one visit together, signed in or not, so we can tell a returning
-        visitor from a brand new one without knowing who they are. Neither is used for advertising
-        or shared with a third party for that purpose - we do not run advertising on this site.
+        A session cookie from our authentication provider keeps you signed in. It exists whether
+        or not you accept the choice below - it is necessary for the service to work at all, not
+        the kind of tracking that choice covers.
+      </p>
+      <p>
+        A second cookie groups activity from one visit together, signed in or not, so we can tell
+        a returning visitor from a brand new one without knowing who they are - this is what the
+        banner on your first visit, or the toggle in Settings, actually controls. Until you accept
+        it, this cookie is not set, and no page you view is logged against a session. Declining or
+        withdrawing does not affect anything you do deliberately - saving an article, marking one
+        not interesting, or anything else you choose to do - since that is your own instruction to
+        us, not passive observation of you. Neither this nor the authentication cookie is used for
+        advertising or shared with a third party for that purpose - we do not run advertising on
+        this site.
       </p>
 
       <h2>How long we keep it</h2>

@@ -1,0 +1,63 @@
+name: uptime
+
+# A monitor for exactly two things the ingestion cron cannot tell you about:
+# the API process, and the deployed web app. ingest.yml already fails loudly
+# whenever Supabase itself is unreachable (it's on the request path of every
+# ingestion run), so this workflow's whole marginal value is the two things
+# that cron never touches.
+on:
+  schedule:
+    # Offset from the hour/quarter-hour marks - see ingest.yml's comment on
+    # why "*/15 * * * *" itself is the wrong shape to ask GitHub for.
+    - cron: "3,18,33,48 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: API liveness (/health)
+        # No -f: the point is to parse the body and report *why* it failed,
+        # not just that curl saw a non-2xx. A non-JSON or connection-level
+        # failure makes `status` empty, which the check below catches the
+        # same way a real {"status": "..."} mismatch would.
+        #
+        # --max-time 60 --retry 3, not a short timeout: Render's free tier
+        # cold-starts in roughly 22s after 15 minutes idle (see the comment
+        # in frontend/lib/api.ts), and this cron runs every 15 minutes - a
+        # short timeout here would page on ordinary idle-then-wake, not on a
+        # real outage.
+        run: |
+          curl -sS --max-time 60 --retry 3 --retry-all-errors --retry-delay 10 \
+            "${{ secrets.STAGING_API_URL }}/health" -o response.json || true
+          status=$(jq -r '.status // empty' response.json 2>/dev/null)
+          if [ "$status" != "ok" ]; then
+            echo "::error::/health did not return status=ok (got: ${status:-<unreadable>})"
+            cat response.json 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: API readiness (/health/ready)
+        # A separate step, not folded into the one above: a 503 here means
+        # the database specifically is unreachable, which the runbook entry
+        # for this workflow should be able to tell apart from the process
+        # itself being down.
+        run: |
+          curl -sS --max-time 60 --retry 3 --retry-all-errors --retry-delay 10 \
+            "${{ secrets.STAGING_API_URL }}/health/ready" -o response.json || true
+          status=$(jq -r '.status // empty' response.json 2>/dev/null)
+          if [ "$status" != "ready" ]; then
+            echo "::error::/health/ready did not return status=ready (got: ${status:-<unreadable>})"
+            cat response.json 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: Web app
+        run: |
+          curl -fsS --max-time 60 --retry 3 --retry-all-errors --retry-delay 10 \
+            "${{ vars.SITE_URL }}/en" -o /dev/null

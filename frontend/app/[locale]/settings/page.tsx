@@ -6,7 +6,8 @@ import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { SignInRequired } from "@/components/SignInRequired";
 import { getMe, getReadingProfile } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { updateLanguagesFormAction } from "@/lib/actions";
+import { setConsentAction, updateLanguagesFormAction } from "@/lib/actions";
+import { getConsentState } from "@/lib/consent";
 import { getLocale, isLocaleCode, locales, t, type LocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -57,9 +58,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   if (!session) return <SignInRequired locale={active.code} path={`/${active.code}/settings`} />;
 
   const auth = { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
-  const [profile, readingProfile] = await Promise.all([
+  const [profile, readingProfile, consent] = await Promise.all([
     getMe(auth),
     getReadingProfile(auth, active.code),
+    getConsentState(),
   ]);
   const preferred = new Set(profile?.preferred_languages ?? []);
   // The topic axis's own total, not readingProfile.sampled (the language
@@ -170,7 +172,27 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           <Link href={`/${active.code}/privacy`}>{t(active.code, "settings.privacyPolicy")}</Link>
         </p>
       </div>
-      <p>
+
+      {/* Withdrawal has to be exactly as easy as granting, not just possible
+          - the same reason the banner gives Accept and Decline equal
+          weight. A plain form, not a client toggle, matching every other
+          write on this page. */}
+      <div className="field">
+        <label>{t(active.code, "consent.settings.label")}</label>
+        <p className="form-note" style={{ marginBlockStart: 0 }}>
+          {t(
+            active.code,
+            consent === "granted" ? "consent.settings.currentlyOn" : "consent.settings.currentlyOff",
+          )}
+        </p>
+      </div>
+      <form action={setConsentAction.bind(null, consent === "granted" ? "denied" : "granted")}>
+        <button type="submit" className="button button--secondary">
+          {t(active.code, consent === "granted" ? "consent.settings.turnOff" : "consent.settings.turnOn")}
+        </button>
+      </form>
+
+      <p style={{ marginBlockStart: "var(--space-6)" }}>
         <a className="button button--secondary" href="/api/export" download="justnews-data.json">
           {t(active.code, "settings.download")}
         </a>

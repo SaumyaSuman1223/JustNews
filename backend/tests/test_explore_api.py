@@ -37,22 +37,35 @@ class TestAnonymousAccess:
         titles = [item["article"]["title"] for item in response.json()["items"]]
         assert "Anyone can read this" in titles
 
-    async def test_an_anonymous_read_still_logs_impressions(
+    async def test_an_anonymous_read_still_logs_impressions_once_consented(
         self, client: AsyncClient, session: AsyncSession
     ) -> None:
         source = await make_source(session)
         await make_article(session, source, title="Logged for a stranger")
         await session.commit()
 
-        response = await client.get("/v1/explore", headers={"x-session-id": "browsing-session-abc"})
+        response = await client.get(
+            "/v1/explore",
+            headers={"x-session-id": "browsing-session-abc", "x-analytics-consent": "granted"},
+        )
         assert response.status_code == 200
 
         rows = (await session.execute(select(Impression))).scalars().all()
-        assert rows, "explore must log impressions even with no account"
+        assert rows, "explore must log impressions even with no account, once consented"
         assert all(row.user_id is None for row in rows)
         assert all(row.session_id == "browsing-session-abc" for row in rows)
 
-    async def test_items_carry_their_impression_id(
+    async def test_no_impression_id_without_consent(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        await make_article(session, source, title="Not attributable")
+        await session.commit()
+
+        items = (await client.get("/v1/explore")).json()["items"]
+        assert items and all(item["impression_id"] is None for item in items)
+
+    async def test_items_carry_their_impression_id_once_consented(
         self, client: AsyncClient, session: AsyncSession
     ) -> None:
         # Without this a click from explore cannot be attributed to what
@@ -61,7 +74,9 @@ class TestAnonymousAccess:
         await make_article(session, source, title="Attributable")
         await session.commit()
 
-        items = (await client.get("/v1/explore")).json()["items"]
+        items = (
+            await client.get("/v1/explore", headers={"x-analytics-consent": "granted"})
+        ).json()["items"]
         assert items and all(isinstance(item["impression_id"], int) for item in items)
 
 
@@ -73,7 +88,9 @@ class TestSurfaceAndPolicy:
         await make_article(session, source, title="Surfaced")
         await session.commit()
 
-        assert (await client.get("/v1/explore")).status_code == 200
+        assert (
+            await client.get("/v1/explore", headers={"x-analytics-consent": "granted"})
+        ).status_code == 200
 
         rows = (await session.execute(select(Impression))).scalars().all()
         assert rows
@@ -153,7 +170,10 @@ class TestSignedIn:
         await session.commit()
 
         user_id = str(uuid.uuid4())
-        headers = {"authorization": f"Bearer {make_access_token(user_id)}"}
+        headers = {
+            "authorization": f"Bearer {make_access_token(user_id)}",
+            "x-analytics-consent": "granted",
+        }
         assert (await client.get("/v1/explore", headers=headers)).status_code == 200
 
         await set_current_user(session, user_id)

@@ -219,6 +219,104 @@ async def analytics_overview(
     )
 
 
+class ActiveUsersBucketOut(BaseModel):
+    bucket: datetime
+    active_users: int
+
+
+@router.get("/analytics/dau", response_model=list[ActiveUsersBucketOut])
+async def daily_active_users(
+    session: AsyncSession = Depends(get_admin_session),
+    window_days: int = Query(default=30, ge=1, le=90),
+    locale: str | None = Query(default=None),
+) -> list[ActiveUsersBucketOut]:
+    buckets = await service.get_active_users_by_day(session, window_days=window_days, locale=locale)
+    return [ActiveUsersBucketOut(bucket=b.bucket, active_users=b.active_users) for b in buckets]
+
+
+@router.get("/analytics/wau", response_model=list[ActiveUsersBucketOut])
+async def weekly_active_users(
+    session: AsyncSession = Depends(get_admin_session),
+    window_weeks: int = Query(default=12, ge=1, le=52),
+    locale: str | None = Query(default=None),
+) -> list[ActiveUsersBucketOut]:
+    buckets = await service.get_active_users_by_week(
+        session, window_weeks=window_weeks, locale=locale
+    )
+    return [ActiveUsersBucketOut(bucket=b.bucket, active_users=b.active_users) for b in buckets]
+
+
+# --- taxonomy ---------------------------------------------------------------
+
+
+class AdminTopicOut(BaseModel):
+    id: str
+    label: str
+    level: int
+    article_count: int
+
+
+class ArticleTopicOut(BaseModel):
+    id: str
+    label: str
+    is_primary: bool
+
+
+class ArticleTopicsIn(BaseModel):
+    topic_ids: list[str]
+    primary_topic_id: str
+
+
+@router.get("/topics", response_model=list[AdminTopicOut])
+async def list_topics(
+    session: AsyncSession = Depends(get_admin_session),
+    parent: str | None = Query(default=None),
+    q: str | None = Query(default=None),
+    language: str = Query(default="en"),
+) -> list[AdminTopicOut]:
+    topics = await service.list_topics_for_admin(session, parent=parent, query=q, language=language)
+    return [
+        AdminTopicOut(
+            id=item.topic.id,
+            label=item.label,
+            level=item.topic.level,
+            article_count=item.article_count,
+        )
+        for item in topics
+    ]
+
+
+@router.get("/articles/{article_id}/topics", response_model=list[ArticleTopicOut])
+async def get_article_topics(
+    article_id: int,
+    session: AsyncSession = Depends(get_admin_session),
+    language: str = Query(default="en"),
+) -> list[ArticleTopicOut]:
+    assignments = await service.get_article_topics(
+        session, article_id=article_id, language=language
+    )
+    return [
+        ArticleTopicOut(id=topic.id, label=label, is_primary=is_primary)
+        for topic, label, is_primary in assignments
+    ]
+
+
+@router.put("/articles/{article_id}/topics", status_code=204)
+async def set_article_topics(
+    article_id: int,
+    body: ArticleTopicsIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_admin_session),
+) -> None:
+    await service.set_article_topics(
+        session,
+        admin_user_id=principal.user_id,
+        article_id=article_id,
+        topic_ids=body.topic_ids,
+        primary_topic_id=body.primary_topic_id,
+    )
+
+
 # --- audit log ----------------------------------------------------------------
 
 
@@ -290,3 +388,34 @@ async def create_invite(
 async def list_invites(session: AsyncSession = Depends(get_admin_session)) -> list[InviteOut]:
     invites = await invites_service.list_invites(session)
     return [InviteOut.model_validate(invite, from_attributes=True) for invite in invites]
+
+
+# --- feedback -----------------------------------------------------------
+
+
+class FeedbackEntryOut(BaseModel):
+    id: int
+    user_id: str | None
+    locale: str
+    path: str | None
+    message: str
+    created_at: datetime
+
+
+@router.get("/feedback", response_model=list[FeedbackEntryOut])
+async def list_feedback(
+    session: AsyncSession = Depends(get_admin_session),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[FeedbackEntryOut]:
+    entries = await service.list_feedback(session, limit=limit)
+    return [
+        FeedbackEntryOut(
+            id=entry.id,
+            user_id=str(entry.user_id) if entry.user_id else None,
+            locale=entry.locale,
+            path=entry.path,
+            message=entry.message,
+            created_at=entry.created_at,
+        )
+        for entry in entries
+    ]

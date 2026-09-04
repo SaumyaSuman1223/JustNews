@@ -99,7 +99,11 @@ def assign_policy(user_id: UUID) -> str:
 @dataclass(frozen=True, slots=True)
 class FeedItem:
     article: content_repo.ArticleRow
-    impression_id: int
+    # None when the request came with no analytics consent - see
+    # get_feed_page's log_impressions parameter. Not a data gap to fill in
+    # later: no impression row was written, so there is nothing an id could
+    # ever point at.
+    impression_id: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +127,7 @@ async def get_feed_page(
     languages: str | None,
     cursor: str | None,
     page_size: int = DEFAULT_PAGE_SIZE,
+    log_impressions: bool = True,
 ) -> FeedPage:
     if not 1 <= page_size <= MAX_PAGE_SIZE:
         raise ValidationError(f"page_size must be between 1 and {MAX_PAGE_SIZE}.")
@@ -149,6 +154,10 @@ async def get_feed_page(
 
     if not unlogged.articles:
         return FeedPage(items=[], next_cursor=unlogged.next_cursor)
+
+    if not log_impressions:
+        items = [FeedItem(article=article, impression_id=None) for article in unlogged.articles]
+        return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
     impression_ids = await interactions_repo.log_impressions(
         session,

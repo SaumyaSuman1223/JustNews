@@ -57,6 +57,7 @@ async def get_explore_page(
     languages: str | None,
     cursor: str | None,
     page_size: int = DEFAULT_PAGE_SIZE,
+    log_impressions: bool = True,
 ) -> FeedPage:
     if not 1 <= page_size <= MAX_PAGE_SIZE:
         raise ValidationError(f"page_size must be between 1 and {MAX_PAGE_SIZE}.")
@@ -77,6 +78,12 @@ async def get_explore_page(
     )
     if not unlogged.articles:
         return FeedPage(items=[], next_cursor=unlogged.next_cursor)
+
+    if not log_impressions:
+        return FeedPage(
+            items=[FeedItem(article=article, impression_id=None) for article in unlogged.articles],
+            next_cursor=unlogged.next_cursor,
+        )
 
     impression_ids = await interactions_repo.log_impressions(
         session,

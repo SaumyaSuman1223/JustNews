@@ -8,7 +8,8 @@
     "start": "next start --port 3000",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:structured-data": "playwright test --config=playwright.structured-data.config.ts"
   },
   "dependencies": {
     "@justnews/api-client": "workspace:*",

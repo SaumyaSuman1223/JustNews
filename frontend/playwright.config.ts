@@ -7,6 +7,10 @@ import { defineConfig } from "@playwright/test";
 // (no server up yet) still works: Playwright falls back to the command below.
 export default defineConfig({
   testDir: "./e2e",
+  // Runs under its own config (playwright.structured-data.config.ts) against
+  // a second server with a live stub API behind it - every test here runs
+  // with none, deliberately (see accessibility.spec.ts).
+  testIgnore: "structured-data.spec.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
