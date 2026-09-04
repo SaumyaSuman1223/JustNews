@@ -5,17 +5,19 @@ import { useState, useTransition } from "react";
 import {
   notInterestedAction,
   saveArticleAction,
+  shareArticleAction,
   undoNotInterestedAction,
   unsaveArticleAction,
 } from "@/lib/actions";
 import { t, type LocaleCode } from "@/lib/i18n";
 
-type Outcome = null | "hidden" | "hide-failed" | "save-failed" | "undo-failed";
+type Outcome = null | "hidden" | "hide-failed" | "save-failed" | "undo-failed" | "share-failed";
 
 export function ArticleActions({
   articleId,
   locale,
   surface,
+  topicId,
   saved,
   revalidatePath,
   onHidden,
@@ -23,7 +25,10 @@ export function ArticleActions({
 }: {
   articleId: number;
   locale: LocaleCode;
-  surface: "feed" | "explore" | "search" | "topic";
+  surface: "feed" | "explore" | "search" | "topic" | "onboarding";
+  /** Only ever set on surface="onboarding" - see ArticleCard's own note on
+   * this same field. */
+  topicId?: string;
   saved: boolean;
   revalidatePath: string;
   /** Told once "Not interested" succeeds, so the card that owns this control
@@ -35,6 +40,7 @@ export function ArticleActions({
 }) {
   const [isPending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<Outcome>(null);
+  const [shared, setShared] = useState(false);
 
   /**
    * Once the signal is sent, the controls go and a status line - now with a
@@ -117,11 +123,33 @@ export function ArticleActions({
       >
         {t(locale, "actions.notInterested")}
       </button>
+      <button
+        type="button"
+        className="card__action"
+        disabled={isPending}
+        onClick={() =>
+          startTransition(async () => {
+            setOutcome(null);
+            const ok = await shareArticleAction(articleId, surface, topicId);
+            if (ok) {
+              setShared(true);
+            } else {
+              setOutcome("share-failed");
+            }
+          })
+        }
+      >
+        {t(locale, shared ? "actions.share.done" : "actions.share")}
+      </button>
       {outcome && (
         <p className="card__status card__status--error" role="alert">
           {t(
             locale,
-            outcome === "save-failed" ? "actions.save.failed" : "actions.notInterested.failed",
+            outcome === "save-failed"
+              ? "actions.save.failed"
+              : outcome === "share-failed"
+                ? "actions.share.failed"
+                : "actions.notInterested.failed",
           )}
         </p>
       )}

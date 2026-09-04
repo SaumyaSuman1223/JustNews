@@ -22,6 +22,7 @@ impressions this system already served.
 from __future__ import annotations
 
 import hashlib
+import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -36,7 +37,7 @@ from justnews_api.repositories import interactions as interactions_repo
 from justnews_api.repositories import ranking as ranking_repo
 from justnews_api.repositories import users as users_repo
 from justnews_api.repositories.interactions import ImpressionToLog
-from justnews_api.services import ranking
+from justnews_api.services import exploration_deck, ranking
 from justnews_api.services.content import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, parse_languages
 from justnews_api.services.cursor import (
     decode_cursor,
@@ -58,10 +59,23 @@ HEURISTIC_RANKER_FLAG = "heuristic_ranker"
 # request (see services.ranking - both passes are near-linear in this size).
 CANDIDATE_POOL_SIZE = 200
 SEEN_WINDOW = timedelta(days=14)
-POPULARITY_WINDOW = timedelta(days=7)
 
 HEURISTIC_POLICY = "heuristic_v1"
 CHRONOLOGICAL_POLICY = "chronological"
+
+# The permanent exploration slice mixed into the heuristic policy's own
+# pages (Stage 7) - a distinct policy name, not folded into HEURISTIC_POLICY,
+# because an exploratory slot's propensity is not the deterministic PROPENSITY
+# constant, and Stage 6's offline replay needs the policy label to describe
+# what was actually served. Never applied to CHRONOLOGICAL_POLICY: that arm
+# has to stay an unmixed baseline, or the heuristic-vs-chronological result
+# gets confounded with an unrelated exploration-vs-not experiment. Shares
+# exploration_deck's own kill switch (EXPLORATION_DECK_FLAG) - one flag, one
+# operational question ("is exploration misbehaving?") for both the deck and
+# this mix.
+HEURISTIC_EXPLORE_MIX_POLICY = "heuristic_v1_explore_mix"
+EXPLORATION_DECK_FLAG = "exploration_deck"
+FEED_EXPLORE_RATIO = 0.10
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +135,14 @@ class FeedPage:
 class _UnloggedPage:
     articles: list[content_repo.ArticleRow]
     next_cursor: str | None
+    # Parallel to `articles`. None means every item uses the flat PROPENSITY
+    # constant - true of every page both policies produced before Stage 7,
+    # and still true of _get_chronological_page's output and of an
+    # unmixed _get_heuristic_page page. Only set when the heuristic policy's
+    # exploration mix actually drew a real (non-1.0) propensity for at least
+    # one slot.
+    propensities: list[float] | None = None
+    ranking_policy_override: str | None = None
 
 
 async def get_feed_page(
@@ -180,9 +202,15 @@ async def get_feed_page(
         session_id=session_id,
         surface="feed",
         locale=locale,
-        ranking_policy=policy,
+        ranking_policy=unlogged.ranking_policy_override or policy,
         items=[
-            ImpressionToLog(article_id=row.id, position=position, propensity=PROPENSITY)
+            ImpressionToLog(
+                article_id=row.id,
+                position=position,
+                propensity=(
+                    unlogged.propensities[position] if unlogged.propensities else PROPENSITY
+                ),
+            )
             for position, row in enumerate(unlogged.articles)
         ],
     )
@@ -235,7 +263,7 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
     # SQLAlchemy does not support issuing concurrent queries on.
     topic_ids_by_article = await ranking_repo.topic_ids_by_article(session, candidate_ids)
     click_counts = await ranking_repo.recent_click_counts(
-        session, candidate_ids, since=now - POPULARITY_WINDOW
+        session, candidate_ids, since=now - ranking.POPULARITY_WINDOW
     )
     followed_topic_ids = await follows_repo.list_followed_topic_ids(session, request.user_id)
     seen_ids = await ranking_repo.seen_article_ids(
@@ -256,7 +284,72 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
     articles = ranked[offset : offset + page_size]
     has_more = len(ranked) > offset + page_size
     next_cursor = encode_rank_cursor(window_upper_bound, offset + page_size) if has_more else None
-    return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+
+    if not await flags_repo.is_enabled(session, EXPLORATION_DECK_FLAG):
+        return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+
+    articles, propensities, mixed = await _mix_in_exploration(
+        session,
+        articles=articles,
+        languages=languages,
+        excluded=request.excluded,
+    )
+    if not mixed:
+        return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+    return _UnloggedPage(
+        articles=articles,
+        next_cursor=next_cursor,
+        propensities=propensities,
+        ranking_policy_override=HEURISTIC_EXPLORE_MIX_POLICY,
+    )
+
+
+async def _mix_in_exploration(
+    session: AsyncSession,
+    *,
+    articles: list[content_repo.ArticleRow],
+    languages: list[str] | None,
+    excluded: set[int],
+) -> tuple[list[content_repo.ArticleRow], list[float], bool]:
+    """Reserves the trailing ~10% of one already-ranked page for a
+    stratified-topic exploration draw, sharing exploration_deck's own
+    sampling core. Trailing, not interleaved: a reader's first impression
+    of their feed stays the ranker's actual best guess, and a fixed
+    position band makes "CTR of the exploratory tail vs. the ranked head" a
+    one-line query on `position` later. Backfills from the ranked page's
+    own next items if the stratified draw comes back short (thin corpus
+    for this reader's languages) - a page silently short of `page_size` is
+    a worse failure mode than a slightly smaller exploratory slice.
+
+    Known v1 simplification: this runs per page fetched, not only the
+    first - a reader who pages deep enough could see the same exploratory
+    article twice across two pages, since each page's draw only excludes
+    articles already on *that* page plus the caller's `excluded` set, not
+    every exploration slot shown earlier in the session. Low-probability,
+    low-cost, and not worth the extra state a full cross-page dedup would
+    need at this scale.
+    """
+    if not articles:
+        return articles, [], False
+
+    n_explore = max(1, round(len(articles) * FEED_EXPLORE_RATIO))
+    exclude_from_draw = excluded | {row.id for row in articles}
+    drawn = await exploration_deck.sample_stratified(
+        session,
+        requested_languages=languages,
+        excluded=exclude_from_draw,
+        deck_size=n_explore,
+        per_topic_cap=n_explore,
+        candidate_pool_per_topic=exploration_deck.CANDIDATE_POOL_PER_TOPIC,
+        rng=random.Random(),
+    )
+    if not drawn:
+        return articles, [], False
+
+    keep_count = max(len(articles) - len(drawn), 0)
+    mixed_articles = articles[:keep_count] + [article for article, _topic_id, _p in drawn]
+    propensities = [PROPENSITY] * keep_count + [p for _a, _t, p in drawn]
+    return mixed_articles, propensities, True
 
 
 # --- the ranking registry -------------------------------------------------

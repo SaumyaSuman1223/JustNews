@@ -442,6 +442,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/exploration-deck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Exploration Deck */
+        get: operations["get_exploration_deck_v1_exploration_deck_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/explore": {
         parameters: {
             query?: never;
@@ -752,6 +769,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Share */
+        post: operations["report_share_v1_share_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sources": {
         parameters: {
             query?: never;
@@ -1030,6 +1064,8 @@ export interface components {
             position?: number | null;
             /** Surface */
             surface: string;
+            /** Topic Id */
+            topic_id?: string | null;
         };
         /** CohortWeekOut */
         CohortWeekOut: {
@@ -1037,6 +1073,19 @@ export interface components {
             active_users: number;
             /** Week Offset */
             week_offset: number;
+        };
+        /** DeckCardOut */
+        DeckCardOut: {
+            article: components["schemas"]["ArticleOut"];
+            /** Impression Id */
+            impression_id: number | null;
+            /** Topic Id */
+            topic_id: string;
+        };
+        /** DeckOut */
+        DeckOut: {
+            /** Cards */
+            cards: components["schemas"]["DeckCardOut"][];
         };
         /** EditionOut */
         EditionOut: {
@@ -1393,6 +1442,15 @@ export interface components {
         SetRoleIn: {
             /** Role */
             role: string;
+        };
+        /** ShareIn */
+        ShareIn: {
+            /** Article Id */
+            article_id: number;
+            /** Surface */
+            surface: string;
+            /** Topic Id */
+            topic_id?: string | null;
         };
         /** SourceFollowIn */
         SourceFollowIn: {
@@ -2424,6 +2482,41 @@ export interface operations {
             };
         };
     };
+    get_exploration_deck_v1_exploration_deck_get: {
+        parameters: {
+            query?: {
+                locale?: string;
+                languages?: string | null;
+            };
+            header?: {
+                "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_explore_v1_explore_get: {
         parameters: {
             query?: {
@@ -3100,6 +3193,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SearchPageOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_share_v1_share_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-session-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

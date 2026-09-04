@@ -19,7 +19,7 @@ export interface FeedItem {
 export interface FeedListProps {
   items: FeedItem[];
   locale: LocaleCode;
-  surface: "feed" | "explore" | "search" | "topic";
+  surface: "feed" | "explore" | "search" | "topic" | "onboarding";
   signedIn: boolean;
   revalidatePath: string;
   /**

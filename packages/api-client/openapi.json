@@ -445,6 +445,17 @@
           "surface": {
             "title": "Surface",
             "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
           }
         },
         "required": [
@@ -470,6 +481,51 @@
           "active_users"
         ],
         "title": "CohortWeekOut",
+        "type": "object"
+      },
+      "DeckCardOut": {
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/ArticleOut"
+          },
+          "impression_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impression Id"
+          },
+          "topic_id": {
+            "title": "Topic Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "article",
+          "topic_id",
+          "impression_id"
+        ],
+        "title": "DeckCardOut",
+        "type": "object"
+      },
+      "DeckOut": {
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/DeckCardOut"
+            },
+            "title": "Cards",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cards"
+        ],
+        "title": "DeckOut",
         "type": "object"
       },
       "EditionOut": {
@@ -1425,6 +1481,35 @@
           "role"
         ],
         "title": "SetRoleIn",
+        "type": "object"
+      },
+      "ShareIn": {
+        "properties": {
+          "article_id": {
+            "title": "Article Id",
+            "type": "integer"
+          },
+          "surface": {
+            "title": "Surface",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "article_id",
+          "surface"
+        ],
+        "title": "ShareIn",
         "type": "object"
       },
       "SourceFollowIn": {
@@ -3449,6 +3534,102 @@
         ]
       }
     },
+    "/v1/exploration-deck": {
+      "get": {
+        "operationId": "get_exploration_deck_v1_exploration_deck_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Exploration Deck",
+        "tags": [
+          "exploration-deck"
+        ]
+      }
+    },
     "/v1/explore": {
       "get": {
         "description": "Latest news, ranked, no sign-in required.\n\nUnlike /v1/feed this is not behind the beta gate or `require_user`: a\nsigned-out visitor is exactly who explore is for, and their impressions\nare logged against their browsing session rather than a user id - or\nwould be: this is the largest pre-consent observation surface in the\napp precisely because it is reachable with no sign-in and no beta\naccess, so an anonymous visitor who has not consented generates zero\nimpression rows here, not rows keyed on a throwaway session id.",
@@ -4682,6 +4863,63 @@
         "summary": "Search Articles",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/v1/share": {
+      "post": {
+        "operationId": "report_share_v1_share_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report Share",
+        "tags": [
+          "interactions"
         ]
       }
     },

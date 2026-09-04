@@ -21,11 +21,20 @@ class ClickIn(BaseModel):
     surface: str
     position: int | None = None
     impression_id: int | None = None
+    # Only ever sent by the exploration deck (surface="onboarding") - see
+    # services.exploration_deck.record_deck_engagement.
+    topic_id: str | None = None
 
 
 class NotInterestedIn(BaseModel):
     article_id: int
     surface: str
+
+
+class ShareIn(BaseModel):
+    article_id: int
+    surface: str
+    topic_id: str | None = None
 
 
 class HistoryOut(BaseModel):
@@ -53,6 +62,7 @@ async def report_click(
         surface=body.surface,
         position=body.position,
         impression_id=body.impression_id,
+        topic_id=body.topic_id,
     )
 
 
@@ -88,6 +98,23 @@ async def report_not_interested(
         session_id=x_session_id or UNCONSENTED_SESSION,
         article_id=body.article_id,
         surface=body.surface,
+    )
+
+
+@router.post("/share", status_code=status.HTTP_204_NO_CONTENT)
+async def report_share(
+    body: ShareIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+    x_session_id: str | None = Header(default=None, alias="x-session-id"),
+) -> None:
+    await service.report_share(
+        session,
+        user_id=principal.user_id,
+        session_id=x_session_id or UNCONSENTED_SESSION,
+        article_id=body.article_id,
+        surface=body.surface,
+        topic_id=body.topic_id,
     )
 
 

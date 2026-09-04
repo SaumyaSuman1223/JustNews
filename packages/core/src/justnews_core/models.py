@@ -565,7 +565,8 @@ class Impression(Base):
     __table_args__ = (
         CheckConstraint("propensity between 0 and 1", name="ck_impressions_propensity_range"),
         CheckConstraint(
-            "surface in ('feed', 'explore', 'search', 'topic')", name="ck_impressions_surface"
+            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding')",
+            name="ck_impressions_surface",
         ),
         Index("ix_impressions_user_served", "user_id", served_at.desc()),
         Index("ix_impressions_session_served", "session_id", served_at.desc()),
@@ -612,7 +613,7 @@ class InteractionEvent(Base):
             name="ck_interaction_events_type",
         ),
         CheckConstraint(
-            "surface in ('feed', 'explore', 'search', 'topic')",
+            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding')",
             name="ck_interaction_events_surface",
         ),
         Index(

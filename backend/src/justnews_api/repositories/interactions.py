@@ -90,6 +90,33 @@ async def record_event(
     await session.flush()
 
 
+async def distinct_article_ids_with_event(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    surface: str,
+    topic_id: str,
+    event_types: tuple[str, ...],
+) -> set[int]:
+    """Which of this reader's own articles, tagged under one topic, they
+    reported one of `event_types` about on one surface. Backs the
+    exploration deck's UserFollow bridge (services.exploration_deck) - it
+    needs distinct *articles*, not event counts, since re-clicking the same
+    card twice is not stronger evidence of topic interest than clicking it
+    once."""
+    result = await session.execute(
+        select(InteractionEvent.article_id.distinct())
+        .join(ArticleTopic, ArticleTopic.article_id == InteractionEvent.article_id)
+        .where(
+            InteractionEvent.user_id == user_id,
+            InteractionEvent.surface == surface,
+            InteractionEvent.event_type.in_(event_types),
+            ArticleTopic.topic_id == topic_id,
+        )
+    )
+    return set(result.scalars().all())
+
+
 @dataclass(frozen=True, slots=True)
 class HistoryRow:
     id: int

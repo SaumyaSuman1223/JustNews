@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from justnews_api.repositories import content as content_repo
 from justnews_api.repositories import interactions as repo
 from justnews_api.repositories import topics as topics_repo
+from justnews_api.services import exploration_deck
 from justnews_api.services import topics as topics_service
 from justnews_api.services.content import MAX_PAGE_SIZE
 from justnews_api.services.cursor import decode_cursor, encode_cursor
@@ -27,7 +28,7 @@ from justnews_core.errors import NotFoundError, ValidationError
 # work moved server-side into one query instead of several round trips.
 READING_MIX_SAMPLE = 150
 
-VALID_SURFACES = ("feed", "explore", "search", "topic")
+VALID_SURFACES = ("feed", "explore", "search", "topic", "onboarding")
 
 
 def _validate_surface(surface: str) -> None:
@@ -44,6 +45,7 @@ async def report_click(
     surface: str,
     position: int | None,
     impression_id: int | None,
+    topic_id: str | None = None,
 ) -> None:
     _validate_surface(surface)
     article = await content_repo.get_article(session, article_id)
@@ -60,6 +62,11 @@ async def report_click(
         impression_id=impression_id,
         position=position,
     )
+    # topic_id only ever arrives from the exploration deck (see
+    # ArticleCard's onClick) - every other surface leaves it unset, so this
+    # is a no-op everywhere else.
+    if surface == exploration_deck.DECK_SURFACE and topic_id:
+        await exploration_deck.record_deck_engagement(session, user_id=user_id, topic_id=topic_id)
 
 
 async def report_not_interested(
@@ -83,6 +90,32 @@ async def report_not_interested(
         surface=surface,
         locale=article.language,
     )
+
+
+async def report_share(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    session_id: str,
+    article_id: int,
+    surface: str,
+    topic_id: str | None = None,
+) -> None:
+    _validate_surface(surface)
+    article = await content_repo.get_article(session, article_id)
+    if article is None:
+        raise NotFoundError(f"No article with id {article_id}.")
+    await repo.record_event(
+        session,
+        user_id=user_id,
+        session_id=session_id,
+        article_id=article_id,
+        event_type="share",
+        surface=surface,
+        locale=article.language,
+    )
+    if surface == exploration_deck.DECK_SURFACE and topic_id:
+        await exploration_deck.record_deck_engagement(session, user_id=user_id, topic_id=topic_id)
 
 
 async def undo_not_interested(

@@ -10,7 +10,7 @@ from sqlalchemy import delete, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import UserSave
+from justnews_core.models import ArticleTopic, UserSave
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,3 +79,19 @@ async def is_saved(session: AsyncSession, user_id: UUID, article_id: int) -> boo
         select(UserSave.id).where(UserSave.user_id == user_id, UserSave.article_id == article_id)
     )
     return result.first() is not None
+
+
+async def saved_article_ids_in_topic(
+    session: AsyncSession, user_id: UUID, topic_id: str
+) -> set[int]:
+    """Backs the exploration deck's UserFollow bridge
+    (services.exploration_deck): a save is a declarative bookmark, not an
+    InteractionEvent, so counting a reader's topic engagement toward that
+    bridge's threshold has to look here too, not only at click/share
+    events."""
+    result = await session.execute(
+        select(UserSave.article_id.distinct())
+        .join(ArticleTopic, ArticleTopic.article_id == UserSave.article_id)
+        .where(UserSave.user_id == user_id, ArticleTopic.topic_id == topic_id)
+    )
+    return set(result.scalars().all())
