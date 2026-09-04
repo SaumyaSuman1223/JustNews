@@ -1,7 +1,9 @@
 import "@/app/globals.css";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+
+import { NavigationProgress } from "@/components/NavigationProgress";
 
 export const metadata = { title: "Admin · JustNews" };
 
@@ -26,6 +28,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <div className="admin-shell">
           <header className="admin-header">
             <span className="wordmark">JustNews admin</span>

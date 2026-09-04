@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { getSaves } from "@/lib/api";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
@@ -29,43 +31,61 @@ export default async function SavedPage({
   const active = getLocale(locale);
   const { cursor } = await searchParams;
 
-  const access = await requireBetaAccess(active.code, `/${active.code}/saved`);
+  return (
+    <>
+      <div className="page-header">
+        <h1>{t(active.code, "saved.heading")}</h1>
+      </div>
+      {/* Suspended rather than left blocking: requireBetaAccess and getSaves
+          are both network round trips, and the reader clicked a link to get
+          here - the skeleton is what tells them the click worked. */}
+      <Suspense key={cursor ?? "start"} fallback={<FeedSkeleton layout="list" secondaries={0} />}>
+        <SavedBody locale={active.code} cursor={cursor} />
+      </Suspense>
+    </>
+  );
+}
+
+async function SavedBody({
+  locale,
+  cursor,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+  cursor?: string;
+}) {
+  const access = await requireBetaAccess(locale, `/${locale}/saved`);
   if (!access.ok) return access.element;
 
   const page = await getSaves(access.auth, cursor);
 
   return (
     <>
-      <div className="page-header">
-        <h1>{t(active.code, "saved.heading")}</h1>
-      </div>
-
       {page.degraded && (
         <p className="notice" role="status">
-          {t(active.code, "saved.degraded")}
+          {t(locale, "saved.degraded")}
         </p>
       )}
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title={t(active.code, "saved.empty.title")}
-          body={t(active.code, "saved.empty.body")}
-          action={{ href: `/${active.code}`, label: t(active.code, "common.backToFeed") }}
+          title={t(locale, "saved.empty.title")}
+          body={t(locale, "saved.empty.body")}
+          action={{ href: `/${locale}`, label: t(locale, "common.backToFeed") }}
         />
       ) : (
         <FeedList
           items={page.data.items.map((item) => ({ article: item.article, saved: true }))}
-          locale={active.code}
+          locale={locale}
           surface="feed"
           signedIn
-          revalidatePath={`/${active.code}/saved`}
+          revalidatePath={`/${locale}/saved`}
           layout="list"
         />
       )}
 
       <Pagination
-        locale={active.code}
-        baseHref={`/${active.code}/saved`}
+        locale={locale}
+        baseHref={`/${locale}/saved`}
         nextCursor={page.data.next_cursor}
         onLaterPage={Boolean(cursor)}
       />

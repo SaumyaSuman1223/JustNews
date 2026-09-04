@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { getHistory, getSaves } from "@/lib/api";
 import { formatRelativeTime, getLocale, isLocaleCode, t } from "@/lib/i18n";
@@ -29,7 +31,27 @@ export default async function HistoryPage({
   const active = getLocale(locale);
   const { cursor } = await searchParams;
 
-  const access = await requireBetaAccess(active.code, `/${active.code}/history`);
+  return (
+    <>
+      <div className="page-header">
+        <h1>{t(active.code, "history.heading")}</h1>
+        <p>{t(active.code, "history.intro")}</p>
+      </div>
+      <Suspense key={cursor ?? "start"} fallback={<FeedSkeleton layout="list" secondaries={0} />}>
+        <HistoryBody locale={active.code} cursor={cursor} />
+      </Suspense>
+    </>
+  );
+}
+
+async function HistoryBody({
+  locale,
+  cursor,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+  cursor?: string;
+}) {
+  const access = await requireBetaAccess(locale, `/${locale}/history`);
   if (!access.ok) return access.element;
 
   const { auth } = access;
@@ -40,22 +62,17 @@ export default async function HistoryPage({
 
   return (
     <>
-      <div className="page-header">
-        <h1>{t(active.code, "history.heading")}</h1>
-        <p>{t(active.code, "history.intro")}</p>
-      </div>
-
       {page.degraded && (
         <p className="notice" role="status">
-          {t(active.code, "history.degraded")}
+          {t(locale, "history.degraded")}
         </p>
       )}
 
       {page.data.items.length === 0 ? (
         <EmptyState
-          title={t(active.code, "history.empty.title")}
-          body={t(active.code, "history.empty.body")}
-          action={{ href: `/${active.code}`, label: t(active.code, "common.backToFeed") }}
+          title={t(locale, "history.empty.title")}
+          body={t(locale, "history.empty.body")}
+          action={{ href: `/${locale}`, label: t(locale, "common.backToFeed") }}
         />
       ) : (
         <FeedList
@@ -63,21 +80,21 @@ export default async function HistoryPage({
             key: `${item.article.id}-${item.viewed_at}`,
             article: item.article,
             saved: savedIds.has(item.article.id),
-            footnote: t(active.code, "history.viewed", {
-              time: formatRelativeTime(item.viewed_at, active.code),
+            footnote: t(locale, "history.viewed", {
+              time: formatRelativeTime(item.viewed_at, locale),
             }),
           }))}
-          locale={active.code}
+          locale={locale}
           surface="feed"
           signedIn
-          revalidatePath={`/${active.code}/history`}
+          revalidatePath={`/${locale}/history`}
           layout="list"
         />
       )}
 
       <Pagination
-        locale={active.code}
-        baseHref={`/${active.code}/history`}
+        locale={locale}
+        baseHref={`/${locale}/history`}
         nextCursor={page.data.next_cursor}
         onLaterPage={Boolean(cursor)}
       />

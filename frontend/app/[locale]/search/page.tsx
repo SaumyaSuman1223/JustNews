@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
+import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { getMe, getSaves, searchArticles } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
-import { notFound } from "next/navigation";
 
 export async function generateMetadata({
   params,
@@ -35,6 +37,32 @@ export default async function SearchPage({
   const active = getLocale(locale);
   const { q, cursor } = await searchParams;
   const query = (q ?? "").trim();
+
+  return (
+    <>
+      <div className="page-header">
+        <h1>{t(active.code, "search.heading")}</h1>
+        <p>{t(active.code, "search.intro")}</p>
+      </div>
+      <Suspense
+        key={`${query}:${cursor ?? "start"}`}
+        fallback={query.length >= 2 ? <FeedSkeleton layout="list" secondaries={0} rows={5} /> : null}
+      >
+        <SearchBody locale={active.code} query={query} cursor={cursor} />
+      </Suspense>
+    </>
+  );
+}
+
+async function SearchBody({
+  locale,
+  query,
+  cursor,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+  query: string;
+  cursor?: string;
+}) {
   const session = await getSession();
   const auth = session
     ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
@@ -43,47 +71,40 @@ export default async function SearchPage({
   // A reader searching for a name expects hits in every language they read,
   // not only the one the interface happens to be in.
   const profile = auth ? await getMe(auth) : null;
-  const languages = readerLanguages(profile?.preferred_languages, active.code);
+  const languages = readerLanguages(profile?.preferred_languages, locale);
 
   const [results, savedIds] = await Promise.all([
     query.length >= 2
       ? searchArticles({ query, languages, cursor })
       : Promise.resolve({ data: { items: [], next_cursor: null }, degraded: false }),
     auth
-      ? getSaves(auth).then(
-          (page) => new Set(page.data.items.map((item) => item.article.id)),
-        )
+      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
   ]);
 
   return (
     <>
-      <div className="page-header">
-        <h1>{t(active.code, "search.heading")}</h1>
-        <p>{t(active.code, "search.intro")}</p>
-      </div>
-
       {results.degraded && (
         // Two sentences, the second entirely a link. The recovery route used
         // to be a single word inside the sentence, which only lands in the
         // right place in languages built like English.
         <p className="notice" role="status">
-          {t(active.code, "search.degraded")}{" "}
-          <a href={`/${active.code}/topics`}>{t(active.code, "search.browseInstead")}</a>
+          {t(locale, "search.degraded")}{" "}
+          <a href={`/${locale}/topics`}>{t(locale, "search.browseInstead")}</a>
         </p>
       )}
 
       {query.length > 0 && query.length < 2 && (
-        <p className="empty">{t(active.code, "search.tooShort")}</p>
+        <p className="empty">{t(locale, "search.tooShort")}</p>
       )}
 
       {query.length >= 2 && results.data.items.length === 0 && !results.degraded && (
         <EmptyState
-          title={t(active.code, "search.empty.title", { query })}
-          body={t(active.code, "search.empty.body")}
+          title={t(locale, "search.empty.title", { query })}
+          body={t(locale, "search.empty.body")}
           action={{
-            href: `/${active.code}/topics`,
-            label: t(active.code, "common.browseTopics"),
+            href: `/${locale}/topics`,
+            label: t(locale, "common.browseTopics"),
           }}
         />
       )}
@@ -94,10 +115,10 @@ export default async function SearchPage({
             article,
             saved: savedIds.has(article.id),
           }))}
-          locale={active.code}
+          locale={locale}
           surface="search"
           signedIn={Boolean(session)}
-          revalidatePath={`/${active.code}/search?q=${encodeURIComponent(query)}`}
+          revalidatePath={`/${locale}/search?q=${encodeURIComponent(query)}`}
           layout="list"
         />
       )}
@@ -107,8 +128,8 @@ export default async function SearchPage({
           nothing ever linked to it. */}
       {query.length >= 2 && (
         <Pagination
-          locale={active.code}
-          baseHref={`/${active.code}/search?q=${encodeURIComponent(query)}`}
+          locale={locale}
+          baseHref={`/${locale}/search?q=${encodeURIComponent(query)}`}
           nextCursor={results.data.next_cursor}
           onLaterPage={Boolean(cursor)}
         />
