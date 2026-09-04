@@ -176,10 +176,13 @@ export async function updateLanguagesFormAction(formData: FormData): Promise<voi
 }
 
 /**
- * Saves the reader's chosen languages and follows every topic they checked,
- * then sends them into their new feed. Topics are skippable entirely - a
- * reader who follows none just gets the unfiltered feed until the Stage 7
- * exploration deck exists to infer interest from behaviour instead.
+ * Saves the reader's chosen languages and followed sources, then sends them
+ * into their new feed. Topics are no longer submitted here at all - the
+ * exploration deck above this form (ExplorationDeck) infers topic interest
+ * from what a reader clicks, saves or shares on it, live, via each card's
+ * own ArticleActions; services.exploration_deck.record_deck_engagement is
+ * what turns that into a real UserFollow. This action never touches topics.
+ *
  * The API requires at least one language; the form pre-checks the reader's
  * current locale so there is always one checked by default, but nothing
  * here stops every box being unchecked - that case is simply a no-op update
@@ -189,7 +192,6 @@ export async function completeOnboardingAction(locale: string, formData: FormDat
   const auth = await authOrNull();
   if (auth) {
     const languages = formData.getAll("languages").map(String);
-    const topicIds = formData.getAll("topics").map(String);
     // Number, not String: SourceOut.id is an integer everywhere else in the
     // API (FollowSourceButton, unfollowSourceAction), and a bare string id
     // would silently fail every later `===` comparison against it.
@@ -200,10 +202,7 @@ export async function completeOnboardingAction(locale: string, formData: FormDat
     if (languages.length > 0) {
       await api.updateMe(auth, languages);
     }
-    await Promise.all([
-      ...topicIds.map((topicId) => api.followTopic(auth, topicId)),
-      ...sourceIds.map((sourceId) => api.followSource(auth, sourceId)),
-    ]);
+    await Promise.all(sourceIds.map((sourceId) => api.followSource(auth, sourceId)));
   }
   redirect(`/${locale}`);
 }

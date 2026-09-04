@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ExplorationDeck } from "@/components/ExplorationDeck";
 import { completeOnboardingAction } from "@/lib/actions";
 import {
+  getExplorationDeck,
   getFollowedSources,
-  getFollows,
   getMe,
   getSources,
-  getTopics,
   type SourceOption,
 } from "@/lib/api";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
@@ -35,9 +35,8 @@ export default async function OnboardingPage({
   const access = await requireBetaAccess(active.code, `/${active.code}/onboarding`);
   if (!access.ok) return access.element;
 
-  const [topics, followedTopics, profile, followedSourceIds] = await Promise.all([
-    getTopics(active.code),
-    getFollows(access.auth).then((rows) => new Set(rows.map((row) => row.topic_id))),
+  const [deck, profile, followedSourceIds] = await Promise.all([
+    getExplorationDeck(access.auth, { locale: active.code }),
     getMe(access.auth),
     getFollowedSources(access.auth).then((rows) => new Set(rows.map((row) => row.source_id))),
   ]);
@@ -117,26 +116,16 @@ export default async function OnboardingPage({
         )}
 
         <div className="field" style={{ marginBlockStart: "var(--space-6)" }}>
-          <label>{t(active.code, "onboarding.topics.label")}</label>
+          <label>{t(active.code, "onboarding.deck.heading")}</label>
           <p className="form-note" style={{ marginBlockStart: 0 }}>
-            {t(active.code, "onboarding.topics.note")}
+            {t(active.code, "onboarding.deck.intro")}
           </p>
         </div>
-        <ul className="checkbox-grid">
-          {topics.data.map((topic) => (
-            <li key={topic.id}>
-              <label>
-                <input
-                  type="checkbox"
-                  name="topics"
-                  value={topic.id}
-                  defaultChecked={followedTopics.has(topic.id)}
-                />
-                {topic.label}
-              </label>
-            </li>
-          ))}
-        </ul>
+        {deck.data.length > 0 ? (
+          <ExplorationDeck cards={deck.data} locale={active.code} signedIn />
+        ) : (
+          <p className="empty">{t(active.code, "onboarding.deck.empty")}</p>
+        )}
 
         {/* True today, not a promise about later: anyone who reaches this
             page already has beta access (requireBetaAccess above), so these
