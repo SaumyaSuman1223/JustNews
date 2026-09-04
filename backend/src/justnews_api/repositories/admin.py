@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories.content import ArticleRow
@@ -21,6 +21,7 @@ from justnews_core.models import (
     IngestRun,
     InteractionEvent,
     Source,
+    UserProfile,
 )
 
 # --------------------------------------------------------------------------
@@ -187,6 +188,84 @@ async def active_users_by_week(
     return await _active_users_by_bucket(session, since, "week", locale=locale)
 
 
+async def retention_cohorts(
+    session: AsyncSession, *, since: datetime, max_weeks: int, locale: str | None = None
+) -> dict[str, Any]:
+    """Weekly cohorts, keyed by the week a reader redeemed their invite (not
+    account creation - that is when they actually started being able to use
+    the product). ``weeks_since`` 0 is the cohort's own signup week, so every
+    cohort has at least one active week by construction: it is the same
+    "active" a reader was, at minimum, on the request that redeemed the
+    invite and fetched their first feed.
+
+    Two shapes are computed and returned together - cohort_size (how many
+    readers joined that week) and an activity matrix (how many of them were
+    still active N weeks later) - because a retention percentage with no
+    denominator next to it invites exactly the "40 users is not a cohort"
+    mistake ROADMAP.md warns about for num_groups.
+    """
+    cohorts = (
+        select(
+            UserProfile.id.label("user_id"),
+            func.date_trunc("week", UserProfile.invite_redeemed_at, "UTC").label("cohort_week"),
+        )
+        .where(UserProfile.invite_redeemed_at.is_not(None), UserProfile.invite_redeemed_at >= since)
+        .cte("cohorts")
+    )
+
+    impressed = select(
+        Impression.user_id.label("user_id"),
+        func.date_trunc("week", Impression.served_at, "UTC").label("active_week"),
+    ).where(Impression.user_id.is_not(None))
+    interacted = select(
+        InteractionEvent.user_id.label("user_id"),
+        func.date_trunc("week", InteractionEvent.created_at, "UTC").label("active_week"),
+    ).where(InteractionEvent.user_id.is_not(None))
+    if locale:
+        impressed = impressed.where(Impression.locale == locale)
+        interacted = interacted.where(InteractionEvent.locale == locale)
+    activity = impressed.union(interacted).cte("activity")
+
+    week_offset = func.floor(
+        func.extract("epoch", activity.c.active_week - cohorts.c.cohort_week) / 604800
+    ).cast(Integer)
+
+    joined = (
+        select(
+            cohorts.c.cohort_week.label("cohort_week"),
+            cohorts.c.user_id.label("user_id"),
+            week_offset.label("week_offset"),
+        )
+        .select_from(cohorts.join(activity, activity.c.user_id == cohorts.c.user_id))
+        .where(activity.c.active_week >= cohorts.c.cohort_week)
+        .cte("joined")
+    )
+
+    activity_rows = await session.execute(
+        select(
+            joined.c.cohort_week,
+            joined.c.week_offset,
+            func.count(func.distinct(joined.c.user_id)),
+        )
+        .where(joined.c.week_offset <= max_weeks)
+        .group_by(joined.c.cohort_week, joined.c.week_offset)
+        .order_by(joined.c.cohort_week, joined.c.week_offset)
+    )
+    size_rows = await session.execute(
+        select(cohorts.c.cohort_week, func.count())
+        .group_by(cohorts.c.cohort_week)
+        .order_by(cohorts.c.cohort_week)
+    )
+
+    return {
+        "cohort_sizes": {row[0]: row[1] for row in size_rows},
+        "activity": [
+            {"cohort_week": row[0], "week_offset": row[1], "active_users": row[2]}
+            for row in activity_rows
+        ],
+    }
+
+
 async def ctr_by_surface(
     session: AsyncSession, since: datetime, *, locale: str | None = None
 ) -> list[dict[str, Any]]:
@@ -299,6 +378,72 @@ async def source_performance(
         query = query.where(Impression.locale == locale)
     rows = await session.execute(query)
     return [{"id": row.id, "name": row.name, "impressions": row.impressions} for row in rows]
+
+
+# --------------------------------------------------------------------------
+# Per-user activity (the "watch a session" debugging view)
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ActivityEntry:
+    kind: str  # "impression" | "interaction"
+    occurred_at: datetime
+    article_id: int
+    article_title: str
+    surface: str
+    position: int | None
+    ranking_policy: str | None
+    event_type: str | None
+
+
+async def user_activity(session: AsyncSession, user_id: UUID, *, limit: int) -> list[ActivityEntry]:
+    """A merged, most-recent-first timeline of one reader's impressions and
+    interactions - what an admin actually needs to debug "why did this
+    reader see/do X", not a real session replay (no DOM, no screen capture,
+    nothing beyond what this system already logs for Stage 6's sake)."""
+    impressions = await session.execute(
+        select(Impression, Article.title)
+        .join(Article, Article.id == Impression.article_id)
+        .where(Impression.user_id == user_id)
+        .order_by(Impression.served_at.desc())
+        .limit(limit)
+    )
+    interactions = await session.execute(
+        select(InteractionEvent, Article.title)
+        .join(Article, Article.id == InteractionEvent.article_id)
+        .where(InteractionEvent.user_id == user_id)
+        .order_by(InteractionEvent.created_at.desc())
+        .limit(limit)
+    )
+
+    entries = [
+        ActivityEntry(
+            kind="impression",
+            occurred_at=impression.served_at,
+            article_id=impression.article_id,
+            article_title=title,
+            surface=impression.surface,
+            position=impression.position,
+            ranking_policy=impression.ranking_policy,
+            event_type=None,
+        )
+        for impression, title in impressions
+    ] + [
+        ActivityEntry(
+            kind="interaction",
+            occurred_at=interaction.created_at,
+            article_id=interaction.article_id,
+            article_title=title,
+            surface=interaction.surface,
+            position=interaction.position,
+            ranking_policy=None,
+            event_type=interaction.event_type,
+        )
+        for interaction, title in interactions
+    ]
+    entries.sort(key=lambda entry: entry.occurred_at, reverse=True)
+    return entries[:limit]
 
 
 # --------------------------------------------------------------------------

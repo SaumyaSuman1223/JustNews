@@ -8,6 +8,7 @@ specific to the action instead of a generic "admin called an endpoint".
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -18,14 +19,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from justnews_api.repositories import admin as repo
 from justnews_api.repositories import content as content_repo
 from justnews_api.repositories import feedback as feedback_repo
+from justnews_api.repositories import flags as flags_repo
 from justnews_api.repositories import topics as topics_repo
 from justnews_api.repositories import users as users_repo
 from justnews_api.services.topics import label_for
 from justnews_core.errors import NotFoundError, ValidationError
-from justnews_core.models import AdminAuditLog, Feedback, IngestRun, Topic, UserProfile
+from justnews_core.models import AdminAuditLog, FeatureFlag, Feedback, IngestRun, Topic, UserProfile
 
 MAX_TAKEDOWN_REASON_LENGTH = 500
 VALID_ROLES = ("reader", "admin")
+FLAG_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{2,59}$")
+FLAG_KEY_PATTERN_MESSAGE = (
+    "key must start with a lowercase letter and contain only lowercase "
+    "letters, digits and underscores, 3-60 characters."
+)
 
 
 async def takedown_article(
@@ -106,6 +113,26 @@ async def list_users(
     return await users_repo.list_profiles(session, limit=limit, offset=offset, role=role)
 
 
+async def get_user_activity(
+    session: AsyncSession, *, admin_user_id: UUID, target_user_id: UUID, limit: int = 50
+) -> list[repo.ActivityEntry]:
+    profile = await users_repo.get_profile(session, target_user_id)
+    if profile is None:
+        raise NotFoundError(f"No user with id {target_user_id}.")
+    entries = await repo.user_activity(session, target_user_id, limit=limit)
+    # Reading another reader's behavioural timeline is exactly the kind of
+    # admin access CLAUDE.md requires be audit-logged - it is PII-adjacent
+    # even though the table itself only ever stores an id, never an email.
+    await repo.record_action(
+        session,
+        admin_user_id=admin_user_id,
+        action="user.view_activity",
+        target_type="user",
+        target_id=str(target_user_id),
+    )
+    return entries
+
+
 @dataclass(frozen=True, slots=True)
 class AnalyticsOverview:
     since: datetime
@@ -138,6 +165,49 @@ async def list_audit_log(session: AsyncSession, *, limit: int = 100) -> list[Adm
 
 async def list_feedback(session: AsyncSession, *, limit: int = 100) -> list[Feedback]:
     return await feedback_repo.list_feedback(session, limit=limit)
+
+
+@dataclass(frozen=True, slots=True)
+class CohortWeek:
+    week_offset: int
+    active_users: int
+
+
+@dataclass(frozen=True, slots=True)
+class RetentionCohort:
+    cohort_week: datetime
+    cohort_size: int
+    weeks: list[CohortWeek]
+
+
+async def get_retention_cohorts(
+    session: AsyncSession,
+    *,
+    window_weeks: int = 12,
+    max_weeks_since: int = 8,
+    locale: str | None = None,
+) -> list[RetentionCohort]:
+    if not 1 <= window_weeks <= 52:
+        raise ValidationError("window_weeks must be between 1 and 52.")
+    if not 1 <= max_weeks_since <= 26:
+        raise ValidationError("max_weeks_since must be between 1 and 26.")
+    since = datetime.now(UTC) - timedelta(weeks=window_weeks)
+    raw = await repo.retention_cohorts(
+        session, since=since, max_weeks=max_weeks_since, locale=locale
+    )
+    weeks_by_cohort: dict[datetime, list[CohortWeek]] = {}
+    for row in raw["activity"]:
+        weeks_by_cohort.setdefault(row["cohort_week"], []).append(
+            CohortWeek(week_offset=row["week_offset"], active_users=row["active_users"])
+        )
+    return [
+        RetentionCohort(
+            cohort_week=cohort_week,
+            cohort_size=size,
+            weeks=weeks_by_cohort.get(cohort_week, []),
+        )
+        for cohort_week, size in sorted(raw["cohort_sizes"].items())
+    ]
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,3 +316,53 @@ async def set_article_topics(
             "primary": primary_topic_id,
         },
     )
+
+
+async def list_feature_flags(session: AsyncSession) -> list[FeatureFlag]:
+    return await flags_repo.list_flags(session)
+
+
+async def create_feature_flag(
+    session: AsyncSession,
+    *,
+    admin_user_id: UUID,
+    key: str,
+    description: str,
+    enabled: bool,
+) -> FeatureFlag:
+    if not FLAG_KEY_PATTERN.match(key):
+        raise ValidationError(FLAG_KEY_PATTERN_MESSAGE)
+    description = description.strip()
+    if not description:
+        raise ValidationError("description is required.")
+    if await flags_repo.get_flag(session, key) is not None:
+        raise ValidationError(f"A flag named {key!r} already exists.")
+    flag = await flags_repo.create_flag(
+        session, key=key, description=description, enabled=enabled, admin_user_id=admin_user_id
+    )
+    await repo.record_action(
+        session,
+        admin_user_id=admin_user_id,
+        action="feature_flag.create",
+        target_type="feature_flag",
+        target_id=key,
+        details={"enabled": enabled, "description": description},
+    )
+    return flag
+
+
+async def set_feature_flag(
+    session: AsyncSession, *, admin_user_id: UUID, key: str, enabled: bool
+) -> FeatureFlag:
+    flag = await flags_repo.set_enabled(session, key, enabled=enabled, admin_user_id=admin_user_id)
+    if flag is None:
+        raise NotFoundError(f"No flag named {key!r}.")
+    await repo.record_action(
+        session,
+        admin_user_id=admin_user_id,
+        action="feature_flag.set",
+        target_type="feature_flag",
+        target_id=key,
+        details={"enabled": enabled},
+    )
+    return flag

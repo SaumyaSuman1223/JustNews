@@ -30,6 +30,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import content as content_repo
+from justnews_api.repositories import flags as flags_repo
 from justnews_api.repositories import follows as follows_repo
 from justnews_api.repositories import interactions as interactions_repo
 from justnews_api.repositories import ranking as ranking_repo
@@ -46,6 +47,10 @@ from justnews_api.services.cursor import (
 from justnews_core.errors import ValidationError
 
 PROPENSITY = 1.0
+
+# The admin-toggleable kill switch (migration 0011_feature_flags) for the
+# heuristic ranker specifically - see get_feed_page for where it is checked.
+HEURISTIC_RANKER_FLAG = "heuristic_ranker"
 
 # How much of the recent corpus the ranker considers per feed load. Large
 # enough for MMR to have real material to diversify over and for several
@@ -140,6 +145,16 @@ async def get_feed_page(
 
     excluded = await interactions_repo.excluded_article_ids(session, user_id)
     policy = assign_policy(user_id)
+    if policy == HEURISTIC_POLICY and not await flags_repo.is_enabled(
+        session, HEURISTIC_RANKER_FLAG
+    ):
+        # The bucketing itself is untouched - a reader stays counted in their
+        # assigned experiment arm - but what actually gets served, and what
+        # gets logged as having served it, falls back to the control. That is
+        # correct for Stage 6's offline evaluation: the propensity row must
+        # describe what really happened, not what assign_policy would have
+        # chosen with the switch left on.
+        policy = CHRONOLOGICAL_POLICY
 
     unlogged = await POLICIES[policy](
         session,

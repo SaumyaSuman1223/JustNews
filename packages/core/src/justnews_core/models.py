@@ -692,3 +692,22 @@ class Feedback(Base):
     )
 
     __table_args__ = (Index("ix_feedback_created", created_at.desc()),)
+
+
+class FeatureFlag(Base):
+    """A toggle an admin can flip without a deploy. See migration
+    0011_feature_flags for why read is open to any session rather than
+    admin-only: services.feed checks a flag on an ordinary reader's own
+    request, not an admin's."""
+
+    __tablename__ = "feature_flags"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_by: Mapped[Any | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
