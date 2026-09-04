@@ -15,40 +15,88 @@
 :root {
   color-scheme: light dark;
 
-  --ground: #f7f8f7;
-  --surface: #ffffff;
-  --surface-sub: #eef1ef;
-  --text: #121614;
-  --text-mid: #3d4744;
-  --text-muted: #66746f;
-  --border: #dde3e0;
-  --accent: #0f6b53;
-  --accent-soft: #dcebe5;
-  --danger: #96382c;
+  /* --- palette -------------------------------------------------------------
+   *
+   * Warm paper and ink (docs/design/design-system.md). Two values deviate
+   * from the direction document, both because the document's value fails
+   * WCAG AA against Paper and the system's contrast rule outranks its colour
+   * suggestion:
+   *
+   * - Muted text: the document proposes #77736C, which is 4.18:1 on Paper.
+   *   Metadata is small text and needs 4.5:1. #6b675f is 4.99:1.
+   * - Accent: brand brass #a28b68 is 2.90:1 on Paper - fine as a mark, not
+   *   as a link or a focus ring. So the brass splits in two: `--brass` is
+   *   the decorative mark (indicator bars, rules, dots, never text), and
+   *   `--accent` is the interactive one at 4.99:1. Redefining `--accent` as
+   *   the accessible value means every existing link and focus ring in the
+   *   product stays compliant without touching a single component.
+   */
+  --ground: #f5f1e8; /* Paper */
+  --surface: #fbf9f4; /* Paper Bright - cards, reading surfaces */
+  --surface-sub: #efeadf;
+  --text: #171717; /* Ink */
+  --text-mid: #333333; /* Soft Ink */
+  --text-muted: #6b675f;
+  --border: #d8d2c7; /* Warm Gray - decorative rules and hairlines */
+  --border-strong: #8e8778; /* control boundaries, 3.16:1 - inputs, buttons */
+  --brass: #a28b68; /* Aquila Brass, decorative only */
+  --accent: #7a6444; /* interactive brass: links, focus, active state */
+  /* Light enough that --accent still clears 4.5:1 *on it* (4.66:1), which the
+     obvious tint of the brass did not - accent-on-accent-soft is the active
+     locale chip, and it failed axe at 4.42:1. A token pair has to be verified
+     against each other, not each against the page ground. */
+  --accent-soft: #f0e9dc;
+  --danger: #9a3b2e;
 
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
+  /* Aquila's immersive ground. Fixed in both themes - it is a route-level
+     surface treatment, not the application's dark mode (ADR 0011 / the design
+     system's "one language, three personalities"). Kept here so Chunk 4 reads
+     a token rather than inventing a hex. */
+  --charcoal: #20211f;
+
+  /* 4px base, through to the editorial steps. Named by multiple of 4, so
+     --space-16 is unambiguously 64px and a new step cannot collide. */
+  --space-1: 0.25rem; /* 4 */
+  --space-2: 0.5rem; /* 8 */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /* 16 */
+  --space-6: 1.5rem; /* 24 */
+  --space-8: 2rem; /* 32 */
+  --space-12: 3rem; /* 48 */
+  --space-16: 4rem; /* 64 */
+  --space-24: 6rem; /* 96 - editorial section separation */
 
   --measure: 68ch;
   --radius: 6px;
 
-  /* Modular scale, named by role rather than by size, with the steps
-     docs/design/design-system.md asks for: lead / section-lead / card /
-     list / meta. Naming them by role is what keeps hierarchy structural -
-     a component picks the step for what it *is*, so the scale cannot drift
-     into ad-hoc font sizes. The lead step is fluid because a fixed 2.6rem
-     headline is a wall on a 360px phone. */
-  --type-lead: clamp(1.7rem, 1.15rem + 2.4vw, 2.5rem);
-  --type-section: 1.3rem;
-  --type-card: 1.12rem;
-  --type-list: 1rem;
-  --type-body: 0.95rem;
-  --type-meta: 0.76rem;
+  /* Modular scale, named by role rather than by size, in the vocabulary
+     docs/design/design-system.md uses: Display XL / L / M, Body L / M / S,
+     Label, Micro. Naming by role is what keeps hierarchy structural - a
+     component picks the step for what it *is*, so the scale cannot drift
+     into ad-hoc font sizes.
+
+     Display steps are fluid: a fixed 3.4rem front-page headline is a wall on
+     a 360px phone. Cormorant runs small for its point size, so these sit a
+     step above where the same numbers would land in a system serif. */
+  --type-display-xl: clamp(2.2rem, 1.3rem + 4vw, 3.6rem); /* front-page lead */
+  --type-display-l: clamp(1.7rem, 1.2rem + 2.2vw, 2.4rem); /* section headline */
+  --type-display-m: 1.32rem; /* story headline */
+  --type-body-l: 1.06rem; /* standfirst, deck */
+  --type-body-m: 0.95rem; /* reading text */
+  --type-body-s: 0.875rem; /* supporting text */
+  --type-label: 0.76rem; /* category, source, timestamp */
+  --type-micro: 0.68rem; /* edition, page number */
+
+  /* Previous names, kept as aliases so this chunk changes the system without
+     rewriting every component that references the old step. Components move
+     to the role names as they are rebuilt in later chunks; nothing should
+     reference these in new code. */
+  --type-lead: var(--type-display-l);
+  --type-section: var(--type-display-m);
+  --type-card: var(--type-display-m);
+  --type-list: var(--type-body-l);
+  --type-body: var(--type-body-m);
+  --type-meta: var(--type-label);
 
   /* Leading is a token, not a per-component value, because it is exactly what
      has to change per script. See the :lang(hi) override below. */
@@ -56,39 +104,62 @@
   --leading-snug: 1.32;
   --leading-body: 1.65;
 
-  /* Motion, per the design system's "almost none". One duration and one
-     curve, so every state change in the product moves the same way; anything
-     that wants a different feel needs a reason. Decelerating, because every
-     transition here reports a state that has already happened. */
-  --dur: 180ms;
+  /* Motion in three tiers, one curve. Decelerating, because every transition
+     here reports a state that has already happened. A component picks the
+     tier by what it is reporting, not by how it wants to feel:
+       micro     - the element itself changed (hover, toggle, bookmark)
+       standard  - part of the page changed (nav, panel, menu, filter)
+       editorial - the page changed (Aquila page turn, full-screen overlay)
+     The editorial tier is the only one long enough to be felt, and it exists
+     for exactly one interaction. */
+  --dur-micro: 160ms;
+  --dur-standard: 240ms;
+  --dur-editorial: 450ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
+  /* The original single duration, aliased to the micro tier - which is what
+     every existing use of it is. New code names its tier. */
+  --dur: var(--dur-micro);
+
   /* Per-script coverage, not a Latin list with a generic keyword on the end.
-     CSS font fallback resolves per *glyph*, so Latin text still gets Georgia
-     or system-ui while Devanagari falls through to the first face that
-     actually contains it. Without the Devanagari entries, a Hindi headline
-     renders in whatever the generic keyword happens to resolve to - which is
-     not a design decision, and on some systems is tofu. Named per platform:
-     Nirmala UI (Windows), Kohinoor/Devanagari Sangam (Apple), Noto (Android,
-     ChromeOS, most Linux). */
-  --font-display: ui-serif, Georgia, "Noto Serif Devanagari", "Kohinoor Devanagari",
-    "Times New Roman", serif;
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari",
-    "Nirmala UI", "Devanagari Sangam MN", sans-serif;
+     CSS font fallback resolves per *glyph*, so Latin text takes Cormorant or
+     Plex while Devanagari falls through to the first face that actually
+     contains it - the self-hosted Noto Serif / Plex Devanagari from
+     lib/fonts.ts, then the platform faces: Nirmala UI (Windows),
+     Kohinoor/Devanagari Sangam (Apple), Noto (Android, ChromeOS, Linux).
+     Without those entries a Hindi headline renders in whatever the generic
+     keyword resolves to, which is not a design decision and on some systems
+     is tofu.
+
+     The `--font-*-latin` and `--font-*-deva` variables are injected on <html>
+     by next/font; each already carries its own metric-matched local fallback,
+     which is what makes the swap shift-free. */
+  --font-display: var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia,
+    "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
+  --font-ui: var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system, "Segoe UI",
+    Roboto, "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
 }
 
+/* Designed, not inverted. Warm dark: the ground is a shade below Deep
+   Charcoal so surfaces can sit *at* it and still read as raised, and the text
+   is a warm off-white rather than the cool grey an inversion of Paper would
+   produce. The brass brightens here - the light theme's interactive brass is
+   dark enough to disappear on charcoal, so dark gets the brighter tone for
+   both roles. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #0d1211;
-    --surface: #141b19;
-    --surface-sub: #1a2321;
-    --text: #e7eeeb;
-    --text-mid: #b4c3be;
-    --text-muted: #869591;
-    --border: #253230;
-    --accent: #5cc3a5;
-    --accent-soft: #16302a;
-    --danger: #e08877;
+    --ground: #1a1b19;
+    --surface: #20211f;
+    --surface-sub: #2a2b28;
+    --text: #ede9e0;
+    --text-mid: #c6c1b6;
+    --text-muted: #96918a;
+    --border: #34352f;
+    --border-strong: #55564e;
+    --brass: #c9ae83;
+    --accent: #c9ae83;
+    --accent-soft: #33301f;
+    --danger: #e39385;
   }
 }
 

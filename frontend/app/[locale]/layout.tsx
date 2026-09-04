@@ -12,6 +12,7 @@ import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getConsentState } from "@/lib/consent";
+import { fontVariables } from "@/lib/fonts";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -63,7 +64,7 @@ export default async function LocaleLayout({
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
     // thing standing between us and a stylesheet fork for Arabic.
-    <html lang={active.htmlLang} dir={active.dir}>
+    <html lang={active.htmlLang} dir={active.dir} className={fontVariables}>
       <body>
         <Suspense fallback={null}>
           <NavigationProgress />

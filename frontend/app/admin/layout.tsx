@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 
 import { NavigationProgress } from "@/components/NavigationProgress";
+import { fontVariables } from "@/lib/fonts";
 
 export const metadata = { title: "Admin · JustNews" };
 
@@ -27,7 +28,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   // passes through [locale]/layout.tsx, which is the only other place they
   // are defined.
   return (
-    <html lang="en">
+    <html lang="en" className={fontVariables}>
       <body>
         <Suspense fallback={null}>
           <NavigationProgress />
