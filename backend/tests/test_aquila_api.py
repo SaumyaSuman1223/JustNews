@@ -10,12 +10,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from httpx import AsyncClient
-from justnews_ingestion.aquila import compose_issue
 from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.models import Article, ArticleTopic, FeatureFlag, Impression, IssueSlot
+from justnews_ingestion.aquila import compose_issue
 
 POLITICS = "medtop:11000000"
 CONSENT = {"x-analytics-consent": "granted", "x-session-id": "sess-aquila"}
