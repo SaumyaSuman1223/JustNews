@@ -1,6 +1,53 @@
 {
   "components": {
     "schemas": {
+      "ActiveUsersBucketOut": {
+        "properties": {
+          "active_users": {
+            "title": "Active Users",
+            "type": "integer"
+          },
+          "bucket": {
+            "format": "date-time",
+            "title": "Bucket",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bucket",
+          "active_users"
+        ],
+        "title": "ActiveUsersBucketOut",
+        "type": "object"
+      },
+      "AdminTopicOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "level",
+          "article_count"
+        ],
+        "title": "AdminTopicOut",
+        "type": "object"
+      },
       "AnalyticsOverviewOut": {
         "properties": {
           "active_users": {
@@ -164,6 +211,50 @@
           "items"
         ],
         "title": "ArticlePageOut",
+        "type": "object"
+      },
+      "ArticleTopicOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_primary": {
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "is_primary"
+        ],
+        "title": "ArticleTopicOut",
+        "type": "object"
+      },
+      "ArticleTopicsIn": {
+        "properties": {
+          "primary_topic_id": {
+            "title": "Primary Topic Id",
+            "type": "string"
+          },
+          "topic_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Topic Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "topic_ids",
+          "primary_topic_id"
+        ],
+        "title": "ArticleTopicsIn",
         "type": "object"
       },
       "AuditLogEntryOut": {
@@ -1544,6 +1635,76 @@
         ]
       }
     },
+    "/v1/admin/analytics/dau": {
+      "get": {
+        "operationId": "daily_active_users_v1_admin_analytics_dau_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "window_days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Window Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActiveUsersBucketOut"
+                  },
+                  "title": "Response Daily Active Users V1 Admin Analytics Dau Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Daily Active Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/analytics/overview": {
       "get": {
         "operationId": "analytics_overview_v1_admin_analytics_overview_get",
@@ -1605,6 +1766,76 @@
           }
         ],
         "summary": "Analytics Overview",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/analytics/wau": {
+      "get": {
+        "operationId": "weekly_active_users_v1_admin_analytics_wau_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "window_weeks",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 52,
+              "minimum": 1,
+              "title": "Window Weeks",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActiveUsersBucketOut"
+                  },
+                  "title": "Response Weekly Active Users V1 Admin Analytics Wau Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Weekly Active Users",
         "tags": [
           "admin"
         ]
@@ -1763,6 +1994,115 @@
           }
         ],
         "summary": "Takedown Article",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/articles/{article_id}/topics": {
+      "get": {
+        "operationId": "get_article_topics_v1_admin_articles__article_id__topics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleTopicOut"
+                  },
+                  "title": "Response Get Article Topics V1 Admin Articles  Article Id  Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Article Topics",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "set_article_topics_v1_admin_articles__article_id__topics_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleTopicsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Article Topics",
         "tags": [
           "admin"
         ]
@@ -1975,6 +2315,90 @@
           }
         ],
         "summary": "List Source Health",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/topics": {
+      "get": {
+        "operationId": "list_topics_v1_admin_topics_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "parent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminTopicOut"
+                  },
+                  "title": "Response List Topics V1 Admin Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Topics",
         "tags": [
           "admin"
         ]

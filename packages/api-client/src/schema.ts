@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/analytics/dau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily Active Users */
+        get: operations["daily_active_users_v1_admin_analytics_dau_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/analytics/overview": {
         parameters: {
             query?: never;
@@ -47,6 +64,23 @@ export interface paths {
         };
         /** Analytics Overview */
         get: operations["analytics_overview_v1_admin_analytics_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/analytics/wau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Weekly Active Users */
+        get: operations["weekly_active_users_v1_admin_analytics_wau_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -100,6 +134,24 @@ export interface paths {
         put?: never;
         /** Takedown Article */
         post: operations["takedown_article_v1_admin_articles__article_id__takedown_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/articles/{article_id}/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Article Topics */
+        get: operations["get_article_topics_v1_admin_articles__article_id__topics_get"];
+        /** Set Article Topics */
+        put: operations["set_article_topics_v1_admin_articles__article_id__topics_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -167,6 +219,23 @@ export interface paths {
         };
         /** List Source Health */
         get: operations["list_source_health_v1_admin_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Topics */
+        get: operations["list_topics_v1_admin_topics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -699,6 +768,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActiveUsersBucketOut */
+        ActiveUsersBucketOut: {
+            /** Active Users */
+            active_users: number;
+            /**
+             * Bucket
+             * Format: date-time
+             */
+            bucket: string;
+        };
+        /** AdminTopicOut */
+        AdminTopicOut: {
+            /** Article Count */
+            article_count: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Level */
+            level: number;
+        };
         /** AnalyticsOverviewOut */
         AnalyticsOverviewOut: {
             /** Active Users */
@@ -757,6 +847,22 @@ export interface components {
              * @description Opaque keyset cursor. Pass back as ?cursor=. Never an offset.
              */
             next_cursor?: string | null;
+        };
+        /** ArticleTopicOut */
+        ArticleTopicOut: {
+            /** Id */
+            id: string;
+            /** Is Primary */
+            is_primary: boolean;
+            /** Label */
+            label: string;
+        };
+        /** ArticleTopicsIn */
+        ArticleTopicsIn: {
+            /** Primary Topic Id */
+            primary_topic_id: string;
+            /** Topic Ids */
+            topic_ids: string[];
         };
         /** AuditLogEntryOut */
         AuditLogEntryOut: {
@@ -1295,6 +1401,38 @@ export interface operations {
             };
         };
     };
+    daily_active_users_v1_admin_analytics_dau_get: {
+        parameters: {
+            query?: {
+                window_days?: number;
+                locale?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveUsersBucketOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     analytics_overview_v1_admin_analytics_overview_get: {
         parameters: {
             query?: {
@@ -1314,6 +1452,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalyticsOverviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weekly_active_users_v1_admin_analytics_wau_get: {
+        parameters: {
+            query?: {
+                window_weeks?: number;
+                locale?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveUsersBucketOut"][];
                 };
             };
             /** @description Validation Error */
@@ -1412,6 +1582,72 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ArticleOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_article_topics_v1_admin_articles__article_id__topics_get: {
+        parameters: {
+            query?: {
+                language?: string;
+            };
+            header?: never;
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTopicOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_article_topics_v1_admin_articles__article_id__topics_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleTopicsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -1555,6 +1791,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceHealthOut"][];
+                };
+            };
+        };
+    };
+    list_topics_v1_admin_topics_get: {
+        parameters: {
+            query?: {
+                parent?: string | null;
+                q?: string | null;
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTopicOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
