@@ -90,7 +90,7 @@ async function SearchBody({
         // right place in languages built like English.
         <p className="notice" role="status">
           {t(locale, "search.degraded")}{" "}
-          <a href={`/${locale}/topics`}>{t(locale, "search.browseInstead")}</a>
+          <a href={`/${locale}/desk`}>{t(locale, "search.browseInstead")}</a>
         </p>
       )}
 
@@ -103,7 +103,7 @@ async function SearchBody({
           title={t(locale, "search.empty.title", { query })}
           body={t(locale, "search.empty.body")}
           action={{
-            href: `/${locale}/topics`,
+            href: `/${locale}/desk`,
             label: t(locale, "common.browseTopics"),
           }}
         />

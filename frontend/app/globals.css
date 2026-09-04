@@ -312,7 +312,10 @@ a {
   opacity: 0.6;
 }
 
-.wordmark span {
+/* The "News" half only. Excluding the tagline explicitly rather than relying
+   on source order: `.wordmark span` outranks `.wordmark__tagline` on
+   specificity, so without this the tagline silently takes the brass too. */
+.wordmark span:not(.wordmark__tagline) {
   color: var(--accent);
 }
 
@@ -359,12 +362,6 @@ a {
     align-items: stretch;
     gap: var(--space-3);
     padding-block: var(--space-4);
-  }
-
-  .masthead-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
   }
 
   .search-box {
@@ -840,6 +837,18 @@ a {
   margin-block-end: var(--space-6);
 }
 
+/* The small letterspaced line above a headline - the label a newspaper sets
+   over a section head. Uppercase and tracked, per the typography rules:
+   ALL CAPS belongs to small labels and nowhere else. */
+.eyebrow {
+  font-size: var(--type-micro);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2);
+}
+
 .page-header h1 {
   font-family: var(--font-display);
   font-size: var(--type-lead);
@@ -995,61 +1004,202 @@ a {
 
 /* --- header nav / account / search --------------------------------------- */
 
-.masthead-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
+/* --- navigation: rail and tab bar -------------------------------------------
+ *
+ * One navigation model (lib/navigation.ts), two shapes. Below 64rem the three
+ * destinations live in a fixed bottom tab bar where a thumb reaches them, and
+ * the masthead keeps only the wordmark, search, account and language. At
+ * 64rem and up - where the card grid gains its fourth column - the rail
+ * appears beside the content and the tab bar goes away.
+ *
+ * Which one is visible is decided here, in CSS, rather than by rendering one
+ * or the other on the server: the server has no viewport, and a JS-side
+ * media query would leave the wrong navigation in the HTML until hydration.
+ */
+
+.rail-nav {
+  display: none; /* below 64rem the tab bar carries the destinations */
 }
 
-.masthead-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
+.rail-group {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
-.masthead-links a {
+/* A rule between groups, not a heading: the split between the three
+   destinations and the things that support them is real hierarchy, and a
+   hairline says it without adding two words nobody reads twice. */
+.rail-group:not([data-first]) {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+.rail-link {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
   color: var(--text-mid);
-  transition: color var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
 }
 
-.masthead-links a:hover {
+.rail-link:hover {
+  background: var(--surface-sub);
   color: var(--text);
 }
 
-.masthead-links a:active {
-  opacity: 0.6;
+.rail-link__icon {
+  flex: none;
+  /* Optical alignment: the icon's box is taller than the label's cap height,
+     so matching their tops leaves the icon looking high. */
+  margin-block-start: 0.1em;
+  color: var(--text-muted);
+  transition: color var(--dur-micro) var(--ease);
 }
 
-/* --- sidebar navigation ----------------------------------------------------
- *
- * Below 64rem the masthead stays exactly the horizontal top bar it always
- * was - the mobile stacking rules above already handle that well, and a
- * persistent sidebar has nowhere to live on a phone or a narrow tablet. At
- * 64rem and up - where the card grid itself already gains a fourth column -
- * there is finally room for navigation to sit beside the content instead of
- * above it.
- *
- * Sticky, not fixed: a fixed sidebar sits over the page regardless of its
- * own height, which is exactly what clips a tall nav's own bottom item on a
- * short viewport. Sticky within a grid cell that spans every row keeps it
- * reachable through the whole scroll without that failure mode.
- *
- * inset-inline-start, not left: the grid and every rule below mirror for
- * free under dir="rtl", the same promise every other rule in this file
- * already keeps - nothing here is conditional on direction.
- */
+.rail-link__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-inline-size: 0;
+}
+
+.rail-link__label {
+  font-size: var(--type-body-m);
+  font-weight: 500;
+  line-height: var(--leading-snug);
+}
+
+.rail-link__subtitle {
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+}
+
+/* The active destination. Three signals, not one - background, weight, and
+   the brass rule - because the design system forbids state carried by colour
+   alone, and because a reader glancing at the rail should not have to
+   compare two greys to find out where they are. `aria-current` carries the
+   same fact to a screen reader. */
+.rail-link[aria-current="page"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--brass);
+}
+
+.rail-link[aria-current="page"] .rail-link__label {
+  font-weight: 600;
+}
+
+.rail-link[aria-current="page"] .rail-link__icon {
+  color: var(--brass);
+}
+
+/* The masthead's own sign-off, bottom of the rail. Desktop only - on a phone
+   the masthead is a compact top bar with no room for a flourish. */
+.masthead-sign {
+  display: none;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.wordmark__tagline {
+  display: none;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.masthead-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* --- the tab bar (below 64rem) --------------------------------------------- */
+
+.tabbar {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-block-start: 1px solid var(--border);
+  /* Keeps the bar clear of the iOS home indicator without hard-coding a
+     phone's dimensions; resolves to 0 everywhere else. */
+  padding-block-end: env(safe-area-inset-bottom, 0);
+}
+
+.tabbar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+.tabbar__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  /* 44px minimum touch target, per the design system's a11y line. */
+  min-block-size: 3rem;
+  padding-block: var(--space-2);
+  color: var(--text-muted);
+  transition: color var(--dur-micro) var(--ease);
+}
+
+.tabbar__label {
+  font-size: var(--type-micro);
+  line-height: 1.2;
+}
+
+.tabbar__link[aria-current="page"] {
+  color: var(--text);
+}
+
+.tabbar__link[aria-current="page"] .tabbar__icon {
+  color: var(--brass);
+}
+
+/* The bar floats over the page, so the page needs to end above it. */
+.shell {
+  padding-block-end: calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
+}
+
 @media (min-width: 64rem) {
+  /* The rail replaces the tab bar. Sticky, not fixed: a fixed rail sits over
+     the page regardless of its own height, which is what clips a tall nav's
+     bottom item on a short viewport. Sticky inside a grid cell that spans
+     every row keeps it reachable through the whole scroll without that.
+     Logical properties throughout, so the whole thing mirrors under
+     dir="rtl" with no directional override. */
   .shell {
     max-width: 88rem;
     display: grid;
-    grid-template-columns: 15rem minmax(0, 1fr);
+    grid-template-columns: 16rem minmax(0, 1fr);
     column-gap: var(--space-8);
     align-items: start;
+    padding-block-end: var(--space-12);
   }
 
   .masthead {
@@ -1063,33 +1213,37 @@ a {
     align-items: stretch;
     justify-content: flex-start;
     gap: var(--space-6);
-    padding-block: 0;
+    padding-block: var(--space-6) 0;
     padding-inline-end: var(--space-6);
     border-block-end: none;
     border-inline-end: 1px solid var(--border);
     margin-block-end: 0;
   }
 
-  .masthead-nav {
+  /* Block, not flex: "Just<span>News</span>" is inline text, and making the
+     wordmark a flex column turns each of those into its own flex item -
+     which stacks the name onto three lines. The tagline becoming a block is
+     all that is needed to put it on its own line beneath. */
+  .wordmark {
+    display: block;
+    line-height: var(--leading-tight);
+  }
+
+  .wordmark__tagline,
+  .masthead-sign,
+  .rail-nav {
+    display: block;
+  }
+
+  .masthead-sign {
+    /* Pushed to the foot of the rail by the leftover space above it. */
+    margin-block-start: auto;
+    padding-block: var(--space-6);
+  }
+
+  .masthead-tools {
     flex-direction: column;
     align-items: stretch;
-    gap: var(--space-6);
-  }
-
-  .masthead-links {
-    flex-direction: column;
-    gap: var(--space-1);
-    font-size: 0.95rem;
-  }
-
-  .masthead-links a {
-    display: block;
-    padding: 0.5rem var(--space-3);
-    border-radius: var(--radius);
-  }
-
-  .masthead-links a:hover {
-    background: var(--surface-sub);
   }
 
   .search-box input {
@@ -1113,6 +1267,10 @@ a {
 
   .shell > .site-footer {
     grid-column: 2;
+  }
+
+  .tabbar {
+    display: none;
   }
 }
 
@@ -1968,7 +2126,8 @@ a.chip:active {
    project committed to. Applying it everywhere would inflate a design whose
    whole argument is ordered density. So it lands only where a finger is
    doing the pointing, which is where the size actually matters. */
-.masthead-links a,
+.rail-link,
+.tabbar__link,
 .locale-switcher a,
 .account-menu__trigger,
 .account-menu__panel a,
@@ -1991,7 +2150,8 @@ a.chip:active {
 }
 
 @media (pointer: coarse) {
-  .masthead-links a,
+  .rail-link,
+  .tabbar__link,
   .locale-switcher a,
   .account-menu__trigger,
   .account-menu__panel a,

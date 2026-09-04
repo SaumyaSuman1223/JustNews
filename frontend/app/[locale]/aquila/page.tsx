@@ -55,7 +55,12 @@ export default async function ExplorePage({
           the layout: in the layout it would also land on the article route,
           ahead of that article's own, more specific description. */}
       <meta name="description" content={t(active.code, "site.description")} />
+      {/* The masthead line names the publication this destination becomes.
+          Not translated: "The Aquila Tribune" is a title, and a title is not
+          a string that gets localised - the same reason a newspaper keeps its
+          masthead in every edition it prints. */}
       <div className="page-header">
+        <p className="eyebrow">{t(active.code, "explore.standfirst")}</p>
         <h1>{t(active.code, "explore.heading")}</h1>
         <p>{t(active.code, "explore.intro")}</p>
       </div>
@@ -134,7 +139,7 @@ async function ExploreBody({
           title={t(active.code, "explore.empty.title")}
           body={t(active.code, "explore.empty.body")}
           action={{
-            href: `/${active.code}/topics`,
+            href: `/${active.code}/desk`,
             label: t(active.code, "explore.empty.action"),
           }}
         />
@@ -148,13 +153,13 @@ async function ExploreBody({
           locale={active.code}
           surface="explore"
           signedIn={Boolean(auth)}
-          revalidatePath={`/${active.code}/explore`}
+          revalidatePath={`/${active.code}/aquila`}
         />
       )}
 
       <Pagination
         locale={active.code}
-        baseHref={`/${active.code}/explore`}
+        baseHref={`/${active.code}/aquila`}
         nextCursor={page.data.next_cursor}
         onLaterPage={Boolean(cursor)}
       />

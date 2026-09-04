@@ -104,7 +104,7 @@ async function EditionBody({
           title={t(locale, "edition.empty.title")}
           body={t(locale, "edition.empty.body")}
           action={{
-            href: `/${locale}/explore`,
+            href: `/${locale}/aquila`,
             label: t(locale, "feed.empty.action"),
           }}
         />

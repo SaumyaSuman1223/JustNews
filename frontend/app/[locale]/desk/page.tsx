@@ -60,7 +60,7 @@ async function TopicsBody({ locale }: { locale: ReturnType<typeof getLocale>["co
     <ul className="chip-list">
       {topics.data.map((topic) => (
         <li key={topic.id}>
-          <Link className="chip" href={`/${locale}/topics/${encodeURIComponent(topic.id)}`}>
+          <Link className="chip" href={`/${locale}/desk/${encodeURIComponent(topic.id)}`}>
             {topic.label}
           </Link>
         </li>

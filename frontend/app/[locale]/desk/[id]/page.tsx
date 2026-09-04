@@ -30,7 +30,7 @@ export async function generateMetadata({
   }
   return {
     title: topic.label,
-    alternates: { canonical: `/${locale}/topics/${encodeURIComponent(topic.id)}` },
+    alternates: { canonical: `/${locale}/desk/${encodeURIComponent(topic.id)}` },
   };
 }
 
@@ -101,7 +101,7 @@ async function TopicDetailBody({
           title={t(locale, "topics.empty.title", { topic: topic.label })}
           body={t(locale, "topics.empty.body")}
           action={{
-            href: `/${locale}/topics`,
+            href: `/${locale}/desk`,
             label: t(locale, "topics.allTopics"),
           }}
         />
@@ -114,14 +114,14 @@ async function TopicDetailBody({
           locale={locale}
           surface="topic"
           signedIn={Boolean(session)}
-          revalidatePath={`/${locale}/topics/${id}`}
+          revalidatePath={`/${locale}/desk/${id}`}
           aboveFold
         />
       )}
 
       <Pagination
         locale={locale}
-        baseHref={`/${locale}/topics/${id}`}
+        baseHref={`/${locale}/desk/${id}`}
         nextCursor={articles.data.next_cursor}
         onLaterPage={Boolean(cursor)}
       />

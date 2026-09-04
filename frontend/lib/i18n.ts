@@ -76,6 +76,14 @@ const en = {
 
   "nav.primary": "Primary",
   "nav.language": "Language",
+  "nav.home": "Home",
+  "nav.home.subtitle": "What matters right now.",
+  "nav.aquila": "Aquila",
+  "nav.aquila.subtitle": "The world in context.",
+  "nav.desk": "My Desk",
+  "nav.desk.subtitle": "Your topics. Deeper understanding.",
+  "nav.search": "Search",
+  "nav.settings": "Settings",
   "nav.explore": "Explore",
   "nav.topics": "Topics",
   "nav.saved": "Saved",
@@ -118,9 +126,10 @@ const en = {
   "stats.languages": "languages",
   "stats.stories": "stories",
 
-  "explore.heading": "Explore",
+  "explore.heading": "Aquila",
   "explore.intro":
-    "The latest across every source we follow, ranked by recency and spread across topics — the same for everyone, whether or not you are signed in.",
+    "The world in context — the latest across every source we follow, spread across topics and the same for every reader, whether or not you are signed in.",
+  "explore.standfirst": "The Aquila Tribune",
   "explore.degraded": "Live headlines are unavailable right now, so this page may be out of date.",
   "explore.editions": "Editions",
   "explore.empty.title": "Nothing to explore in your languages yet",
@@ -301,6 +310,8 @@ const en = {
   "account.menu": "Account",
 
   "site.description": "Personalised, multilingual news.",
+  "site.tagline": "A clearer tomorrow",
+  "site.sign": "Same world. More clarity.",
   "topics.fallbackTitle": "Topic",
 
   "profile.languageMix.heading": "What you actually read",
@@ -325,6 +336,14 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "nav.primary": "Principal",
     "nav.language": "Idioma",
+    "nav.home": "Inicio",
+    "nav.home.subtitle": "Lo que importa ahora mismo.",
+    "nav.aquila": "Aquila",
+    "nav.aquila.subtitle": "El mundo en contexto.",
+    "nav.desk": "Mi Escritorio",
+    "nav.desk.subtitle": "Tus temas. Una comprensión más profunda.",
+    "nav.search": "Buscar",
+    "nav.settings": "Ajustes",
     "nav.explore": "Explorar",
     "nav.topics": "Temas",
     "nav.saved": "Guardados",
@@ -367,9 +386,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "stats.languages": "idiomas",
     "stats.stories": "historias",
 
-    "explore.heading": "Explorar",
+    "explore.heading": "Aquila",
     "explore.intro":
-      "Lo último de todas las fuentes que seguimos, ordenado por actualidad y repartido entre temas: igual para todo el mundo, hayas iniciado sesión o no.",
+      "El mundo en contexto: lo último de todas las fuentes que seguimos, repartido entre temas e igual para cada lector, hayas iniciado sesión o no.",
+    "explore.standfirst": "The Aquila Tribune",
     "explore.degraded":
       "Los titulares en directo no están disponibles ahora mismo, así que esta página puede estar desactualizada.",
     "explore.editions": "Ediciones",
@@ -555,6 +575,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.menu": "Cuenta",
 
     "site.description": "Noticias personalizadas y multilingües.",
+    "site.tagline": "Un mañana más claro",
+    "site.sign": "El mismo mundo. Más claridad.",
     "topics.fallbackTitle": "Tema",
 
     "profile.languageMix.heading": "Lo que realmente lees",
@@ -574,6 +596,14 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "nav.primary": "मुख्य",
     "nav.language": "भाषा",
+    "nav.home": "होम",
+    "nav.home.subtitle": "अभी जो मायने रखता है।",
+    "nav.aquila": "अक्विला",
+    "nav.aquila.subtitle": "दुनिया, सन्दर्भ के साथ।",
+    "nav.desk": "मेरा डेस्क",
+    "nav.desk.subtitle": "आपके विषय। गहरी समझ।",
+    "nav.search": "खोजें",
+    "nav.settings": "सेटिंग्स",
     "nav.explore": "एक्सप्लोर",
     "nav.topics": "विषय",
     "nav.saved": "सहेजे गए",
@@ -616,9 +646,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "stats.languages": "भाषाएँ",
     "stats.stories": "कहानियाँ",
 
-    "explore.heading": "एक्सप्लोर",
+    "explore.heading": "अक्विला",
     "explore.intro":
-      "हमारे सभी स्रोतों की ताज़ा ख़बरें, नएपन के क्रम में और विषयों में फैलाकर — सबके लिए एक जैसी, चाहे आप साइन इन हों या नहीं।",
+      "दुनिया, सन्दर्भ के साथ — हमारे स्रोतों की ताज़ा ख़बरें, विषयों में फैलाकर और हर पाठक के लिए एक जैसी, चाहे आप साइन इन हों या नहीं।",
+    "explore.standfirst": "The Aquila Tribune",
     "explore.degraded":
       "ताज़ा सुर्ख़ियाँ अभी उपलब्ध नहीं हैं, इसलिए यह पेज पुराना हो सकता है।",
     "explore.editions": "संस्करण",
@@ -802,6 +833,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.menu": "खाता",
 
     "site.description": "वैयक्तिकृत, बहुभाषी ख़बरें।",
+    "site.tagline": "एक स्पष्ट कल",
+    "site.sign": "वही दुनिया। ज़्यादा स्पष्टता।",
     "topics.fallbackTitle": "विषय",
 
     "profile.languageMix.heading": "आप असल में क्या पढ़ते हैं",

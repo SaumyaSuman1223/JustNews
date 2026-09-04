@@ -3,6 +3,7 @@ import { type CookieOptions, createServerClient } from "@supabase/ssr";
 
 import { BROWSING_SESSION_COOKIE } from "@/lib/browsingSession";
 import { CONSENT_COOKIE } from "@/lib/consent";
+import { RENAMED_ROUTES } from "@/lib/navigation";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
@@ -45,7 +46,34 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/sup
  * on the server. Unaffected by consent - it is routing information, not
  * tracking.
  */
+/**
+ * Maps a renamed route onto its replacement, preserving the locale prefix and
+ * anything below it: `/es/topics/medtop:04000000` → `/es/desk/medtop:04000000`.
+ *
+ * Matched on the segment after the locale rather than with a bare
+ * `startsWith`, so a future `/en/aquila/topics` page cannot be caught by the
+ * `/topics` rule. Returns null when nothing matches, which is the common case
+ * and costs one array scan.
+ */
+function renamedRouteTarget(pathname: string): string | null {
+  const [, locale, section, ...rest] = pathname.split("/");
+  if (!locale || !section) return null;
+  const rule = RENAMED_ROUTES.find((r) => r.from === `/${section}`);
+  if (!rule) return null;
+  return [`/${locale}${rule.to}`, ...rest].join("/");
+}
+
 export async function middleware(request: NextRequest) {
+  // Before anything else: the routes ADR 0011 renamed. Returning here skips
+  // the session refresh below, which is correct - a 308 does no work the
+  // destination request will not immediately do again.
+  const renamed = renamedRouteTarget(request.nextUrl.pathname);
+  if (renamed) {
+    const url = request.nextUrl.clone();
+    url.pathname = renamed;
+    return NextResponse.redirect(url, 308);
+  }
+
   const consent = request.cookies.get(CONSENT_COOKIE)?.value;
   const consentGranted = consent === "granted";
   const consentDenied = consent === "denied";
