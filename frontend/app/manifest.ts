@@ -13,8 +13,11 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/en",
     scope: "/",
     display: "standalone",
-    background_color: "#f7f8f7",
-    theme_color: "#0f6b53",
+    // Matches the warm-paper token set in globals.css (--ground, --accent) -
+    // an installed app's splash screen and status bar should not be the old
+    // cool green this product no longer uses anywhere else.
+    background_color: "#f5f1e8",
+    theme_color: "#7a6444",
     icons: [
       { src: "/icon-192", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512", sizes: "512x512", type: "image/png", purpose: "any" },

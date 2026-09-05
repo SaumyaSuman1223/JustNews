@@ -14,7 +14,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f6b53",
+  // Matches globals.css's --ground in each theme (#f5f1e8 light, #1a1b19
+  // dark) - the browser chrome/status bar should read as this product's
+  // own paper or ink, not the old cool green.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f1e8" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1b19" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
