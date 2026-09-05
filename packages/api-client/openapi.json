@@ -414,6 +414,29 @@
         "title": "BlindspotOut",
         "type": "object"
       },
+      "CategoryOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "label"
+        ],
+        "title": "CategoryOut",
+        "type": "object"
+      },
       "ClickIn": {
         "properties": {
           "article_id": {
@@ -2034,12 +2057,30 @@
             "title": "Articles",
             "type": "array"
           },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategoryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "coverage": {
             "default": [],
             "items": {
               "$ref": "#/components/schemas/LanguageCoverageOut"
             },
             "title": "Coverage",
+            "type": "array"
+          },
+          "perspectives": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PerspectiveGroupOut"
+            },
+            "title": "Perspectives",
             "type": "array"
           },
           "story": {
@@ -5835,6 +5876,16 @@
             "schema": {
               "title": "Story Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Language",
+              "type": "string"
             }
           }
         ],

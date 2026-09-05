@@ -302,6 +302,46 @@ async def list_articles_in_cluster(session: AsyncSession, story_id: int) -> list
     return [ArticleRow.from_pair(article, source) for article, source in result.all()]
 
 
+async def dominant_topic_for_story(session: AsyncSession, story_id: int) -> Topic | None:
+    """The story page's "category" eyebrow: whichever topic the most of this
+    cluster's articles carry as their primary tag. `None` when the cluster's
+    articles disagree entirely or carry none - an eyebrow naming a category
+    only a third of the coverage actually uses would be a claim this page
+    has no basis for, so it is simply omitted rather than guessed."""
+    result = await session.execute(
+        select(ArticleTopic.topic_id, func.count())
+        .join(Article, Article.id == ArticleTopic.article_id)
+        .where(
+            Article.story_cluster_id == story_id,
+            Article.removed_at.is_(None),
+            ArticleTopic.is_primary.is_(True),
+        )
+        .group_by(ArticleTopic.topic_id)
+        .order_by(func.count().desc())
+        .limit(1)
+    )
+    row = result.first()
+    if row is None:
+        return None
+    return await session.get(Topic, row[0])
+
+
+async def article_source_roles_for_story(
+    session: AsyncSession, story_id: int
+) -> list[tuple[str | None, int, str, str, str]]:
+    """One row per live article in this cluster, carrying its publisher's
+    role - the raw material `services.perspectives.group_by_role` groups.
+    Every article in the cluster is live coverage, so unlike the topic-scoped
+    version this needs no "recent clusters" window of its own."""
+    result = await session.execute(
+        select(Source.source_role, Source.id, Source.slug, Source.name, Source.homepage_url)
+        .select_from(Article)
+        .join(Source, Source.id == Article.source_id)
+        .where(Article.story_cluster_id == story_id, Article.removed_at.is_(None))
+    )
+    return list(result.tuples().all())
+
+
 async def corpus_stats(session: AsyncSession) -> dict[str, int]:
     articles = await session.scalar(select(func.count()).select_from(Article))
     sources = await session.scalar(select(func.count()).select_from(Source))

@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import content as repo
 from justnews_api.services.cursor import decode_cursor, encode_cursor
+from justnews_api.services.perspectives import PerspectiveGroup, group_by_role
 from justnews_core.errors import NotFoundError, ValidationError
 from justnews_core.language import normalise_language_code
-from justnews_core.models import Edition, Source, StoryCluster
+from justnews_core.models import Edition, Source, StoryCluster, Topic
 
 MAX_PAGE_SIZE = 50
 DEFAULT_PAGE_SIZE = 20
@@ -93,6 +94,12 @@ class StoryDetail:
     # answerable at all - it is the same event in three languages, not three
     # events (ADR 0005).
     coverage: list[repo.LanguageCoverage]
+    # None when the cluster's articles don't agree on one primary topic -
+    # see repositories.content.dominant_topic_for_story.
+    category: Topic | None
+    # ADR 0013, scoped to this one story rather than a topic's recent
+    # clusters - every article in the cluster is live coverage already.
+    perspectives: list[PerspectiveGroup]
 
 
 async def get_story(session: AsyncSession, story_id: int) -> StoryDetail:
@@ -101,7 +108,15 @@ async def get_story(session: AsyncSession, story_id: int) -> StoryDetail:
         raise NotFoundError(f"No story with id {story_id}.")
     articles = await repo.list_articles_in_cluster(session, story_id)
     coverage = (await repo.language_coverage(session, [story_id])).get(story_id, [])
-    return StoryDetail(cluster=cluster, articles=articles, coverage=coverage)
+    category = await repo.dominant_topic_for_story(session, story_id)
+    perspectives = group_by_role(await repo.article_source_roles_for_story(session, story_id))
+    return StoryDetail(
+        cluster=cluster,
+        articles=articles,
+        coverage=coverage,
+        category=category,
+        perspectives=perspectives,
+    )
 
 
 @dataclass(frozen=True, slots=True)

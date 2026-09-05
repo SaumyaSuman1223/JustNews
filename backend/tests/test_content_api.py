@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from httpx import AsyncClient
-from justnews_testing.factories import make_article, make_source
+from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import StoryCluster
+from justnews_core.models import ArticleTopic, StoryCluster
 
 
 class TestHealth:
@@ -206,6 +206,79 @@ class TestGetStory:
     async def test_unknown_id_is_404(self, client: AsyncClient) -> None:
         response = await client.get("/v1/stories/99999999")
         assert response.status_code == 404
+
+    async def test_category_is_the_articles_shared_primary_topic(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        topic = await make_topic(session, topic_id="medtop:60000001", slug="story-category")
+        now = datetime.now(UTC)
+        cluster = StoryCluster(
+            title="Categorised story",
+            first_seen_at=now,
+            last_seen_at=now,
+            article_count=1,
+            source_count=1,
+            language_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        article = await make_article(session, source)
+        article.story_cluster_id = cluster.id
+        session.add(ArticleTopic(article_id=article.id, topic_id=topic.id, is_primary=True))
+        await session.commit()
+
+        response = await client.get(f"/v1/stories/{cluster.id}")
+        body = response.json()
+        assert body["category"]["id"] == topic.id
+
+    async def test_no_shared_primary_topic_is_no_category(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        now = datetime.now(UTC)
+        cluster = StoryCluster(
+            title="Uncategorised story",
+            first_seen_at=now,
+            last_seen_at=now,
+            article_count=1,
+            source_count=1,
+            language_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        article = await make_article(session, source)
+        article.story_cluster_id = cluster.id
+        await session.commit()
+
+        response = await client.get(f"/v1/stories/{cluster.id}")
+        assert response.json()["category"] is None
+
+    async def test_perspectives_group_the_clusters_own_articles(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        industry = await make_source(session, slug="story-persp-industry", source_role="industry")
+        wire = await make_source(session, slug="story-persp-wire", source_role="wire")
+        now = datetime.now(UTC)
+        cluster = StoryCluster(
+            title="Story with perspectives",
+            first_seen_at=now,
+            last_seen_at=now,
+            article_count=2,
+            source_count=2,
+            language_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        for source in (industry, wire):
+            article = await make_article(session, source, title=f"From {source.slug}")
+            article.story_cluster_id = cluster.id
+        await session.commit()
+
+        response = await client.get(f"/v1/stories/{cluster.id}")
+        body = response.json()
+        assert [g["role"] for g in body["perspectives"]] == ["industry"]
+        assert body["perspectives"][0]["sources"][0]["slug"] == "story-persp-industry"
 
 
 class TestSources:

@@ -541,17 +541,28 @@ a {
   }
 }
 
-/* --- secondary ----------------------------------------------------------- */
+/* --- secondary -----------------------------------------------------------
+ *
+ * Spec §23/§45: 1 per row on mobile (the unqualified base rule), 2 through
+ * the tablet range, 3 once there's real desktop width, 4 only once there is
+ * room to give each of those four a headline without wrapping awkwardly -
+ * not the moment a viewport merely stops being tablet-sized. */
 
 @media (min-width: 40rem) {
   .card--secondary {
-    grid-column: span 6;
+    grid-column: span 6; /* 2 per row, 640-1024px */
   }
 }
 
 @media (min-width: 64rem) {
   .card--secondary {
-    grid-column: span 3;
+    grid-column: span 4; /* 3 per row, 1024-1440px */
+  }
+}
+
+@media (min-width: 90rem) {
+  .card--secondary {
+    grid-column: span 3; /* 4 per row, >=1440px */
   }
 }
 
@@ -1192,7 +1203,11 @@ a {
   padding-block-end: calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
 }
 
-@media (min-width: 64rem) {
+/* 56.25rem (900px), not 64rem: spec §4 draws the line for mobile nav at
+   900px ("below 900px: hide the desktop sidebar"), not at 1024px - a 960px
+   tablet was getting the phone's bottom tab bar instead of the rail this
+   rule was written to give it. */
+@media (min-width: 56.25rem) {
   /* The rail replaces the tab bar. Sticky, not fixed: a fixed rail sits over
      the page regardless of its own height, which is what clips a tall nav's
      bottom item on a short viewport. Sticky inside a grid cell that spans
@@ -1865,6 +1880,13 @@ a.chip:active {
   font-weight: 400;
 }
 
+.story-header__facts {
+  color: var(--text-muted);
+  font-size: var(--type-label);
+  font-variant-numeric: tabular-nums;
+  margin-block-end: var(--space-4);
+}
+
 /* --- blindspot rail ------------------------------------------------------ */
 
 .blindspot {
@@ -2063,6 +2085,23 @@ a.chip:active {
   border-radius: 999px;
   block-size: 1.85rem;
   inline-size: 5.5rem;
+}
+
+/* A rail module's reserved footprint (glance, trending, the brief, topic
+   overview) - not a pixel match for any one of them, just enough height that
+   the rail doesn't collapse to nothing and then jump wide once real content
+   lands. */
+.skeleton--panel {
+  block-size: 9rem;
+}
+
+.skeleton--panel--tall {
+  block-size: 11rem;
+}
+
+.skeleton--tab {
+  inline-size: 4.5rem;
+  block-size: 1rem;
 }
 
 /* Editorially interesting, not a problem: the accent rule rather than the

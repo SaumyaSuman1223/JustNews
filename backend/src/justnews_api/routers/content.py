@@ -16,6 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from justnews_api.core.db import get_session
 from justnews_api.repositories import content as repo
 from justnews_api.services import content as service
+from justnews_api.services import topics as topics_service
+from justnews_core.errors import ValidationError
+from justnews_core.language import normalise_language_code
 from justnews_core.models import StoryCluster
 
 router = APIRouter(prefix="/v1", tags=["content"])
@@ -96,12 +99,37 @@ class LanguageCoverageOut(BaseModel):
         )
 
 
+class CategoryOut(BaseModel):
+    id: str
+    slug: str
+    label: str
+
+
+class PerspectiveSourceOut(BaseModel):
+    id: int
+    slug: str
+    name: str
+    homepage_url: str = Field(description="Always link out to the publisher.")
+
+
+class PerspectiveGroupOut(BaseModel):
+    role: str = Field(
+        description="One of industry, government, academic, investor, consumer, public - "
+        "the labels the perspectives copy shows, not an invented category name.",
+    )
+    article_count: int
+    sources: list[PerspectiveSourceOut]
+
+
 class StoryDetailOut(BaseModel):
     story: StoryOut
     articles: list[ArticleOut]
     # The cross-lingual split - "EN 1 · ES 3 · HI 2". Neither Ground News nor
     # Google News can show this, because neither clusters across languages.
     coverage: list[LanguageCoverageOut] = []
+    # None when the cluster's articles don't agree on one primary topic.
+    category: CategoryOut | None = None
+    perspectives: list[PerspectiveGroupOut] = []
 
 
 class BlindspotOut(BaseModel):
@@ -162,12 +190,44 @@ async def list_stories(
 
 
 @router.get("/stories/{story_id}", response_model=StoryDetailOut)
-async def get_story(story_id: int, session: AsyncSession = Depends(get_session)) -> StoryDetailOut:
+async def get_story(
+    story_id: int,
+    session: AsyncSession = Depends(get_session),
+    language: str = Query(default="en"),
+) -> StoryDetailOut:
+    code = normalise_language_code(language)
+    if code is None:
+        raise ValidationError(f"Not a language code: {language!r}")
     detail = await service.get_story(session, story_id)
     return StoryDetailOut(
         story=StoryOut.from_cluster(detail.cluster),
         articles=[ArticleOut.from_row(row) for row in detail.articles],
         coverage=[LanguageCoverageOut.from_row(entry) for entry in detail.coverage],
+        category=(
+            CategoryOut(
+                id=detail.category.id,
+                slug=detail.category.slug,
+                label=topics_service.label_for(detail.category, code),
+            )
+            if detail.category
+            else None
+        ),
+        perspectives=[
+            PerspectiveGroupOut(
+                role=group.role,
+                article_count=group.article_count,
+                sources=[
+                    PerspectiveSourceOut(
+                        id=source.id,
+                        slug=source.slug,
+                        name=source.name,
+                        homepage_url=source.homepage_url,
+                    )
+                    for source in group.sources
+                ],
+            )
+            for group in detail.perspectives
+        ],
     )
 
 

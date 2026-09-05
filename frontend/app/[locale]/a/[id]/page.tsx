@@ -55,7 +55,9 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
 
   const [session, story] = await Promise.all([
     getSession(),
-    article.story_cluster_id ? getStory(article.story_cluster_id) : Promise.resolve(null),
+    article.story_cluster_id
+      ? getStory(article.story_cluster_id, active.code)
+      : Promise.resolve(null),
   ]);
 
   // Checked against the most recent saves only - good enough for the common
