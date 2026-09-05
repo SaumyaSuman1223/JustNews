@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.db import get_session
 from justnews_api.repositories import topics as repo
-from justnews_api.routers.content import StoryOut
+from justnews_api.routers.content import PerspectiveGroupOut, PerspectiveSourceOut, StoryOut
 from justnews_api.services import topics as service
 from justnews_core.errors import NotFoundError, ValidationError
 from justnews_core.language import normalise_language_code
@@ -47,22 +47,6 @@ class RelatedTopicOut(BaseModel):
     slug: str
     label: str
     article_count: int
-
-
-class PerspectiveSourceOut(BaseModel):
-    id: int
-    slug: str
-    name: str
-    homepage_url: str = Field(description="Always link out to the publisher.")
-
-
-class PerspectiveGroupOut(BaseModel):
-    role: str = Field(
-        description="One of industry, government, academic, investor, consumer, public - "
-        "the labels the perspectives copy shows, not an invented category name.",
-    )
-    article_count: int
-    sources: list[PerspectiveSourceOut]
 
 
 async def _require_topic(session: AsyncSession, topic_id: str) -> None:

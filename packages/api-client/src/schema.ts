@@ -1259,6 +1259,15 @@ export interface components {
             coverage: components["schemas"]["LanguageCoverageOut"][];
             story: components["schemas"]["StoryOut"];
         };
+        /** CategoryOut */
+        CategoryOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Slug */
+            slug: string;
+        };
         /** ClickIn */
         ClickIn: {
             /** Article Id */
@@ -1869,11 +1878,17 @@ export interface components {
         StoryDetailOut: {
             /** Articles */
             articles: components["schemas"]["ArticleOut"][];
+            category?: components["schemas"]["CategoryOut"] | null;
             /**
              * Coverage
              * @default []
              */
             coverage: components["schemas"]["LanguageCoverageOut"][];
+            /**
+             * Perspectives
+             * @default []
+             */
+            perspectives: components["schemas"]["PerspectiveGroupOut"][];
             story: components["schemas"]["StoryOut"];
         };
         /** StoryOut */
@@ -3888,7 +3903,9 @@ export interface operations {
     };
     get_story_v1_stories__story_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                language?: string;
+            };
             header?: never;
             path: {
                 story_id: number;
