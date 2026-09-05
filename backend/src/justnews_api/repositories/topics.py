@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from justnews_core.models import Article, ArticleTopic, StoryCluster, Topic, TopicLabel
+from justnews_core.models import Article, ArticleTopic, Source, StoryCluster, Topic, TopicLabel
 
 
 async def list_top_level_topics(session: AsyncSession) -> list[Topic]:
@@ -133,5 +133,39 @@ async def related_topic_ids(
         .group_by(other.topic_id)
         .order_by(func.count(func.distinct(other.article_id)).desc())
         .limit(limit)
+    )
+    return list(result.tuples().all())
+
+
+async def article_source_roles_for_topic(
+    session: AsyncSession, topic_id: str, *, limit_clusters: int = 20
+) -> list[tuple[str | None, int, str, str, str]]:
+    """One row per live article tagged this topic, carrying its publisher's
+    role - the raw material `services.perspectives.group_by_role` groups.
+
+    Scoped to the topic's most recently active story clusters (the same
+    "recent clusters" `list_story_clusters_for_topic` already serves the
+    Timeline with) rather than the topic's entire history - a topic followed
+    for months should show today's perspectives, not an average of all time.
+    """
+    recent_clusters = (
+        select(StoryCluster.id)
+        .join(Article, Article.story_cluster_id == StoryCluster.id)
+        .join(ArticleTopic, ArticleTopic.article_id == Article.id)
+        .where(ArticleTopic.topic_id == topic_id, Article.removed_at.is_(None))
+        .group_by(StoryCluster.id)
+        .order_by(StoryCluster.last_seen_at.desc())
+        .limit(limit_clusters)
+    )
+    result = await session.execute(
+        select(Source.source_role, Source.id, Source.slug, Source.name, Source.homepage_url)
+        .select_from(Article)
+        .join(Source, Source.id == Article.source_id)
+        .join(ArticleTopic, ArticleTopic.article_id == Article.id)
+        .where(
+            ArticleTopic.topic_id == topic_id,
+            Article.removed_at.is_(None),
+            Article.story_cluster_id.in_(recent_clusters),
+        )
     )
     return list(result.tuples().all())

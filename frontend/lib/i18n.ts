@@ -372,9 +372,15 @@ const en = {
   "desk.timeline.empty": "No story timeline yet for this topic.",
   "desk.timeline.coverage": "{sources} sources · {languages} languages",
   "desk.keyDevelopments.empty": "No major developments yet.",
-  "desk.stub.perspectives.title": "Perspectives — coming soon",
-  "desk.stub.perspectives.body":
-    "Grouped by who’s reporting it — wire services, industry press, government sources, and more.",
+  "desk.perspectives.empty":
+    "Not enough named-source coverage yet to show perspectives for this topic.",
+  "desk.perspectives.sourceCount": "{count} sources",
+  "desk.perspectives.role.industry": "Industry press",
+  "desk.perspectives.role.government": "Government sources",
+  "desk.perspectives.role.academic": "Academic sources",
+  "desk.perspectives.role.investor": "Investor press",
+  "desk.perspectives.role.consumer": "Consumer press",
+  "desk.perspectives.role.public": "Public sources",
   "desk.stub.analysis.title": "Analysis — coming soon",
   "desk.stub.analysis.body": "Deeper context and trend analysis for this topic.",
 
@@ -701,9 +707,15 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.timeline.empty": "Todavía no hay cronología para este tema.",
     "desk.timeline.coverage": "{sources} fuentes · {languages} idiomas",
     "desk.keyDevelopments.empty": "Todavía no hay desarrollos importantes.",
-    "desk.stub.perspectives.title": "Perspectivas — próximamente",
-    "desk.stub.perspectives.body":
-      "Agrupadas por quién lo informa: agencias, prensa especializada, fuentes gubernamentales y más.",
+    "desk.perspectives.empty":
+      "Todavía no hay suficiente cobertura de fuentes identificadas para mostrar perspectivas de este tema.",
+    "desk.perspectives.sourceCount": "{count} fuentes",
+    "desk.perspectives.role.industry": "Prensa especializada",
+    "desk.perspectives.role.government": "Fuentes gubernamentales",
+    "desk.perspectives.role.academic": "Fuentes académicas",
+    "desk.perspectives.role.investor": "Prensa de inversión",
+    "desk.perspectives.role.consumer": "Prensa de consumo",
+    "desk.perspectives.role.public": "Fuentes públicas",
     "desk.stub.analysis.title": "Análisis — próximamente",
     "desk.stub.analysis.body": "Contexto más profundo y análisis de tendencias para este tema.",
 
@@ -1023,9 +1035,15 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.timeline.empty": "इस विषय के लिए अभी कोई समयरेखा नहीं है।",
     "desk.timeline.coverage": "{sources} स्रोत · {languages} भाषाएँ",
     "desk.keyDevelopments.empty": "अभी कोई बड़ा घटनाक्रम नहीं है।",
-    "desk.stub.perspectives.title": "दृष्टिकोण — जल्द आ रहा है",
-    "desk.stub.perspectives.body":
-      "रिपोर्ट करने वाले के आधार पर समूहीकृत — समाचार एजेंसियाँ, उद्योग प्रेस, सरकारी स्रोत, और अधिक।",
+    "desk.perspectives.empty":
+      "इस विषय के लिए दृष्टिकोण दिखाने के लिए अभी पर्याप्त पहचाने गए स्रोतों की कवरेज नहीं है।",
+    "desk.perspectives.sourceCount": "{count} स्रोत",
+    "desk.perspectives.role.industry": "उद्योग प्रेस",
+    "desk.perspectives.role.government": "सरकारी स्रोत",
+    "desk.perspectives.role.academic": "शैक्षणिक स्रोत",
+    "desk.perspectives.role.investor": "निवेशक प्रेस",
+    "desk.perspectives.role.consumer": "उपभोक्ता प्रेस",
+    "desk.perspectives.role.public": "सार्वजनिक स्रोत",
     "desk.stub.analysis.title": "विश्लेषण — जल्द आ रहा है",
     "desk.stub.analysis.body": "इस विषय के लिए गहन संदर्भ और रुझान विश्लेषण।",
 

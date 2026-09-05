@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { PageHeaderSkeleton } from "@/components/PageHeaderSkeleton";
 import { Pagination } from "@/components/Pagination";
+import { Perspectives } from "@/components/Perspectives";
 import { Timeline } from "@/components/Timeline";
 import { TopicStub } from "@/components/TopicStub";
 import { TopicTabs, type TopicTab } from "@/components/TopicTabs";
@@ -17,6 +18,7 @@ import {
   getRelatedTopics,
   getSaves,
   getTopicOverview,
+  getTopicPerspectives,
   getTopics,
   getTopicStories,
   type Story,
@@ -198,12 +200,8 @@ async function TabBody({
   }
 
   if (tab === "perspectives") {
-    return (
-      <TopicStub
-        title={t(locale, "desk.stub.perspectives.title")}
-        body={t(locale, "desk.stub.perspectives.body")}
-      />
-    );
+    const groups = await getTopicPerspectives(topicId);
+    return <Perspectives groups={groups.degraded ? [] : groups.data} locale={locale} />;
   }
 
   if (tab === "analysis") {

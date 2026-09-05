@@ -28,6 +28,18 @@ from justnews_core.models import AdminAuditLog, FeatureFlag, Feedback, IngestRun
 
 MAX_TAKEDOWN_REASON_LENGTH = 500
 VALID_ROLES = ("reader", "admin")
+# "wire" is a valid assignment (it is what keeps Reuters/AP out of the
+# perspective groups) even though services.perspectives.group_by_role never
+# shows it as one - see ADR 0013.
+VALID_SOURCE_ROLES = (
+    "wire",
+    "industry",
+    "government",
+    "academic",
+    "investor",
+    "consumer",
+    "public",
+)
 FLAG_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{2,59}$")
 FLAG_KEY_PATTERN_MESSAGE = (
     "key must start with a lowercase letter and contain only lowercase "
@@ -103,6 +115,24 @@ async def set_user_role(
         action="user.set_role",
         target_type="user",
         target_id=str(target_user_id),
+        details={"role": role},
+    )
+
+
+async def set_source_role(
+    session: AsyncSession, *, admin_user_id: UUID, source_id: int, role: str | None
+) -> None:
+    if role is not None and role not in VALID_SOURCE_ROLES:
+        raise ValidationError(f"role must be one of {VALID_SOURCE_ROLES}, or null.")
+    updated = await repo.set_source_role(session, source_id, role)
+    if updated is None:
+        raise NotFoundError(f"No source with id {source_id}.")
+    await repo.record_action(
+        session,
+        admin_user_id=admin_user_id,
+        action="source.set_role",
+        target_type="source",
+        target_id=str(source_id),
         details={"role": role},
     )
 

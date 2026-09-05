@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.core.db import get_session
@@ -47,6 +47,22 @@ class RelatedTopicOut(BaseModel):
     slug: str
     label: str
     article_count: int
+
+
+class PerspectiveSourceOut(BaseModel):
+    id: int
+    slug: str
+    name: str
+    homepage_url: str = Field(description="Always link out to the publisher.")
+
+
+class PerspectiveGroupOut(BaseModel):
+    role: str = Field(
+        description="One of industry, government, academic, investor, consumer, public - "
+        "the labels the perspectives copy shows, not an invented category name.",
+    )
+    article_count: int
+    sources: list[PerspectiveSourceOut]
 
 
 async def _require_topic(session: AsyncSession, topic_id: str) -> None:
@@ -99,4 +115,32 @@ async def topic_related(
             article_count=item.article_count,
         )
         for item in related
+    ]
+
+
+@router.get("/topics/{topic_id}/perspectives", response_model=list[PerspectiveGroupOut])
+async def topic_perspectives(
+    topic_id: str, session: AsyncSession = Depends(get_session)
+) -> list[PerspectiveGroupOut]:
+    """My Desk's Perspectives tab (ADR 0013): this topic's recent articles,
+    grouped by the editorially-assigned role of who published them. A group
+    only exists here if a reader can click through to the named sources
+    behind it - nothing here is inferred from an article's text."""
+    await _require_topic(session, topic_id)
+    groups = await service.topic_perspectives(session, topic_id)
+    return [
+        PerspectiveGroupOut(
+            role=group.role,
+            article_count=group.article_count,
+            sources=[
+                PerspectiveSourceOut(
+                    id=source.id,
+                    slug=source.slug,
+                    name=source.name,
+                    homepage_url=source.homepage_url,
+                )
+                for source in group.sources
+            ],
+        )
+        for group in groups
     ]

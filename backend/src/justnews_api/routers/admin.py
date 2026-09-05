@@ -78,6 +78,7 @@ class SourceHealthOut(BaseModel):
     failing_feed_count: int
     last_success_at: datetime | None
     article_count: int
+    source_role: str | None
 
 
 @router.get("/sources", response_model=list[SourceHealthOut])
@@ -86,6 +87,24 @@ async def list_source_health(
 ) -> list[SourceHealthOut]:
     rows = await service.list_source_health(session)
     return [SourceHealthOut(**dataclasses.asdict(row)) for row in rows]
+
+
+class SourceRoleIn(BaseModel):
+    # Explicitly nullable rather than omittable - clearing a role back to
+    # unassigned is a real, distinct action from never having set one.
+    role: str | None
+
+
+@router.put("/sources/{source_id}/role", status_code=204)
+async def set_source_role(
+    source_id: int,
+    body: SourceRoleIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_admin_session),
+) -> None:
+    await service.set_source_role(
+        session, admin_user_id=principal.user_id, source_id=source_id, role=body.role
+    )
 
 
 class IngestRunOut(BaseModel):

@@ -77,6 +77,7 @@ class SourceHealth:
     failing_feed_count: int
     last_success_at: datetime | None
     article_count: int
+    source_role: str | None
 
 
 async def source_health(session: AsyncSession) -> list[SourceHealth]:
@@ -93,6 +94,7 @@ async def source_health(session: AsyncSession) -> list[SourceHealth]:
             .label("failing_feed_count"),
             func.max(Feed.last_success_at).label("last_success_at"),
             func.count(func.distinct(Article.id)).label("article_count"),
+            Source.source_role,
         )
         .outerjoin(Feed, Feed.source_id == Source.id)
         .outerjoin(Article, Article.source_id == Source.id)
@@ -111,9 +113,19 @@ async def source_health(session: AsyncSession) -> list[SourceHealth]:
             failing_feed_count=row.failing_feed_count,
             last_success_at=row.last_success_at,
             article_count=row.article_count,
+            source_role=row.source_role,
         )
         for row in rows
     ]
+
+
+async def set_source_role(session: AsyncSession, source_id: int, role: str | None) -> Source | None:
+    source = await session.get(Source, source_id)
+    if source is None:
+        return None
+    source.source_role = role
+    await session.flush()
+    return source
 
 
 async def recent_ingest_runs(session: AsyncSession, *, limit: int) -> list[IngestRun]:

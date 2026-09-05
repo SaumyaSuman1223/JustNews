@@ -132,6 +132,11 @@ class Source(Base):
     language: Mapped[str] = mapped_column(String(12), nullable=False)
     trust_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Perspectives (ADR 0013): a fact about who published, editorially
+    # assigned and nullable - an unroled source is silence, not an invented
+    # role. "wire" is deliberately not a perspective; My Desk's grouping
+    # excludes it and anything unroled.
+    source_role: Mapped[str | None] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=_utcnow()
     )
@@ -140,6 +145,11 @@ class Source(Base):
 
     __table_args__ = (
         CheckConstraint("trust_score between 0 and 1", name="ck_sources_trust_range"),
+        CheckConstraint(
+            "source_role is null or source_role in "
+            "('wire', 'industry', 'government', 'academic', 'investor', 'consumer', 'public')",
+            name="ck_sources_role",
+        ),
     )
 
 

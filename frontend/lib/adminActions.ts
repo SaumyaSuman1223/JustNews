@@ -40,6 +40,15 @@ export async function setUserRoleAction(formData: FormData): Promise<void> {
   revalidatePath("/admin/users");
 }
 
+export async function setSourceRoleAction(formData: FormData): Promise<void> {
+  const auth = await adminAuthOrNull();
+  if (!auth) return;
+  const sourceId = Number(formData.get("sourceId"));
+  const raw = String(formData.get("role") ?? "");
+  await api.setSourceRole(auth, sourceId, raw === "" ? null : raw);
+  revalidatePath("/admin/sources");
+}
+
 export async function createInviteAction(formData: FormData): Promise<void> {
   const auth = await adminAuthOrNull();
   if (!auth) return;
