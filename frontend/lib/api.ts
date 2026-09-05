@@ -70,6 +70,7 @@ export type ActivityEntry = components["schemas"]["ActivityEntryOut"];
 export type DeckCard = components["schemas"]["DeckCardOut"];
 export type TopicOverview = components["schemas"]["TopicOverviewOut"];
 export type RelatedTopic = components["schemas"]["RelatedTopicOut"];
+export type PerspectiveGroup = components["schemas"]["PerspectiveGroupOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -169,6 +170,16 @@ export function getRelatedTopics(
     `/v1/topics/${encodeURIComponent(topicId)}/related?${query}`,
     [],
     3600,
+  );
+}
+
+/** My Desk's Perspectives tab (ADR 0013) - real groups only, so an empty
+ * array here is a real "not enough roled coverage yet", not a loading gap. */
+export function getTopicPerspectives(topicId: string): Promise<Degradable<PerspectiveGroup[]>> {
+  return get<PerspectiveGroup[]>(
+    `/v1/topics/${encodeURIComponent(topicId)}/perspectives`,
+    [],
+    120,
   );
 }
 
@@ -647,6 +658,19 @@ export async function getSourceHealth(auth: AuthContext): Promise<SourceHealth[]
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? [];
+}
+
+export async function setSourceRole(
+  auth: AuthContext,
+  sourceId: number,
+  role: string | null,
+): Promise<boolean> {
+  const { error } = await authedClient(auth).PUT("/v1/admin/sources/{source_id}/role", {
+    params: { path: { source_id: sourceId } },
+    body: { role },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return !error;
 }
 
 export async function getIngestRuns(auth: AuthContext): Promise<IngestRunSummary[]> {
