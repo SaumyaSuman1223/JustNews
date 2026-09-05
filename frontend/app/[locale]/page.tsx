@@ -7,8 +7,8 @@ import { BetaGateNotice } from "@/components/BetaGateNotice";
 import { DailyBrief } from "@/components/DailyBrief";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
-import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { GlanceRail } from "@/components/GlanceRail";
+import { HomeSkeleton } from "@/components/HomeSkeleton";
 import { HomeTabs, type HomeTab } from "@/components/HomeTabs";
 import { Pagination } from "@/components/Pagination";
 import { TrendingRail } from "@/components/TrendingRail";
@@ -77,7 +77,7 @@ export default async function FeedPage({
       {/* Keyed on the cursor+tab so switching between them shows the
           skeleton again rather than holding the previous view's cards while
           the new one loads. */}
-      <Suspense key={`${tab}:${cursor ?? "start"}`} fallback={<FeedSkeleton />}>
+      <Suspense key={`${tab}:${cursor ?? "start"}`} fallback={<HomeSkeleton />}>
         <FeedBody active={active} cursor={cursor} tab={tab} />
       </Suspense>
     </>

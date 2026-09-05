@@ -2087,6 +2087,23 @@ a.chip:active {
   inline-size: 5.5rem;
 }
 
+/* A rail module's reserved footprint (glance, trending, the brief, topic
+   overview) - not a pixel match for any one of them, just enough height that
+   the rail doesn't collapse to nothing and then jump wide once real content
+   lands. */
+.skeleton--panel {
+  block-size: 9rem;
+}
+
+.skeleton--panel--tall {
+  block-size: 11rem;
+}
+
+.skeleton--tab {
+  inline-size: 4.5rem;
+  block-size: 1rem;
+}
+
 /* Editorially interesting, not a problem: the accent rule rather than the
    danger one. The cross-language coverage block was using .notice, which meant
    the one thing this product does that nobody else does was framed as a

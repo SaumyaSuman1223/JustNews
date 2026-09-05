@@ -6,10 +6,10 @@ import { notFound } from "next/navigation";
 import { DeskRail } from "@/components/DeskRail";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
-import { PageHeaderSkeleton } from "@/components/PageHeaderSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { Perspectives } from "@/components/Perspectives";
 import { Timeline } from "@/components/Timeline";
+import { TopicDetailSkeleton } from "@/components/TopicDetailSkeleton";
 import { TopicStub } from "@/components/TopicStub";
 import { TopicTabs, type TopicTab } from "@/components/TopicTabs";
 import {
@@ -68,7 +68,7 @@ export default async function TopicDetailPage({
   const tab: TopicTab = isTopicTab(tabParam) ? tabParam : "latest";
 
   return (
-    <Suspense key={`${tab}:${cursor ?? "start"}`} fallback={<PageHeaderSkeleton />}>
+    <Suspense key={`${tab}:${cursor ?? "start"}`} fallback={<TopicDetailSkeleton />}>
       <TopicDetailBody locale={active.code} id={id} cursor={cursor} tab={tab} />
     </Suspense>
   );
