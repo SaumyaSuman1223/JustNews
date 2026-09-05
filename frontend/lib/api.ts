@@ -139,8 +139,9 @@ export function getSources(language: string): Promise<Degradable<SourceOption[]>
   return get<SourceOption[]>(`/v1/sources?language=${encodeURIComponent(language)}`, [], 3600);
 }
 
-export function getStory(id: number): Promise<Degradable<StoryDetail | null>> {
-  return get<StoryDetail | null>(`/v1/stories/${id}`, null, 60);
+export function getStory(id: number, language: string): Promise<Degradable<StoryDetail | null>> {
+  const query = new URLSearchParams({ language });
+  return get<StoryDetail | null>(`/v1/stories/${id}?${query}`, null, 60);
 }
 
 /** My Desk's Topic Overview panel - real counts, no pagination needed. */

@@ -198,6 +198,9 @@ const en = {
   "story.reportedIn": "Reported in {count} languages.",
   "story.reports.one": "{count} report",
   "story.reports.other": "{count} reports",
+  "story.firstReported": "First reported {time}",
+  "story.lastUpdated": "Last updated {time}",
+  "story.related.heading": "Related stories",
 
   "settings.heading": "Settings",
   "settings.signedInAs": "Signed in as {email}.",
@@ -529,6 +532,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "story.reportedIn": "Informado en {count} idiomas.",
     "story.reports.one": "{count} información",
     "story.reports.other": "{count} informaciones",
+    "story.firstReported": "Primer informe {time}",
+    "story.lastUpdated": "Última actualización {time}",
+    "story.related.heading": "Historias relacionadas",
 
     "settings.heading": "Ajustes",
     "settings.signedInAs": "Sesión iniciada como {email}.",
@@ -859,6 +865,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "story.reportedIn": "{count} भाषाओं में ख़बर दी गई।",
     "story.reports.one": "{count} रिपोर्ट",
     "story.reports.other": "{count} रिपोर्ट",
+    "story.firstReported": "पहली बार रिपोर्ट {time}",
+    "story.lastUpdated": "आख़िरी अपडेट {time}",
+    "story.related.heading": "संबंधित कहानियाँ",
 
     "settings.heading": "सेटिंग्स",
     "settings.signedInAs": "{email} के रूप में साइन इन हैं।",
