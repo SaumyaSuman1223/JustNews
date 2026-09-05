@@ -121,6 +121,73 @@ class TestOpsHealth:
         assert response.json() == []
 
 
+class TestSourceRole:
+    """ADR 0013: source_role is editorially assigned here, never inferred."""
+
+    async def test_assigns_a_role(self, client: AsyncClient, session: AsyncSession) -> None:
+        source = await make_source(session, slug="role-assign")
+        await session.commit()
+
+        admin = await make_beta_headers(session, role="admin")
+        response = await client.put(
+            f"/v1/admin/sources/{source.id}/role", json={"role": "industry"}, headers=admin
+        )
+        assert response.status_code == 204
+
+        listed = await client.get("/v1/admin/sources", headers=admin)
+        row = next(r for r in listed.json() if r["slug"] == "role-assign")
+        assert row["source_role"] == "industry"
+
+    async def test_clears_a_role_back_to_unassigned(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, slug="role-clear", source_role="wire")
+        await session.commit()
+
+        admin = await make_beta_headers(session, role="admin")
+        response = await client.put(
+            f"/v1/admin/sources/{source.id}/role", json={"role": None}, headers=admin
+        )
+        assert response.status_code == 204
+
+        listed = await client.get("/v1/admin/sources", headers=admin)
+        row = next(r for r in listed.json() if r["slug"] == "role-clear")
+        assert row["source_role"] is None
+
+    async def test_an_invalid_role_is_rejected(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, slug="role-invalid")
+        await session.commit()
+
+        admin = await make_beta_headers(session, role="admin")
+        response = await client.put(
+            f"/v1/admin/sources/{source.id}/role", json={"role": "propaganda"}, headers=admin
+        )
+        assert response.status_code == 422
+
+    async def test_an_unknown_source_is_404(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        admin = await make_beta_headers(session, role="admin")
+        response = await client.put(
+            "/v1/admin/sources/999999/role", json={"role": "industry"}, headers=admin
+        )
+        assert response.status_code == 404
+
+    async def test_a_reader_cannot_set_a_role(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, slug="role-forbidden")
+        await session.commit()
+
+        reader = await make_beta_headers(session, role="reader")
+        response = await client.put(
+            f"/v1/admin/sources/{source.id}/role", json={"role": "industry"}, headers=reader
+        )
+        assert response.status_code == 403
+
+
 class TestUserAdmin:
     async def test_list_users_and_promote_to_admin(
         self, client: AsyncClient, session: AsyncSession

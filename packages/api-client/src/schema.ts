@@ -296,6 +296,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/sources/{source_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Source Role */
+        put: operations["set_source_role_v1_admin_sources__source_id__role_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/topics": {
         parameters: {
             query?: never;
@@ -1003,6 +1020,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/topics/{topic_id}/perspectives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Topic Perspectives
+         * @description My Desk's Perspectives tab (ADR 0013): this topic's recent articles,
+         *     grouped by the editorially-assigned role of who published them. A group
+         *     only exists here if a reader can click through to the named sources
+         *     behind it - nothing here is inferred from an article's text.
+         */
+        get: operations["topic_perspectives_v1_topics__topic_id__perspectives_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/topics/{topic_id}/related": {
         parameters: {
             query?: never;
@@ -1600,6 +1640,32 @@ export interface components {
             /** Topic Id */
             topic_id: string | null;
         };
+        /** PerspectiveGroupOut */
+        PerspectiveGroupOut: {
+            /** Article Count */
+            article_count: number;
+            /**
+             * Role
+             * @description One of industry, government, academic, investor, consumer, public - the labels the perspectives copy shows, not an invented category name.
+             */
+            role: string;
+            /** Sources */
+            sources: components["schemas"]["PerspectiveSourceOut"][];
+        };
+        /** PerspectiveSourceOut */
+        PerspectiveSourceOut: {
+            /**
+             * Homepage Url
+             * @description Always link out to the publisher.
+             */
+            homepage_url: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
         /** RankingPolicyCtrOut */
         RankingPolicyCtrOut: {
             /** Clicks */
@@ -1769,6 +1835,8 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+            /** Source Role */
+            source_role: string | null;
         };
         /** SourceOut */
         SourceOut: {
@@ -1780,6 +1848,11 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** SourceRoleIn */
+        SourceRoleIn: {
+            /** Role */
+            role: string | null;
         };
         /** StatsOut */
         StatsOut: {
@@ -2507,6 +2580,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceHealthOut"][];
+                };
+            };
+        };
+    };
+    set_source_role_v1_admin_sources__source_id__role_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceRoleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3860,6 +3966,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TopicOverviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    topic_perspectives_v1_topics__topic_id__perspectives_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerspectiveGroupOut"][];
                 };
             };
             /** @description Validation Error */

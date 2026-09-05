@@ -1405,6 +1405,62 @@
         "title": "PageOut",
         "type": "object"
       },
+      "PerspectiveGroupOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "role": {
+            "description": "One of industry, government, academic, investor, consumer, public - the labels the perspectives copy shows, not an invented category name.",
+            "title": "Role",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PerspectiveSourceOut"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "role",
+          "article_count",
+          "sources"
+        ],
+        "title": "PerspectiveGroupOut",
+        "type": "object"
+      },
+      "PerspectiveSourceOut": {
+        "properties": {
+          "homepage_url": {
+            "description": "Always link out to the publisher.",
+            "title": "Homepage Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "homepage_url"
+        ],
+        "title": "PerspectiveSourceOut",
+        "type": "object"
+      },
       "RankingPolicyCtrOut": {
         "properties": {
           "clicks": {
@@ -1865,6 +1921,17 @@
           "slug": {
             "title": "Slug",
             "type": "string"
+          },
+          "source_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Role"
           }
         },
         "required": [
@@ -1876,7 +1943,8 @@
           "feed_count",
           "failing_feed_count",
           "last_success_at",
-          "article_count"
+          "article_count",
+          "source_role"
         ],
         "title": "SourceHealthOut",
         "type": "object"
@@ -1907,6 +1975,26 @@
           "homepage_url"
         ],
         "title": "SourceOut",
+        "type": "object"
+      },
+      "SourceRoleIn": {
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "SourceRoleIn",
         "type": "object"
       },
       "StatsOut": {
@@ -3255,6 +3343,56 @@
           }
         ],
         "summary": "List Source Health",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/sources/{source_id}/role": {
+      "put": {
+        "operationId": "set_source_role_v1_admin_sources__source_id__role_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRoleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Source Role",
         "tags": [
           "admin"
         ]
@@ -5812,6 +5950,53 @@
           }
         },
         "summary": "Topic Overview",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/v1/topics/{topic_id}/perspectives": {
+      "get": {
+        "description": "My Desk's Perspectives tab (ADR 0013): this topic's recent articles,\ngrouped by the editorially-assigned role of who published them. A group\nonly exists here if a reader can click through to the named sources\nbehind it - nothing here is inferred from an article's text.",
+        "operationId": "topic_perspectives_v1_topics__topic_id__perspectives_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PerspectiveGroupOut"
+                  },
+                  "title": "Response Topic Perspectives V1 Topics  Topic Id  Perspectives Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Topic Perspectives",
         "tags": [
           "topics"
         ]
