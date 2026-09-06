@@ -76,7 +76,14 @@ class Settings(BaseSettings):
     ingest_per_host_delay_seconds: float = 1.0
     ingest_max_feed_concurrency: int = 8
     ingest_max_entries_per_feed: int = 60
+    # Two caps, because they answer two different questions. The first is the
+    # copyright ceiling - how much of someone else's writing we are willing to
+    # store at all. The second is editorial (audit §20): how much of it is
+    # worth showing, given that a publisher's <description> is frequently a
+    # standfirst with the first paragraph of the article glued to the end of
+    # it. Nothing may exceed the ceiling; the summary is what we aim for.
     ingest_snippet_max_chars: int = 300
+    ingest_summary_max_chars: int = 200
 
     # A run must always finish before the next one starts. The cron fires every
     # 15 minutes and the GitHub Actions job is capped at 12 minutes (720s), so

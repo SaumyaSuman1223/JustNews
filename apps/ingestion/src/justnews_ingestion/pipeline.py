@@ -213,7 +213,11 @@ async def store_entry(
     article = Article(
         url_canonical=entry.url_canonical,
         title=entry.title[:2000],
-        snippet=make_snippet(entry.snippet, settings.ingest_snippet_max_chars),
+        snippet=make_snippet(
+            entry.snippet,
+            settings.ingest_snippet_max_chars,
+            summary_max_chars=settings.ingest_summary_max_chars,
+        ),
         image_url=entry.image_url,
         source_id=source_id,
         feed_id=feed_id,

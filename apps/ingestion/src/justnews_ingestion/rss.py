@@ -157,7 +157,11 @@ def parse_feed_bytes(
             continue
 
         summary = getattr(raw, "summary", None) or getattr(raw, "description", None)
-        snippet = make_snippet(summary, settings.ingest_snippet_max_chars)
+        snippet = make_snippet(
+            summary,
+            settings.ingest_snippet_max_chars,
+            summary_max_chars=settings.ingest_summary_max_chars,
+        )
         declared = normalise_language_code(getattr(raw, "language", None)) or feed_language
 
         entries.append(

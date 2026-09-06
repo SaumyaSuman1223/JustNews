@@ -11,8 +11,10 @@ import pytest
 
 from justnews_core.text import (
     canonicalise_url,
+    decode_entities,
     hamming_distance,
     make_snippet,
+    normalise_text,
     simhash64,
     slugify,
     tokenise,
@@ -134,6 +136,143 @@ class TestSnippet:
     @pytest.mark.parametrize("empty", [None, "", "   ", "<p></p>"])
     def test_empty_input_is_none(self, empty: str | None) -> None:
         assert make_snippet(empty, 300) is None
+
+
+class TestEntityDecoding:
+    """Audit §21, against strings taken from the live corpus.
+
+    ``Antonelli&#039;s`` was on production's Home page. In the production RSS
+    feed the same row appears as ``Antonelli&amp;#039;s`` - the publisher
+    double-encoded it, feedparser resolved one layer, and nothing resolved the
+    second. That is why one ``html.unescape`` is not enough.
+    """
+
+    def test_single_encoded(self) -> None:
+        assert decode_entities("students&#x27; wellbeing") == "students' wellbeing"
+
+    def test_double_encoded_from_production(self) -> None:
+        assert (
+            decode_entities("Antonelli&amp;#039;s sensational race")
+            == "Antonelli's sensational race"
+        )
+
+    def test_stops_when_stable(self) -> None:
+        # A literal ampersand is not an entity and must survive untouched, or
+        # every "Tom & Jerry" in the corpus quietly changes.
+        assert decode_entities("Tom & Jerry") == "Tom & Jerry"
+
+    def test_normalise_text_decodes_and_folds_nbsp(self) -> None:
+        # "Manchester&nbsp;City" appears verbatim in the Guardian feed. NFKC
+        # folds the resulting no-break space, so the word does not become one
+        # token to the search vector and another to a reader.
+        assert normalise_text("Manchester&nbsp;City") == "Manchester City"
+
+    def test_snippet_decodes(self) -> None:
+        assert make_snippet("Wright&amp;#039;s comments", 300) == "Wright's comments"
+
+
+class TestFurniture:
+    """§21's "raw live-blog content must be cleaned", against real strings."""
+
+    def test_trailing_matchday_live_marker(self) -> None:
+        # Verbatim from the audit's live-site sample.
+        assert (
+            make_snippet(
+                "Premier League buildup to Arsenal v Chelsea, plus Everton v "
+                "Manchester United and WSL — matchday live",
+                300,
+            )
+            == "Premier League buildup to Arsenal v Chelsea, plus Everton v "
+            "Manchester United and WSL"
+        )
+
+    def test_live_blog_navigation_segments(self) -> None:
+        # Verbatim from the audit's §21 example.
+        assert (
+            make_snippet(
+                "Updates from 5.30pm BST kick-off Everton held United to a draw. "
+                "Live scoreboard | Clockwatch | Mail Billy 4 min",
+                300,
+            )
+            == "Everton held United to a draw."
+        )
+
+    def test_continue_reading_trailer(self) -> None:
+        # Ends nearly every description in the Guardian's football feed.
+        assert (
+            make_snippet("The order of discovery will worry him. Continue reading...", 300)
+            == "The order of discovery will worry him."
+        )
+
+    def test_newsletter_promo_spliced_into_the_middle(self) -> None:
+        # Verbatim from the Guardian's live feed: a promo run wedged between
+        # the standfirst and the body, so it has to come out of the middle.
+        assert (
+            make_snippet(
+                "The casket takes just 45 days to break down, enriching the soil in "
+                "the process Get our breaking news email , free app or daily news "
+                "podcast A woman has been buried in a coffin made from mushrooms",
+                300,
+            )
+            == "The casket takes just 45 days to break down, enriching the soil in the "
+            "process A woman has been buried in a coffin made from mushrooms"
+        )
+
+    def test_publisher_pipes_survive(self) -> None:
+        # Pipes are only furniture when the segments are. A description that
+        # uses one as punctuation must come through untouched, or the rule is
+        # eating real text.
+        text = "Live music | the week in review, from Berlin to Buenos Aires"
+        assert make_snippet(text, 300) == text
+
+
+class TestSummaryLength:
+    """§20: "do not show large publisher descriptions unless genuinely useful"."""
+
+    def test_prefers_a_whole_sentence_and_adds_no_ellipsis(self) -> None:
+        # The Guardian pattern: a standfirst, then the article's own first
+        # paragraph glued straight onto it with no separator.
+        text = (
+            "Storm may make impact as soon as Monday. Hawaii has declared a state of "
+            "emergency as powerful Hurricane Lowell makes its way toward the islands, "
+            "with officials warning of flooding across low-lying coastal districts."
+        )
+        assert make_snippet(text, 300, summary_max_chars=200) == (
+            "Storm may make impact as soon as Monday."
+        )
+
+    def test_falls_back_to_a_word_boundary_when_no_sentence_fits(self) -> None:
+        result = make_snippet("word " * 100, 300, summary_max_chars=200)
+        assert result is not None
+        assert len(result) <= 200
+        assert result.endswith("…")
+
+    def test_summary_cap_never_exceeds_the_storage_cap(self) -> None:
+        # The storage cap is a copyright constraint and wins whenever the two
+        # disagree, whichever way round they are set.
+        result = make_snippet("word " * 100, 80, summary_max_chars=200)
+        assert result is not None
+        assert len(result) <= 80
+
+    def test_devanagari_sentences_are_cut_at_the_danda(self) -> None:
+        # A Latin-only sentence rule would never find a boundary here and
+        # would fall through to a mid-word truncation for every Hindi summary.
+        text = "यह पहला वाक्य है जो पर्याप्त लंबा है ताकि सीमा पार हो सके। " + ("शब्द " * 60)
+        result = make_snippet(text, 300, summary_max_chars=200)
+        assert result == "यह पहला वाक्य है जो पर्याप्त लंबा है ताकि सीमा पार हो सके।"
+
+    def test_is_idempotent(self) -> None:
+        # The repair command re-runs over rows it has already cleaned, so a
+        # second pass must be a no-op or every run reports work to do.
+        once = make_snippet(
+            "Officials described the decision as provisional and said a fuller "
+            "assessment would follow once the review board reports later this month. "
+            "The committee meets again in November. Continue reading...",
+            300,
+            summary_max_chars=200,
+        )
+        assert once is not None
+        assert make_snippet(once, 300, summary_max_chars=200) == once
 
 
 class TestSlugify:

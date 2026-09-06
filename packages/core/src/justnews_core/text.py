@@ -8,6 +8,7 @@ front-page stories or silently merged unrelated ones.
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 import unicodedata
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -106,9 +107,36 @@ def url_fingerprint(canonical_url: str) -> str:
     return hashlib.sha256(canonical_url.encode("utf-8")).hexdigest()[:32]
 
 
+def decode_entities(value: str, *, passes: int = 2) -> str:
+    """Resolve HTML character references, including double-encoded ones.
+
+    Audit §21. Production was serving ``Antonelli&#039;s`` to readers: the
+    publisher's feed contained ``&amp;#039;``, feedparser resolved that one
+    layer to ``&#039;``, and nothing resolved the second. A single
+    ``html.unescape`` is therefore not enough, and observed real feeds need
+    exactly two rounds - so this loops, but stops the moment a pass changes
+    nothing rather than unescaping until a stray ampersand runs out.
+    """
+    for _ in range(passes):
+        decoded = html.unescape(value)
+        if decoded == value:
+            return value
+        value = decoded
+    return value
+
+
 def normalise_text(value: str) -> str:
-    """NFKC-normalise, collapse whitespace, strip. Applied before hashing."""
-    return _WHITESPACE_RE.sub(" ", unicodedata.normalize("NFKC", value)).strip()
+    """Decode entities, NFKC-normalise, collapse whitespace, strip.
+
+    Entity decoding belongs here rather than at the display layer: an entity
+    in stored text is an encoding artifact, and every consumer downstream -
+    tokenising, simhashing, search vectors, the reader's screen - is working
+    with the wrong characters until it is resolved. NFKC then folds the
+    no-break spaces that ``&nbsp;`` decodes to into ordinary ones, which is
+    why the order matters.
+    """
+    unescaped = decode_entities(value)
+    return _WHITESPACE_RE.sub(" ", unicodedata.normalize("NFKC", unescaped)).strip()
 
 
 def tokenise(value: str) -> list[str]:
@@ -155,23 +183,124 @@ def hamming_distance(a: int, b: int) -> int:
     return ((a & mask) ^ (b & mask)).bit_count()
 
 
-def make_snippet(value: str | None, max_chars: int) -> str | None:
-    """Trim a summary to the storage cap, cutting at a word boundary.
+_TAG_RE = re.compile(r"<[^>]+>")
 
-    The cap is a copyright constraint, not a display preference: we store a
-    snippet, never the article.
+# Live-blog and navigation furniture, matched as whole pipe-separated segments
+# so a word like "live" inside a real sentence is never touched. Every entry
+# here is a string observed in a real feed: the first six come from the
+# second-pass audit's §21 verbatim ("Live scoreboard | Clockwatch | Mail Billy
+# 4 min"), the rest from the Guardian football feed, which ends nearly every
+# description with "Continue reading...".
+_FURNITURE = (
+    r"live\s+scoreboard|clockwatch|live\s+blog|follow\s+live|as\s+it\s+happened"
+    r"|minute[-\s]by[-\s]minute(?:\s+report)?|match\s+report|player\s+ratings"
+    r"|mail\s+\w+(?:\s+\d+\s*min)?"
+    r"|continue\s+reading[.…\s]*"
+)
+_FURNITURE_SEGMENT_RE = re.compile(rf"(?i)^(?:{_FURNITURE})$")
+# The same vocabulary at the end of the text. Dropping furniture *segments*
+# is not enough on its own: in the audit's own example the first segment is
+# "Updates from 5.30pm BST kick-off ... to a draw. Live scoreboard", so the
+# nav run starts mid-segment and only its tail is separated by pipes.
+_TRAILING_FURNITURE_RE = re.compile(rf"(?i)[\s|,;\u2013\u2014-]*(?:{_FURNITURE})\s*$")
+# "Updates from 5.30pm BST kick-off..." - the opener of a live blog, which
+# says when the *page* started rather than anything about the story. Bounded
+# rather than open-ended, and anchored on "kick off", so it can only ever eat
+# a short opening clause. Dots are allowed inside because the real strings
+# carry a time in them ("5.30pm").
+_UPDATES_OPENER_RE = re.compile(
+    r"(?i)^updates?\s+from\b.{0,40}?\bkick[-\s]?off\b[\s.,:;\u2013\u2014-]*"
+)
+# "... and WSL - matchday live" (§21, verbatim). A trailing marker, not prose.
+_TRAILING_LIVE_RE = re.compile(r"(?i)\s*[|\u2013\u2014-]\s*(?:\w+\s+)?live\s*$")
+_CONTINUE_READING_RE = re.compile(r"(?i)\s*continue\s+reading\s*[.…]*\s*$")
+# A promotional run the Guardian splices between the standfirst and the body:
+# "... enriching the soil in the process Get our breaking news email , free app
+# or daily news podcast A woman has been buried ...". Bounded and anchored at
+# both ends, because it has to be removed from the middle of real prose.
+_PROMO_RUN_RE = re.compile(r"(?i)\s*\bget our breaking news email\b[^.]{0,80}?\bpodcast\b\s*")
+# Sentence boundaries, including the danda that ends a Devanagari sentence and
+# the Arabic full stop - a Latin-only rule would refuse to cut a Hindi summary
+# at any sentence and fall through to the word-boundary path every time.
+_SENTENCE_END_RE = re.compile(r"(?<=[.!?\u0964\u06d4\u3002])\s")
+
+
+def strip_furniture(text: str) -> str:
+    """Remove live-blog and navigation furniture from a publisher summary.
+
+    Audit §21: "this looks like raw publisher/live-blog content leaking into
+    the UI". It is - the ingester stores whatever the feed put in
+    ``<description>``, and for a live blog that is the page's own chrome
+    rather than a summary of anything.
     """
-    if not value:
-        return None
-    text = normalise_text(re.sub(r"<[^>]+>", " ", value))
-    if not text:
-        return None
+    text = _UPDATES_OPENER_RE.sub("", text)
+    text = _PROMO_RUN_RE.sub(" ", text)
+    if "|" in text:
+        parts = [part.strip() for part in text.split("|")]
+        kept = [part for part in parts if part and not _FURNITURE_SEGMENT_RE.match(part)]
+        # Only rejoin when something was actually dropped. A description whose
+        # pipes are the publisher's own punctuation must survive unchanged.
+        if len(kept) != len(parts):
+            text = " ".join(kept)
+    text = _CONTINUE_READING_RE.sub("", text)
+    # Repeated because a live blog stacks them: "... Live scoreboard Clockwatch".
+    while True:
+        trimmed = _TRAILING_FURNITURE_RE.sub("", text)
+        if trimmed == text:
+            break
+        text = trimmed
+    text = _TRAILING_LIVE_RE.sub("", text)
+    return text.strip(" |,;:\u2013\u2014-")
+
+
+def _shorten(text: str, max_chars: int, *, min_sentence_chars: int = 30) -> str:
+    """Cut to the first whole sentence that stands on its own, else to a word.
+
+    The *first* boundary past the floor, not the last one that fits: a
+    publisher's ``<description>`` is very often a standfirst with the article's
+    own opening paragraph glued to the end of it, and keeping every sentence
+    that fits keeps half the glued paragraph. §21 asks for aggressive
+    truncation, and the first sentence is usually the standfirst - the one
+    part actually written as a summary.
+    """
     if len(text) <= max_chars:
         return text
+    window = text[:max_chars]
+    # A complete sentence needs no ellipsis - that is the whole reason to
+    # prefer this cut. The floor stops a three-word opener ("Live. ") from
+    # becoming the entire summary.
+    for end in (match.start() for match in _SENTENCE_END_RE.finditer(window)):
+        if end >= min_sentence_chars:
+            return window[:end].rstrip()
     cut = text[: max_chars - 1]
     if " " in cut:
         cut = cut[: cut.rindex(" ")]
     return cut.rstrip(" ,;:.-") + "…"
+
+
+def make_snippet(
+    value: str | None, max_chars: int, *, summary_max_chars: int | None = None
+) -> str | None:
+    """Clean a publisher summary and trim it to a snippet.
+
+    ``max_chars`` is a copyright constraint, not a display preference: we store
+    a snippet, never the article. ``summary_max_chars`` is the editorial one
+    (§20) - "do not show large publisher descriptions unless they are genuinely
+    useful" - and is the shorter of the two when both are given.
+
+    The cleaning is not optional and has no flag: entities and live-blog
+    furniture are wrong in storage, not merely ugly on screen.
+    """
+    if not value:
+        return None
+    # Tags are stripped on both sides of the entity decoding: a feed that
+    # escapes its own markup (`&lt;p&gt;`) only reveals it once decoded.
+    text = _TAG_RE.sub(" ", normalise_text(_TAG_RE.sub(" ", value)))
+    text = _WHITESPACE_RE.sub(" ", strip_furniture(text)).strip()
+    if not text:
+        return None
+    limit = min(max_chars, summary_max_chars) if summary_max_chars else max_chars
+    return _shorten(text, limit)
 
 
 def slugify(value: str, *, max_length: int = 120) -> str:

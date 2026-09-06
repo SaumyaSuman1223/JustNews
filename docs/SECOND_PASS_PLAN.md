@@ -214,6 +214,40 @@ what the card shows. Repair existing rows with a re-runnable command, like
 **Accept:** no `&#039;` anywhere; no live-blog string in a snippet; card
 snippets read as summaries. Tested on the real production strings above.
 
+**Shipped.** Three rules, each written against a string observed in a live
+feed rather than invented:
+
+1. **Entities.** `decode_entities` unescapes **twice**. Production's RSS
+   carries `Antonelli&amp;#039;s`: the publisher double-encoded it, feedparser
+   resolved one layer, nothing resolved the second. One `html.unescape` was
+   never going to fix this. Decoding moved into `normalise_text`, so titles
+   get it too — an entity in stored text is an encoding artifact, and
+   tokenising, simhashing and the search vector were all working on the wrong
+   characters.
+2. **Furniture.** `strip_furniture` removes live-blog navigation
+   (`Live scoreboard | Clockwatch | Mail Billy 4 min`), the `Updates from
+   5.30pm BST kick-off` opener, trailing `— matchday live` markers, the
+   Guardian's `Continue reading...` trailer, and its newsletter promo run
+   spliced into the middle of the standfirst. Pipes that are the publisher's
+   own punctuation survive — there is a test for that, because a rule that
+   eats real text is worse than the furniture.
+3. **Length.** A second, editorial cap (`ingest_summary_max_chars`, 200)
+   under the copyright ceiling (300, unchanged). The cut prefers the *first*
+   whole sentence past a 30-character floor, because a publisher's
+   `<description>` is usually a standfirst with the article's first paragraph
+   glued to the end of it — keeping every sentence that fits keeps half the
+   glued paragraph. Sentence detection includes the danda and the Arabic full
+   stop, or every Hindi summary would fall through to a mid-word truncation.
+
+`justnews-ingest repair-snippets [--dry-run]` re-cleans the corpus and
+recomputes each changed row's search vector. Verified end to end against a
+real database: dry run reported one row and wrote nothing, the real run fixed
+both the entity and the furniture, and a second run reported zero.
+
+**Still to run against production.** The command has not been pointed at the
+production database yet — that is a data change and it is lossy, so it is the
+user's call to make.
+
 ### Chunk 7 — My Desk as a workspace *(§23–§27)*
 Your Topics, What Changed (per-topic developments), Understand (what's
 happening / who is saying what / what's changing) from data that exists —
