@@ -2612,6 +2612,74 @@ a.chip:active {
   border-radius: var(--radius-editorial);
 }
 
+/* --- the halftone ---------------------------------------------------------
+ *
+ * Two layers over the publisher's own image: an SVG filter that flattens it
+ * to warm two-tone (see Halftone.tsx), and a dot screen punched through in
+ * the paper's colour. Nothing is re-encoded and nothing is stored - removing
+ * the filter and the ::after returns every picture to its original.
+ */
+
+.halftone-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  /* Not display:none - Safari drops filter references defined inside a
+     hidden subtree, and the images then render untouched. */
+  overflow: hidden;
+}
+
+.halftone {
+  position: relative;
+  display: block;
+  /* The dots are punched in the paper's own colour, so the screen has to sit
+     on that colour rather than on whatever is behind the sheet. */
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.halftone img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  filter: url(#aquila-halftone);
+}
+
+.halftone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Paper-coloured dots between the ink. `lighten` rather than `normal` keeps
+     the dots from flattening the highlights into a solid field: where the
+     picture is already lighter than the paper, nothing happens. */
+  background-image: radial-gradient(circle, var(--paper) 44%, transparent 46%);
+  mix-blend-mode: lighten;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* §19: 2-4px on large images, 1.5-3px on small ones. */
+.halftone--lg::after {
+  background-size: 3.5px 3.5px;
+}
+
+.halftone--sm::after {
+  background-size: 2.5px 2.5px;
+}
+
+@media (prefers-contrast: more) {
+  /* The screen costs contrast by design. A reader who has asked for more
+     gets the picture without it. */
+  .halftone img {
+    filter: none;
+  }
+
+  .halftone::after {
+    display: none;
+  }
+}
+
 .paper__lead-image {
   inline-size: 100%;
   aspect-ratio: 16 / 9;

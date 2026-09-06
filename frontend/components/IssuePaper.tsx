@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { HalftoneImage } from "@/components/Halftone";
 import type { Issue, IssuePageContent } from "@/lib/api";
 import { datelineCity, t, type LocaleCode } from "@/lib/i18n";
 
@@ -135,17 +135,12 @@ export function IssuePaper({
           {lead && (
             <section className="paper__lead">
               {lead.article.image_url && (
-                // `unoptimized`, like every other image in the product: the
-                // source is the publisher's own CDN and next/image would
-                // need each of those hosts in remotePatterns.
-                <Image
+                <HalftoneImage
                   className="paper__lead-image"
                   src={lead.article.image_url}
-                  alt=""
                   width={1200}
                   height={675}
                   sizes="(max-width: 46rem) 100vw, 40rem"
-                  unoptimized
                   priority
                 />
               )}
@@ -190,14 +185,13 @@ export function IssuePaper({
                         priority: the lead is the LCP candidate, and marking
                         four images priority marks none of them. */}
                     {slot.article.image_url && (
-                      <Image
+                      <HalftoneImage
                         className="paper__column-image"
                         src={slot.article.image_url}
-                        alt=""
                         width={600}
                         height={400}
                         sizes="(max-width: 46rem) 100vw, 16rem"
-                        unoptimized
+                        scale="sm"
                       />
                     )}
                     <h3 className="paper__column-headline">
