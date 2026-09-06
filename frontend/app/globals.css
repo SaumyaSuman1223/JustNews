@@ -3164,6 +3164,106 @@ a.chip:active {
   text-wrap: balance;
 }
 
+/* The signed-out desk: what a desk would hold, in real topics. */
+.desk-preview {
+  margin-block-start: var(--space-12);
+}
+
+.desk-preview__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+/* --- search: input, filters, recent ---------------------------------------
+ *
+ * Audit §29. A GET form, so every refinement is a URL - shareable, and the
+ * back button walks back through the reader's own narrowing.
+ */
+
+.search-controls {
+  margin-block-end: var(--space-8);
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.search-form__input {
+  /* Prominent, per §29 - this is the page's primary control, not a repeat of
+     the masthead's shortcut into it. */
+  font-size: var(--type-body-l);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  inline-size: 100%;
+}
+
+.search-filters {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.search-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.search-filter select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  max-inline-size: 14rem;
+}
+
+.search-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.search-recent__heading,
+.search-recent__clear {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+.search-recent ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-recent__clear {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* The standing label above each of Home's three levels. A rule and a line of
    small caps, in the application's brass - Aquila's red stays in Aquila. */
 .home-tier {

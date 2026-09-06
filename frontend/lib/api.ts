@@ -209,10 +209,12 @@ export function getEditions(languages?: string): Promise<Degradable<Edition[]>> 
 export function searchArticles(params: {
   query: string;
   languages?: string;
+  topic?: string;
   cursor?: string;
 }): Promise<Degradable<ArticlePage>> {
   const query = new URLSearchParams({ q: params.query });
   if (params.languages) query.set("languages", params.languages);
+  if (params.topic) query.set("topic", params.topic);
   if (params.cursor) query.set("cursor", params.cursor);
   // Search results are per-query already; a short cache just absorbs repeats
   // (back button, double submit) rather than serving stale results.
