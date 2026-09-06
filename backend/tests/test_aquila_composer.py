@@ -17,7 +17,14 @@ from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import ArticleTopic, Issue, IssuePage, IssueSlot, StoryCluster
+from justnews_core.models import (
+    Article,
+    ArticleTopic,
+    Issue,
+    IssuePage,
+    IssueSlot,
+    StoryCluster,
+)
 from justnews_ingestion.aquila import (
     EDITION_SLOTS,
     MAX_PER_SOURCE_PER_PAGE,
@@ -82,6 +89,7 @@ class TestComposeIssue:
             await session.scalars(select(IssueSlot.role).where(IssueSlot.page_id == pages[0].id))
         ).all()
         assert roles.count("lead") == 1, "exactly one lead on the front page"
+        assert roles.count("focus") == 1, "exactly one IN FOCUS piece in the left rail"
         assert "secondary" in roles and "brief" in roles
 
     async def test_masthead_numbering_increments(self, session: AsyncSession) -> None:
@@ -233,6 +241,94 @@ class TestComposeIssue:
         )
         assert section is not None, "a topic with plenty of coverage should get its own page"
         assert section.page_no > 1
+
+
+class TestImageAwareSelection:
+    """A slot that prints a picture has to be chosen with that in mind.
+
+    The composer used to select on recency and trust alone, so the lead - the
+    one slot that renders an image - could land on an article that had none,
+    and the page printed a hole where its picture should be.
+    """
+
+    async def _front_roles(
+        self, session: AsyncSession, issue_id: int | None
+    ) -> dict[str, list[bool]]:
+        """Per role on page 1, whether each chosen article has an image."""
+        rows = await session.execute(
+            select(IssueSlot.role, Article.image_url)
+            .join(Article, Article.id == IssueSlot.article_id)
+            .join(IssuePage, IssuePage.id == IssueSlot.page_id)
+            .where(IssuePage.issue_id == issue_id, IssuePage.page_no == 1)
+        )
+        by_role: dict[str, list[bool]] = {}
+        for role, image_url in rows.all():
+            by_role.setdefault(role, []).append(image_url is not None)
+        return by_role
+
+    async def test_the_lead_takes_an_article_that_has_a_picture(
+        self, session: AsyncSession
+    ) -> None:
+        """Even when every fresher, more trusted article has none."""
+        source = await make_source(session, slug="picture-test")
+        # The newest twelve carry no image; only the oldest does. On recency
+        # alone the lead would take one of the twelve.
+        for i in range(12):
+            await make_article(session, source, title=f"No picture {i}", minutes_ago=i)
+        other = await make_source(session, slug="picture-test-2")
+        for i in range(4):
+            await make_article(session, other, title=f"Also none {i}", minutes_ago=i)
+        await make_article(
+            session,
+            other,
+            title="The one with a picture",
+            minutes_ago=200,
+            image_url="https://example.test/photo.jpg",
+        )
+        await session.commit()
+
+        result = await compose_issue(session, locale="en", edition_slot="morning")
+        await session.commit()
+
+        by_role = await self._front_roles(session, result.issue_id)
+        assert by_role["lead"] == [True], "the lead must be the article that has a picture"
+
+    async def test_a_corpus_with_no_pictures_still_fills_the_lead(
+        self, session: AsyncSession
+    ) -> None:
+        """Preference, not a filter - a thin corpus prints a page, not a hole."""
+        await _corpus(session)
+        await session.commit()
+
+        result = await compose_issue(session, locale="en", edition_slot="morning")
+        await session.commit()
+
+        by_role = await self._front_roles(session, result.issue_id)
+        assert by_role["lead"] == [False]
+        assert by_role["focus"] == [False]
+
+    async def test_text_only_roles_do_not_consume_the_pictures(self, session: AsyncSession) -> None:
+        """The brief prints no images, so it must not take the only one."""
+        sources = [await make_source(session, slug=f"greedy-{i}") for i in range(4)]
+        for i in range(16):
+            await make_article(session, sources[i % 4], title=f"Plain {i}", minutes_ago=i + 20)
+        # A single picture, older than everything else - so if the brief were
+        # filled before the lead, recency would hand it to the brief.
+        await make_article(
+            session,
+            sources[0],
+            title="Sole picture",
+            minutes_ago=300,
+            image_url="https://example.test/only.jpg",
+        )
+        await session.commit()
+
+        result = await compose_issue(session, locale="en", edition_slot="morning")
+        await session.commit()
+
+        by_role = await self._front_roles(session, result.issue_id)
+        assert by_role["lead"] == [True]
+        assert not any(by_role.get("brief", [])), "the brief renders no images and takes none"
 
 
 class TestEditionTime:

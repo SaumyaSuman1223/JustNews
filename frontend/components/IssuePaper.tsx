@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { HalftoneImage } from "@/components/Halftone";
 import type { Issue, IssuePageContent } from "@/lib/api";
 import { datelineCity, t, type LocaleCode } from "@/lib/i18n";
 
@@ -29,6 +29,7 @@ export function IssuePaper({
   locale: LocaleCode;
 }) {
   const lead = page.slots.find((slot) => slot.role === "lead");
+  const focus = page.slots.find((slot) => slot.role === "focus");
   const secondaries = page.slots.filter((slot) => slot.role === "secondary");
   const briefs = page.slots.filter((slot) => slot.role === "brief");
   const isFront = page.page_no === 1;
@@ -114,21 +115,32 @@ export function IssuePaper({
       {page.slots.length === 0 ? (
         <p className="paper__empty">{t(locale, "aquila.pageEmpty")}</p>
       ) : (
-        <div className="paper__body">
+        // The front page is composed - rail, dominant lead, brief, then a
+        // lower band. A section page is a simpler thing and says so: one lead
+        // and its columns, no rails to fill and nothing to pad them with.
+        <div className={isFront ? "paper__body paper__body--front" : "paper__body"}>
+          {isFront && focus && (
+            <section className="paper__focus">
+              <h2 className="paper__label">{t(locale, "aquila.inFocus")}</h2>
+              <h3 className="paper__focus-headline">
+                <Link href={`/${locale}/a/${focus.article.id}`}>{focus.article.title}</Link>
+              </h3>
+              {focus.article.snippet && (
+                <p className="paper__focus-deck">{focus.article.snippet}</p>
+              )}
+              <p className="paper__byline">{focus.article.source_name}</p>
+            </section>
+          )}
+
           {lead && (
             <section className="paper__lead">
               {lead.article.image_url && (
-                // `unoptimized`, like every other image in the product: the
-                // source is the publisher's own CDN and next/image would
-                // need each of those hosts in remotePatterns.
-                <Image
+                <HalftoneImage
                   className="paper__lead-image"
                   src={lead.article.image_url}
-                  alt=""
                   width={1200}
                   height={675}
                   sizes="(max-width: 46rem) 100vw, 40rem"
-                  unoptimized
                   priority
                 />
               )}
@@ -136,33 +148,15 @@ export function IssuePaper({
                 <h2 className="paper__lead-headline">
                   <Link href={`/${locale}/a/${lead.article.id}`}>{lead.article.title}</Link>
                 </h2>
-                {lead.article.snippet && (
-                  <p className="paper__deck">{lead.article.snippet}</p>
-                )}
+                {lead.article.snippet && <p className="paper__deck">{lead.article.snippet}</p>}
                 <p className="paper__byline">{lead.article.source_name}</p>
               </div>
             </section>
           )}
 
-          {secondaries.length > 0 && (
-            <section className="paper__columns">
-              {secondaries.map((slot) => (
-                <div className="paper__column" key={slot.position}>
-                  <h3 className="paper__column-headline">
-                    <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
-                  </h3>
-                  {slot.article.snippet && (
-                    <p className="paper__column-deck">{slot.article.snippet}</p>
-                  )}
-                  <p className="paper__byline">{slot.article.source_name}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
           {briefs.length > 0 && (
             <section className="paper__brief">
-              <h2 className="paper__brief-heading">{t(locale, "aquila.brief")}</h2>
+              <h2 className="paper__label">{t(locale, "aquila.brief")}</h2>
               <ol className="paper__brief-list">
                 {briefs.map((slot, index) => (
                   <li key={slot.position}>
@@ -177,6 +171,43 @@ export function IssuePaper({
                   </li>
                 ))}
               </ol>
+            </section>
+          )}
+
+          {secondaries.length > 0 && (
+            <section className="paper__highlights">
+              {isFront && <h2 className="paper__label">{t(locale, "aquila.highlights")}</h2>}
+              <div className="paper__columns">
+                {secondaries.map((slot) => (
+                  <div className="paper__column" key={slot.position}>
+                    {/* A second and third picture on the page, which is what
+                        the composer's image-aware selection is for. Not
+                        priority: the lead is the LCP candidate, and marking
+                        four images priority marks none of them. */}
+                    {slot.article.image_url && (
+                      <HalftoneImage
+                        className="paper__column-image"
+                        src={slot.article.image_url}
+                        width={600}
+                        height={400}
+                        sizes="(max-width: 46rem) 100vw, 16rem"
+                        scale="sm"
+                      />
+                    )}
+                    <h3 className="paper__column-headline">
+                      <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
+                    </h3>
+                    {/* On the front page these are highlights - picture,
+                        headline, outlet. The deck belongs to a section page,
+                        where a column is the whole story rather than a
+                        pointer to it, and where the page has the room. */}
+                    {!isFront && slot.article.snippet && (
+                      <p className="paper__column-deck">{slot.article.snippet}</p>
+                    )}
+                    <p className="paper__byline">{slot.article.source_name}</p>
+                  </div>
+                ))}
+              </div>
             </section>
           )}
         </div>

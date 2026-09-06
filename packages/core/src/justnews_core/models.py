@@ -812,8 +812,9 @@ class IssueSlot(Base):
     """One article, in one position, on one page.
 
     ``role`` is the composition weight the page gives it - a lead runs large
-    with its image, a secondary runs as a column, a brief is one line in a
-    numbered list.
+    with its image, a focus runs in the left rail under a standing IN FOCUS
+    label, a secondary runs as a column, a brief is one line in a numbered
+    list.
 
     There is no 'quote' role. The mockups show a pull quote, and we have
     nothing truthful to put in one: the product stores no article body, so any
@@ -844,5 +845,7 @@ class IssueSlot(Base):
 
     __table_args__ = (
         UniqueConstraint("page_id", "position", name="uq_issue_slots_position"),
-        CheckConstraint("role in ('lead', 'secondary', 'brief')", name="ck_issue_slots_role"),
+        CheckConstraint(
+            "role in ('lead', 'focus', 'secondary', 'brief')", name="ck_issue_slots_role"
+        ),
     )

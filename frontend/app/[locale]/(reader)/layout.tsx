@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 
 import { AquilaSidebar } from "@/components/AquilaSidebar";
+import { HalftoneDefs } from "@/components/Halftone";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 
 /**
@@ -31,6 +32,9 @@ export default async function ReaderLayout({
         {t(active.code, "skip.toContent")}
       </a>
       <AquilaSidebar locale={active.code} />
+      {/* Once per document, not once per image: a filter is referenced by id
+          and defining it four times would just be four ids. */}
+      <HalftoneDefs />
       <main id="main" tabIndex={-1} className="reader__main">
         {children}
       </main>

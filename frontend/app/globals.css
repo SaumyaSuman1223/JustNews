@@ -2285,9 +2285,16 @@ a.chip:active {
   --paper-ink: #171717;
   --paper-mid: #333333;
   --paper-muted: #6b675f;
-  --paper-rule: #d8d2c7;
-  --paper-hair: #e4dfd3;
+  /* Audit §18's rule colour. The old value is demoted to the hairline, which
+     is what it always was: a rule you can barely see is a hairline whatever
+     it is called, and a printed page needs both weights. */
+  --paper-rule: #a8a197;
+  --paper-hair: #d8d2c7;
   --paper-brass: #7a6444;
+  /* Audit §18's primary accent, scoped to the sheet - the application keeps
+     its brass. Measured at 6.6:1 on this paper, so it carries small type
+     (the section labels are 11px) rather than only decoration. */
+  --paper-accent: #a52e2a;
   background: var(--paper);
   color: var(--paper-ink);
   border-radius: var(--radius-editorial);
@@ -2327,6 +2334,17 @@ a.chip:active {
   /* Spec §27: 32-44px top, 42-50px sides, 30-40px bottom. */
   padding: var(--space-6) var(--space-12) var(--space-6);
   container-type: inline-size;
+}
+
+/* A container query measures the *content* box, so the paper's own margins
+   are subtracted before the grid decides whether it fits. At a 900px viewport
+   that left 728px against a 736px threshold and the front page stacked into a
+   3000px scroll - eight pixels of padding deciding the whole composition. A
+   media query, not a container one: an element cannot query itself. */
+@media (max-width: 64rem) {
+  .paper {
+    padding-inline: var(--space-6);
+  }
 }
 
 /* Audit §9/§10: edition left, wordmark centre, coverage line right.
@@ -2387,8 +2405,12 @@ a.chip:active {
   /* Audit §9 asks for 78-100px, overriding the earlier spec's 70-90px
      masthead block; the newer brief wins for Aquila specifically. Cormorant
      Garamond at its heaviest weight, tracked tight - no second display face
-     was added for this, and none should be. */
-  font-size: clamp(2.4rem, 1rem + 4.6vw, 4.2rem);
+     was added for this, and none should be.
+
+     Sized in cqi, not vw: the sheet's width is set by the workspace, not by
+     the window, so a viewport unit here sizes the type against something the
+     paper cannot see. Every fluid size on the paper follows this rule. */
+  font-size: clamp(2.2rem, 8.6cqi, 5.4rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -2406,7 +2428,8 @@ a.chip:active {
 
 .paper__sectionhead h2 {
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 1rem + 2vw, 2.2rem);
+  /* Audit §17's major headline, 30-42px. */
+  font-size: clamp(1.6rem, 3.6cqi, 2.6rem);
   font-weight: 600;
   margin: 0;
 }
@@ -2467,7 +2490,7 @@ a.chip:active {
     grid-column: 1;
   }
 
-  .paper__columns {
+  .paper__highlights {
     grid-column: 2;
     /* The rules between columns are the page's own vertical rules. */
     padding-inline: var(--space-4);
@@ -2488,11 +2511,183 @@ a.chip:active {
     border-block-start: none;
     padding-block-start: 0;
   }
+
+  /* The front page is not three equal-weight columns. It is a rail, a
+     dominant lead and a brief across the top, with a band of highlights
+     under all three - audit §14. Named areas rather than line numbers
+     because the shape is the point and it should be readable as one. */
+  .paper__body--front {
+    grid-template-columns: 0.8fr 1.9fr 1fr;
+    grid-template-areas:
+      "focus lead brief"
+      "highlights highlights highlights";
+  }
+
+  .paper__body--front .paper__focus {
+    grid-area: focus;
+    padding-inline-end: var(--space-4);
+    border-inline-end: 1px solid var(--paper-hair);
+  }
+
+  .paper__body--front .paper__lead {
+    grid-area: lead;
+  }
+
+  .paper__body--front .paper__brief {
+    grid-area: brief;
+    padding-inline-start: var(--space-4);
+    border-inline-start: 1px solid var(--paper-hair);
+  }
+
+  .paper__body--front .paper__highlights {
+    grid-area: highlights;
+    /* Full width under the fold of the page, so it takes a rule above rather
+       than the vertical rules a middle column needs. */
+    padding-inline: 0;
+    border-inline: none;
+    border-block-start: 1px solid var(--paper-rule);
+    padding-block-start: var(--space-4);
+    margin-block-start: var(--space-2);
+  }
+
+  .paper__body--front .paper__columns {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  /* Side by side, these separate with vertical rules; the underline each
+     carries when they are stacked would draw three stray dashes. */
+  .paper__body--front .paper__column {
+    padding-block-end: 0;
+    border-block-end: none;
+  }
+
+  /* Rules between the highlight columns, not around them. */
+  .paper__body--front .paper__column + .paper__column {
+    padding-inline-start: var(--space-4);
+    border-inline-start: 1px solid var(--paper-hair);
+  }
+}
+
+/* --- the front page's left rail ------------------------------------------ */
+
+.paper__focus-headline {
+  font-family: var(--font-display);
+  /* Small headline, 15-20px: it sits in a ~190px rail, so it takes the
+     bottom of §17's secondary range rather than the top. */
+  font-size: clamp(1.1rem, 1.9cqi, 1.35rem);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 var(--space-2);
+}
+
+.paper__focus-deck {
+  font-size: var(--type-body-s);
+  color: var(--paper-mid);
+  margin: 0 0 var(--space-2);
+}
+
+/* A standing label - IN FOCUS, THE BRIEF, TODAY'S HIGHLIGHTS. One class,
+   because they are one thing: the page naming a standing feature. */
+.paper__label {
+  font-size: var(--type-micro);
+  /* §17: 1.2-2px of tracking. 0.18em of an 11px label is 1.96px. */
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-accent);
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--paper-rule);
+}
+
+.paper__column-image {
+  inline-size: 100%;
+  aspect-ratio: 3 / 2;
+  block-size: auto;
+  object-fit: cover;
+  display: block;
+  margin-block-end: var(--space-3);
+  border-radius: var(--radius-editorial);
+}
+
+/* --- the halftone ---------------------------------------------------------
+ *
+ * Two layers over the publisher's own image: an SVG filter that flattens it
+ * to warm two-tone (see Halftone.tsx), and a dot screen punched through in
+ * the paper's colour. Nothing is re-encoded and nothing is stored - removing
+ * the filter and the ::after returns every picture to its original.
+ */
+
+.halftone-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  /* Not display:none - Safari drops filter references defined inside a
+     hidden subtree, and the images then render untouched. */
+  overflow: hidden;
+}
+
+.halftone {
+  position: relative;
+  display: block;
+  /* The dots are punched in the paper's own colour, so the screen has to sit
+     on that colour rather than on whatever is behind the sheet. */
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.halftone img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  filter: url(#aquila-halftone);
+}
+
+.halftone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Paper-coloured dots between the ink. `lighten` rather than `normal` keeps
+     the dots from flattening the highlights into a solid field: where the
+     picture is already lighter than the paper, nothing happens. */
+  background-image: radial-gradient(circle, var(--paper) 44%, transparent 46%);
+  mix-blend-mode: lighten;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* §19: 2-4px on large images, 1.5-3px on small ones. */
+.halftone--lg::after {
+  background-size: 3.5px 3.5px;
+}
+
+.halftone--sm::after {
+  background-size: 2.5px 2.5px;
+}
+
+@media (prefers-contrast: more) {
+  /* The screen costs contrast by design. A reader who has asked for more
+     gets the picture without it. */
+  .halftone img {
+    filter: none;
+  }
+
+  .halftone::after {
+    display: none;
+  }
 }
 
 .paper__lead-image {
   inline-size: 100%;
   aspect-ratio: 16 / 9;
+  /* Same presentational-hint trap as .card__media and .article-media: without
+     this the img's own height attribute wins and aspect-ratio is ignored.
+     This slot had never rendered a real picture until the composer started
+     choosing for one, so the bug shipped latent. */
+  block-size: auto;
   object-fit: cover;
   display: block;
   margin-block-end: var(--space-4);
@@ -2501,10 +2696,12 @@ a.chip:active {
 
 .paper__lead-headline {
   font-family: var(--font-display);
-  /* Spec §27: 44-62px. */
-  font-size: clamp(1.8rem, 1.1rem + 2vw, 2.8rem);
+  /* Audit §17: 48-64px, line-height 0.90-1.00. A lead headline is the one
+     place a display face earns tight leading - three lines at 0.95 read as
+     one block rather than three sentences. */
+  font-size: clamp(1.9rem, 5.4cqi, 4rem);
   font-weight: 600;
-  line-height: 1.08;
+  line-height: 0.96;
   letter-spacing: -0.018em;
   margin: 0 0 var(--space-3);
   text-wrap: balance;
@@ -2539,8 +2736,8 @@ a.chip:active {
 
 .paper__column-headline {
   font-family: var(--font-display);
-  /* Spec §27: 24-34px, at the lower end - four of these share a column. */
-  font-size: clamp(1.15rem, 1rem + 0.3vw, 1.35rem);
+  /* Audit §17's secondary headline, 20-30px. */
+  font-size: clamp(1.15rem, 2.2cqi, 1.7rem);
   font-weight: 600;
   line-height: 1.14;
   margin: 0 0 var(--space-1);
@@ -2572,13 +2769,6 @@ a.chip:active {
   border-block-start: 2px solid var(--paper-ink);
 }
 
-.paper__brief-heading {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  margin: 0 0 var(--space-3);
-}
-
 .paper__brief-list {
   list-style: none;
   margin: 0;
@@ -2605,7 +2795,7 @@ a.chip:active {
 .paper__brief-number {
   font-variant-numeric: tabular-nums;
   font-size: var(--type-label);
-  color: var(--paper-brass);
+  color: var(--paper-accent);
 }
 
 .paper a {
