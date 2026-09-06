@@ -15,6 +15,9 @@ export function HomeSkeleton() {
   return (
     <>
       <div className="home-greeting" aria-hidden="true">
+        <div className="home-greeting__standing">
+          <div className="skeleton skeleton--line skeleton--short" />
+        </div>
         <div className="skeleton skeleton--line skeleton--short" />
         <div className="skeleton skeleton--lead-title" />
       </div>
@@ -31,7 +34,7 @@ export function HomeSkeleton() {
           <div className="home-tier" aria-hidden="true">
             <div className="skeleton skeleton--tab" />
           </div>
-          <FeedSkeleton lead={false} secondaries={6} rows={0} />
+          <FeedSkeleton lead={false} secondaries={2} compacts={4} rows={0} />
         </div>
 
         <div className="home__rail">

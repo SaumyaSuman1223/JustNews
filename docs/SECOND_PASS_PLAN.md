@@ -179,6 +179,33 @@ image-left/right, text-dominant entries, varied headline weight.
 **Accept:** no two adjacent sections use the same composition; first story
 dominates unmistakably; three tiers still trace to the ranked feed.
 
+**Shipped.** The three levels already existed; what the audit was objecting
+to (§15, §31) was that all three were built from the same card, so the page
+still read as one feed with headings in it. Each level now has a different
+composition:
+
+| Level | Composition |
+|---|---|
+| What matters | Full-measure lead (1320px at 1440, 16:9, display-XL headline) + two picture stories |
+| What you should know | Two picture stories, then four text-only entries separated by rules |
+| More from the world | Two columns of dense headline rows, under the tabs |
+
+The rail moved out from beside the hero, which is what lets the top story take
+the full measure — it could not "clearly dominate" while sharing its row with
+a statistics panel. §16's standing line (`JUSTNEWS · A clearer tomorrow`) sits
+above the greeting.
+
+Measured at 390/768/900/1440/1920 in both themes: axe clean, no horizontal
+overflow, composition counts correct at every width (2 hero pictures, 2 + 4 in
+tier two, dense rows below). The loading skeleton was updated to match the new
+tier-two composition, or the page would jump when the data lands.
+
+**Conflict flagged, not silently resolved.** §16 puts the identity at the top
+of Home and §30 puts the same two lines in the footer, so the page now carries
+`JUSTNEWS / A clearer tomorrow` twice. That is what both sections ask for, and
+it is the normal newspaper masthead-and-colophon pattern, but it is a
+duplication the audit did not acknowledge making.
+
 ### Chunk 6 — Content normalization *(§20, §21)* — **backend**
 Decode HTML entities at ingestion. Detect and trim live-blog furniture
 ("Updates from…", "Clockwatch", "matchday live", trailing timestamps). Shorten

@@ -31,11 +31,18 @@ import { getSession } from "@/lib/session";
 export const metadata: Metadata = { description: null };
 
 /**
- * Audit §2: Home reads in three levels, not one feed.
+ * Home reads in three levels, not one feed.
  *
- *   1. What matters            - a dominant lead and two beside it
- *   2. What you should know    - a band of equal-weight stories
- *   3. What else is happening  - the denser stream, under the tabs
+ *   1. What matters          - §17's Big Three: one dominant story, two beside
+ *   2. What you should know  - §18: two picture stories over four text entries
+ *   3. More from the world   - §19: the denser stream, under the tabs
+ *
+ * The second-pass audit's complaint (§15, §31) was that the levels existed but
+ * every level was built from the same card, so the page still read as one
+ * feed with headings in it. The fix is that each level now has a *different*
+ * composition: big and spacious, then mixed picture-and-text, then dense
+ * two-column rows. §32's rule holds throughout - these are rules, type and
+ * whitespace, not a page of boxes.
  *
  * The ranking is untouched; this is presentation. The feed still arrives in
  * one ranked order and the tiers are slices of it, so the reader's top story
@@ -44,7 +51,9 @@ export const metadata: Metadata = { description: null };
  */
 const TIER_ONE = 3;
 const TIER_ONE_LEADS = 1;
+/** §18's "approximately 5-10": six, split two picture-led and four text. */
 const TIER_TWO = 6;
+const TIER_TWO_PICTURES = 2;
 const TAB_PAGE_SIZE = 10;
 
 function isHomeTab(value: string | undefined): value is HomeTab {
@@ -162,7 +171,15 @@ async function FeedBody({
           Suspense fallback is showing); this is a visible h2 rather than a
           second h1, so the outline stays a single-heading page with one
           subheading, not two competing top-level headings. */}
+      {/* §16's quiet editorial header. The standing line is the identity the
+          icon rail gave up in Chunk 3 - a 56px rail can carry a monogram and
+          nothing else, and §16 asks for the name and the promise here, above
+          the greeting, rather than in the navigation. */}
       <div className="home-greeting">
+        <p className="home-greeting__standing">
+          <span className="home-greeting__mark">JustNews</span>
+          <span className="home-greeting__tagline">{t(active.code, "site.tagline")}</span>
+        </p>
         <p className="eyebrow">{t(active.code, greetingKey())}</p>
         <h2>{t(active.code, "home.greeting.subtitle")}</h2>
       </div>
@@ -210,7 +227,12 @@ async function FeedBody({
                 signedIn={hasBetaAccess}
                 revalidatePath={`/${active.code}`}
                 leads={0}
-                secondaries={TIER_TWO}
+                // §18: "use varied compositions, avoid repeated identical
+                // cards". Two of the six carry a picture; the other four are
+                // headline and source only, which gives the band an internal
+                // hierarchy instead of six equal rectangles.
+                secondaries={TIER_TWO_PICTURES}
+                rest="compact"
               />
             </div>
           )}
@@ -226,7 +248,7 @@ async function FeedBody({
           </div>
 
           <div className="home__feed">
-            <TierHeading label={t(active.code, "home.tier.else")} />
+            <TierHeading label={t(active.code, "home.tier.world")} />
             <HomeTabs
               locale={active.code}
               active={tab}

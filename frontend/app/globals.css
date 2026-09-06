@@ -3500,6 +3500,35 @@ a.chip:active {
   margin-block-end: var(--space-8);
 }
 
+/* §16's standing line. Quiet by construction - small caps and an italic
+   promise, above a rule - so it reads as a colophon rather than competing
+   with the greeting it introduces. */
+.home-greeting__standing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-6);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--border);
+}
+
+.home-greeting__mark {
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+.home-greeting__tagline {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+}
+
 .home-greeting h2 {
   font-family: var(--font-display);
   font-size: var(--type-display-xl);
@@ -3647,12 +3676,15 @@ a.chip:active {
 @media (min-width: 64rem) {
   .home {
     grid-template-columns: minmax(0, 1fr) 20rem;
-    column-gap: var(--space-6);
-    /* The rail spans all three levels rather than sitting beside one of
-       them: "Today at a glance" is about the whole page, not about the tier
-       it happens to start next to. */
+    column-gap: var(--space-8);
+    /* §17 and §31: the Big Three take the full measure, and the rail starts
+       below them. It used to sit beside the hero, which capped the biggest
+       story of the day at the same width as everything under it - the top
+       story cannot "clearly dominate" while it is sharing its row with a
+       statistics panel. Going full-width and then narrowing is also the
+       page's first rhythm change: spacious, then denser. */
     grid-template-areas:
-      "hero rail"
+      "hero hero"
       "know rail"
       "feed rail";
   }
@@ -3677,17 +3709,89 @@ a.chip:active {
 /* Each tier holds a fixed number of stories, so its cards take fixed spans
    rather than the general secondary rules - which are written for a run of
    unknown length and leave a ragged last row when the count is known and
-   does not divide. Tier one is a lead and two beside it; tier two is six,
-   which wants three per row so it is always two full rows and never 4 + 2. */
+   does not divide. */
+
+/* Tier one: the lead, then two beneath it - §17's diagram exactly. */
 @media (min-width: 40rem) {
   .home__hero .card--secondary {
     grid-column: span 6;
   }
 }
 
+/* The lead at full width needs different proportions from the lead in a
+   column. `.card--lead`'s general rule is 1.15fr of 4:3 photo against the
+   headline, which is right in an 800px column and wrong at 1320: the photo
+   resolves to 714x535 and the headline column runs out of things to say
+   three hundred pixels above the bottom of it.
+   16/9 and a bigger headline is what makes the top story read as the top
+   story rather than as a large picture with a caption. */
 @media (min-width: 64rem) {
+  .home__hero .card--lead {
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--space-8);
+  }
+
+  .home__hero .card--lead .card__media {
+    aspect-ratio: 16 / 9;
+  }
+
+  .home__hero .card--lead .card__title {
+    font-size: var(--type-display-xl);
+  }
+
+  .home__hero .card--lead .card__snippet {
+    font-size: var(--type-body-l);
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+  }
+}
+
+/* Tier two: two picture stories across the top, then the text entries.
+ *
+ * This is §18's "varied compositions, avoid repeated identical cards" and
+ * §31's rhythm, and it is a composition rather than a card style - the two
+ * shapes are the same components at different weights, which is why nothing
+ * here needs a new variant beyond the `compact` one the card set already had.
+ */
+@media (min-width: 40rem) {
   .home__know .card--secondary {
-    grid-column: span 4;
+    grid-column: span 6;
+  }
+
+  .home__know .card--compact {
+    grid-column: span 6;
+  }
+}
+
+@media (min-width: 90rem) {
+  .home__know .card--compact {
+    grid-column: span 3;
+  }
+}
+
+/* A rule above each text entry, not a box around it (§32). Rows that share a
+   line read as a column of headlines; the same rows boxed read as a table of
+   objects, which is exactly the "everything is a card" the audit is
+   objecting to. */
+.home__know .card--compact {
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+/* Tier three: the dense stream. Two columns of rows once there is width for
+   them, because §19 says this is the level where density is appropriate -
+   and because a third full-width single column after two other full-width
+   single columns is the flat rhythm §31 is complaining about. */
+@media (min-width: 64rem) {
+  .home__feed .feed--list .card--list {
+    grid-column: span 6;
+  }
+
+  /* The no-rule exemption follows the columns: with two per row it is the
+     first *two* rows that sit at the top of the run, not just the first. */
+  .home__feed .feed--list .card--list:nth-child(-n + 2) {
+    padding-block-start: 0;
+    border-block-start: none;
   }
 }
 
