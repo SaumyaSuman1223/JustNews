@@ -3756,6 +3756,7 @@ export interface operations {
             query: {
                 q: string;
                 languages?: string | null;
+                topic?: string | null;
                 cursor?: string | null;
                 page_size?: number;
             };
