@@ -59,6 +59,7 @@ def edition_published_at(published_on: date, edition_slot: str) -> datetime:
         tzinfo=UTC,
     )
 
+
 # The running order, as IPTC top-level concept IDs (ADR 0006 - the ID is the
 # canonical key; the page's displayed name is this topic's label in the
 # reader's locale, looked up at render time). Ordered the way a paper orders

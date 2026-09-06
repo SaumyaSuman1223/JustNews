@@ -249,9 +249,7 @@ class TestEditionTime:
         await session.commit()
         ran_at = datetime(2026, 9, 4, 14, 47, 31, tzinfo=UTC)
 
-        result = await compose_issue(
-            session, locale="en", edition_slot="midday", now=ran_at
-        )
+        result = await compose_issue(session, locale="en", edition_slot="midday", now=ran_at)
         await session.commit()
 
         issue = await session.get(Issue, result.issue_id)
@@ -280,8 +278,13 @@ class TestEditionTime:
         assert issue is not None
         # Put the old bug back, so the repair has something real to fix.
         issue.published_at = datetime(
-            issue.published_on.year, issue.published_on.month, issue.published_on.day,
-            23, 12, 4, tzinfo=UTC,
+            issue.published_on.year,
+            issue.published_on.month,
+            issue.published_on.day,
+            23,
+            12,
+            4,
+            tzinfo=UTC,
         )
         await session.commit()
 

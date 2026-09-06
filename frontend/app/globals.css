@@ -2233,8 +2233,17 @@ a.chip:active {
 .reader {
   min-block-size: 100dvh;
   background: var(--charcoal);
-  /* Dark in both themes, so its text tokens are fixed rather than inherited -
-     otherwise a reader who chose light mode gets ink on charcoal. */
+  /* Dark in both themes, so its tokens are fixed rather than inherited -
+     otherwise a reader who chose light mode gets ink on charcoal.
+
+     The surfaces have to be redefined alongside the text, not just the text.
+     Any shared component rendered in here - the "no edition yet" empty state
+     is the one that exists - draws its own background from --surface, and
+     leaving that at the light value put #ede9e0 text on a #fbf9f4 card at
+     1.15:1. The paper itself is unaffected: `.aquila__sheet` carries its own
+     --paper-* set and never reads --surface. */
+  --surface: #20211f;
+  --surface-sub: #2a2b28;
   --text: #ede9e0;
   --text-mid: #c6c1b6;
   --text-muted: #98938a;
