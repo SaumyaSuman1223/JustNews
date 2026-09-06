@@ -138,7 +138,15 @@ composer change (slots per page) as well as CSS.
 **Accept:** measured ratio in band at both sizes; no vertical scroll inside a
 page at 1440×900; page-turn becomes the way to read on.
 
-### Chunk 3 — Aquila utility bar and editorial right rail *(§12, §13)*
+### Chunk 3 — Aquila utility bar and editorial right rail *(§12, §13)* — **mostly shipped inside Chunk 2**
+The sliding utility panel (`ReaderUtility`) and the editorial left rail landed
+with the geometry work, because a landscape page that fits could not be
+measured while a 280px utility column was still taking the width. What is
+left of this chunk is the *right* editorial rail inside the paper
+(Technology / Economy / Climate), which now belongs with Aquila's remaining
+composition work rather than on its own.
+
+
 Move `.aquila__rail` out of the layout and into a right-edge sliding panel:
 20–28px trigger, 280–320px panel, 200–280ms in / 250–400ms out, overlays
 without reflowing the paper, keyboard-reachable with Escape (§39). Then build
@@ -153,6 +161,16 @@ state, visible focus, accessible names that do not depend on the tooltip
 (§39). Quieten the footer to one line (§30).
 **Accept:** rail measures 52–60px; every item reachable and named by keyboard;
 mobile does not lose screen to navigation (§38).
+
+**Shipped.** Measured 56px at 900, 1440 and 1920; tab bar unchanged below
+900. The label is the link's accessible name *and* the tooltip, hidden with
+`opacity` rather than `display`/`visibility` so it never leaves the
+accessibility tree — asserted in `e2e/keyboard-nav.spec.ts`. Search field and
+language control left the rail: search is a destination in it, and the
+language control moved to the footer, which §30 rebuilt as one quiet line
+(identity + `Privacy · Send feedback · languages`). Axe clean in both themes
+at 390/900/1440; no horizontal overflow at 390/768/900/1440/1920; tooltip
+flies out to the correct side under `dir="rtl"`.
 
 ### Chunk 5 — Home composition *(§15–§19, §31, §32)*
 The Big Three (one dominant + two), then a varied grid for What You Should

@@ -320,11 +320,15 @@ a {
   opacity: 0.6;
 }
 
-/* The "News" half only. Excluding the tagline explicitly rather than relying
-   on source order: `.wordmark span` outranks `.wordmark__tagline` on
-   specificity, so without this the tagline silently takes the brass too. */
-.wordmark span:not(.wordmark__tagline) {
+.wordmark__accent {
   color: var(--accent);
+}
+
+/* The monogram the wordmark collapses to in the icon rail. Hidden by default
+   because below the rail breakpoint the masthead is a top bar with room for
+   the name in full. */
+.wordmark__mark {
+  display: none;
 }
 
 .locale-switcher {
@@ -356,7 +360,7 @@ a {
 }
 
 /* Below 40rem - the same line every other narrow-screen rule in this file
-   uses - the masthead's three groups (wordmark, primary nav, language nav)
+   uses - the masthead's groups (wordmark, primary nav, search and account)
    were flex items sharing one row, so each wrapped into fragments inside
    whatever space the others left rather than using the full viewport width:
    the wordmark took the first line's start, and Explore/Topics/Saved, the
@@ -1046,24 +1050,31 @@ a {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-1);
 }
 
 /* A rule between groups, not a heading: the split between the three
    destinations and the things that support them is real hierarchy, and a
    hairline says it without adding two words nobody reads twice. */
 .rail-group:not([data-first]) {
-  margin-block-start: var(--space-4);
-  padding-block-start: var(--space-4);
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
   border-block-start: 1px solid var(--border);
+  /* The rule spans the icons, not the rail's padding - a hairline running
+     edge to edge in a 56px column reads as a border, not a grouping. */
+  align-self: stretch;
 }
 
+/* A square target, icon centred. 2.75rem inside a 3.5rem rail leaves the icon
+   optically centred without the box touching either edge. */
 .rail-link {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  /* 66px tall with the subtitle, inside spec §6's 64-70px band. */
-  padding: 0.875rem var(--space-3);
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
   border-radius: var(--radius);
   color: var(--text-mid);
   transition:
@@ -1078,72 +1089,76 @@ a {
 
 .rail-link__icon {
   flex: none;
-  /* Optical alignment: the icon's box is taller than the label's cap height,
-     so matching their tops leaves the icon looking high. */
-  margin-block-start: 0.1em;
+  font-size: 1.15rem;
   color: var(--text-muted);
   transition: color var(--dur-micro) var(--ease);
 }
 
-.rail-link__text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-inline-size: 0;
-}
-
-.rail-link__label {
-  font-size: 1.02rem;
+/* The label: the link's accessible name, drawn as a tooltip.
+ *
+ * Opacity and `pointer-events`, never `display: none` or `visibility:
+ * hidden` - both of those remove the element from the accessibility tree,
+ * and then the only name left is the icon, which has none. This is the
+ * failure mode §14's "keyboard accessible" line is guarding against.
+ *
+ * Positioned with logical properties so it flies out to the right of the
+ * rail under `dir="ltr"` and to the left under `dir="rtl"`.
+ */
+.rail-link__label,
+.account-menu__email {
+  font-size: var(--type-body-s);
   font-weight: 500;
   line-height: var(--leading-snug);
 }
 
-.rail-link__subtitle {
-  font-size: var(--type-label);
-  color: var(--text-muted);
-  line-height: var(--leading-snug);
-  text-wrap: balance;
+.rail-link__label {
+  position: absolute;
+  inset-inline-start: calc(100% + var(--space-2));
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  z-index: 30;
+  white-space: nowrap;
+  padding: 0.3rem var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-micro) var(--ease);
 }
 
-/* The active destination. Three signals, not one - background, weight, and
-   the brass rule - because the design system forbids state carried by colour
-   alone, and because a reader glancing at the rail should not have to
-   compare two greys to find out where they are. `aria-current` carries the
-   same fact to a screen reader. */
+.rail-link:hover .rail-link__label,
+.rail-link:focus-visible .rail-link__label {
+  opacity: 1;
+}
+
+/* The active destination. Three signals, not one - background, the brass
+   icon, and the brass rule - because the design system forbids state carried
+   by colour alone, and because a reader glancing at the rail should not have
+   to compare two greys to find out where they are. `aria-current` carries
+   the same fact to a screen reader. */
 .rail-link[aria-current="page"] {
   background: var(--surface);
   color: var(--text);
-  box-shadow: inset 2px 0 0 var(--brass);
 }
 
-.rail-link[aria-current="page"] .rail-link__label {
-  font-weight: 600;
+/* The brass marker. A pseudo-element rather than an inset box-shadow because
+   `box-shadow` takes physical offsets: `inset 2px 0 0` stays on the left in
+   Arabic, where the rail is on the right and the marker belongs on the other
+   side of the icon. */
+.rail-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0.5rem;
+  inline-size: 2px;
+  border-radius: 2px;
+  background: var(--brass);
 }
 
 .rail-link[aria-current="page"] .rail-link__icon {
   color: var(--brass);
-}
-
-/* The masthead's own sign-off, bottom of the rail. Desktop only - on a phone
-   the masthead is a compact top bar with no room for a flourish. */
-.masthead-sign {
-  display: none;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--type-body-s);
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.wordmark__tagline {
-  display: none;
-  font-family: var(--font-ui);
-  font-size: var(--type-micro);
-  font-weight: 400;
-  font-style: normal;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
 }
 
 .masthead-tools {
@@ -1217,63 +1232,76 @@ a {
      every row keeps it reachable through the whole scroll without that.
      Logical properties throughout, so the whole thing mirrors under
      dir="rtl" with no directional override. */
-  /* The rail is a fixed 20rem (320px) column against a fluid content area,
-     per the frontend spec §3. The shell itself spans the viewport and the
-     *content* carries the max-width, rather than the shell capping both -
-     capping the shell is what leaves a wide screen with a rail floating in
-     the middle of nowhere. */
+  /* Audit §14: a 3.5rem (56px) icon rail, inside the 52-60px band, against a
+     fluid content area. It was 20rem, and the audit's §29 complaint - that
+     the navigation carries too much and makes the product read as a
+     conventional website - was mostly the width. The shell itself spans the
+     viewport and the *content* carries the max-width, rather than the shell
+     capping both: capping the shell is what leaves a wide screen with a rail
+     floating in the middle of nowhere. */
   .shell {
     max-width: none;
     display: grid;
-    grid-template-columns: 20rem minmax(0, 1fr);
-    column-gap: var(--space-6);
+    grid-template-columns: 3.5rem minmax(0, 1fr);
     align-items: start;
     padding-inline: 0;
     padding-block-end: var(--space-12);
   }
 
+  /* Sticky, not fixed: a fixed rail sits over the page regardless of its own
+     height, which is what clips a tall nav's bottom item on a short viewport.
+     Sticky inside a grid cell that spans every row keeps it reachable through
+     the whole scroll without that.
+
+     No `overflow-y` here, unlike the 20rem version: the tooltips are absolute
+     children of the rail, and a scroll container would clip every one of them
+     at the rail's own edge - which is exactly the edge they need to cross.
+     Seven 44px targets and the account fit a short viewport without it. */
   .masthead {
     grid-column: 1;
     grid-row: 1 / -1;
     position: sticky;
-    inset-block-start: var(--space-6);
-    max-block-size: calc(100dvh - var(--space-8));
-    overflow-y: auto;
+    inset-block-start: 0;
+    min-block-size: 100dvh;
     flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
+    align-items: center;
     justify-content: flex-start;
     gap: var(--space-6);
-    padding-block: var(--space-12) 0;
-    padding-inline: var(--space-12) var(--space-8);
+    padding-block: var(--space-6);
+    padding-inline: 0;
     border-block-end: none;
     border-inline-end: 1px solid var(--border);
     margin-block-end: 0;
   }
 
-  /* Block, not flex: "Just<span>News</span>" is inline text, and making the
-     wordmark a flex column turns each of those into its own flex item -
-     which stacks the name onto three lines. The tagline becoming a block is
-     all that is needed to put it on its own line beneath. */
   .wordmark {
     display: block;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
     line-height: var(--leading-tight);
   }
 
-  .wordmark__tagline,
-  .masthead-sign,
+  /* The name collapses to its monogram. `display: none` on the full name is
+     safe here only because the link carries an `aria-label` - see the
+     layout. */
+  .wordmark__full {
+    display: none;
+  }
+
+  .wordmark__mark {
+    display: block;
+  }
+
   .rail-nav {
     display: block;
   }
 
-  .masthead-sign {
+  .masthead-tools {
     /* Pushed to the foot of the rail by the leftover space above it. */
     margin-block-start: auto;
-    padding-block: var(--space-6);
-  }
-
-  .masthead-tools {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
   }
 
   .search-box input {
@@ -1281,14 +1309,45 @@ a {
     flex: 1;
   }
 
+  /* The account becomes an icon with the same tooltip treatment as the rail
+     links, and the panel flies out beside the rail rather than hanging off
+     its inline end - a 10rem panel anchored inside a 3.5rem column would sit
+     almost entirely off-screen. */
   .account-menu__trigger {
-    inline-size: 100%;
-    text-align: start;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    justify-content: center;
+    padding: 0;
+    border-color: transparent;
   }
 
-  .locale-switcher {
-    padding-block-start: var(--space-4);
-    border-block-start: 1px solid var(--border);
+  .account-menu__email {
+    position: absolute;
+    inset-inline-start: calc(100% + var(--space-2));
+    inset-block-end: 0;
+    z-index: 30;
+    max-inline-size: none;
+    white-space: nowrap;
+    padding: 0.3rem var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-micro) var(--ease);
+  }
+
+  .account-menu__trigger:hover .account-menu__email,
+  .account-menu__trigger:focus-visible .account-menu__email {
+    opacity: 1;
+  }
+
+  .account-menu__panel {
+    inset-inline-start: calc(100% + var(--space-2));
+    inset-inline-end: auto;
+    inset-block-end: 0;
+    margin-block: 0;
   }
 
   .shell > main,
@@ -1298,7 +1357,7 @@ a {
        inside the cap rather than added to it. */
     inline-size: min(100%, 90rem);
     margin-inline: auto;
-    padding-inline: var(--space-8) var(--space-12);
+    padding-inline: var(--space-8);
   }
 
   .shell > main {
@@ -1352,14 +1411,31 @@ a {
 }
 
 .account-menu__trigger {
+  position: relative;
   font: inherit;
   font-size: 0.85rem;
+  gap: var(--space-2);
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.3rem var(--space-3);
   color: var(--text);
   cursor: pointer;
+}
+
+.account-menu__icon {
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* The email can be long; below the rail breakpoint it sits in a top bar with
+   real width, and truncating is kinder than a trigger that wraps to three
+   lines. */
+.account-menu__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-inline-size: 14rem;
 }
 
 /* A <ul> since the panel stopped pretending to be an ARIA menu - list-style
@@ -1830,21 +1906,88 @@ a.chip:active {
   color: var(--text);
 }
 
+/* Audit §30: identity, then one quiet line of links. Not a second copy of the
+   navigation - the rail is the navigation, and repeating it here is part of
+   what made the product read as a conventional website. */
 .site-footer {
-  /* Flex with a gap, not two inline anchors: as plain inline elements the
-     links rendered as "PrivacySend feedback", with no space between them at
-     all - whitespace between JSX siblings is not preserved. */
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
-  margin-block-start: var(--space-8);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  margin-block-start: var(--space-12);
   padding-block-start: var(--space-4);
   border-block-start: 1px solid var(--border);
   font-size: 0.8rem;
 }
 
+.site-footer__identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.site-footer__mark {
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+.site-footer__tagline {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* Flex with a gap, not plain inline anchors: as inline elements the links
+   rendered as "PrivacySend feedback", with no space between them at all -
+   whitespace between JSX siblings is not preserved. */
+.site-footer__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+/* The middot separators §30 draws. Generated rather than typed so the markup
+   stays a list of links and the language control keeps its own <nav>. */
+.site-footer__line > * + *::before {
+  content: "·";
+  margin-inline-end: var(--space-3);
+  color: var(--border);
+}
+
+.site-footer__line > nav {
+  display: flex;
+  align-items: baseline;
+}
+
 .site-footer a {
   color: var(--text-muted);
+}
+
+/* In the footer the language control is text on a line, not a row of bordered
+   chips - a boxed control here would be the loudest thing in the quietest
+   part of the page. */
+.site-footer .locale-switcher {
+  gap: var(--space-3);
+}
+
+.site-footer .locale-switcher a {
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.site-footer .locale-switcher a[aria-current="true"] {
+  background: none;
+  color: var(--text-mid);
+  font-weight: 600;
 }
 
 .chip__count {
