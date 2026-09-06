@@ -2533,6 +2533,19 @@ a.chip:active {
       "highlights highlights highlights";
   }
 
+  /* An issue composed before the `focus` role existed - or by a composer
+     whose database has not been migrated - has no rail item. Reserving the
+     track anyway prints a blank column down the side of the front page,
+     which is what production is doing right now. Same guard the brief
+     already had, for the same reason: a page must compose from the slots it
+     actually has, not the ones it expected. */
+  .paper__body--front:not(:has(.paper__focus)) {
+    grid-template-columns: 1.9fr 1fr;
+    grid-template-areas:
+      "lead brief"
+      "highlights highlights";
+  }
+
   .paper__body--front .paper__focus {
     grid-area: focus;
     padding-inline-end: var(--space-4);
