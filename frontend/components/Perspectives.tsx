@@ -22,13 +22,20 @@ const ROLE_LABEL_KEY = {
 export function Perspectives({
   groups,
   locale,
+  headingLevel = 2,
 }: {
   groups: PerspectiveGroup[];
   locale: LocaleCode;
+  /** 3 when this renders inside an Understand module, whose own heading is an
+   * h2 - a group heading has to sit under it, not beside it, or the document
+   * outline says these groups are siblings of the section containing them. */
+  headingLevel?: 2 | 3;
 }) {
   if (groups.length === 0) {
     return <p className="notice">{t(locale, "desk.perspectives.empty")}</p>;
   }
+
+  const Heading = headingLevel === 3 ? "h3" : "h2";
 
   return (
     <div className="perspectives">
@@ -36,9 +43,9 @@ export function Perspectives({
         const labelKey = ROLE_LABEL_KEY[group.role as keyof typeof ROLE_LABEL_KEY];
         return (
           <section className="perspectives__group" key={group.role}>
-            <h2 className="perspectives__heading">
+            <Heading className="perspectives__heading">
               {labelKey ? t(locale, labelKey) : group.role}
-            </h2>
+            </Heading>
             <p className="perspectives__count">
               {t(locale, "desk.perspectives.sourceCount", { count: group.sources.length })}
             </p>

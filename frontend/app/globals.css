@@ -3538,8 +3538,10 @@ a.chip:active {
   text-wrap: balance;
 }
 
-/* The signed-out desk: what a desk would hold, in real topics. */
+/* The signed-out desk: what a desk would hold, in real topics. Same measure
+   as the sections above it, so the heading rules line up. */
 .desk-preview {
+  max-inline-size: 58rem;
   margin-block-start: var(--space-12);
 }
 
@@ -3948,7 +3950,177 @@ a.chip:active {
   border-block-end-color: var(--accent);
 }
 
-/* --- my desk: tiles, topic detail split, timeline ---------------------- */
+/* --- my desk: what changed, tiles, understand -----------------------------
+ *
+ * Audit §23: "the current My Desk is essentially a sign-in gate. That is not
+ * enough." §27 names what it should be instead - a personal intelligence
+ * workspace - and the test it sets is whether the reader thinks "this is my
+ * workspace" rather than "this is another page showing news".
+ *
+ * The structural answer is that the page leads with an *answer* (what changed
+ * in your topics) rather than with navigation (a grid of topics to go and
+ * read). Everything below is in service of that ordering.
+ */
+
+/* My Desk has no rail, so its content would otherwise run the full 1384px of
+   the content column - a 1300px line of display type is not a headline, it is
+   a banner. The measure is on the section rather than on each headline so the
+   heading rules stop at the same place the text does. */
+.desk-section {
+  max-inline-size: 58rem;
+  margin-block: var(--space-8) var(--space-12);
+}
+
+.desk-section__note {
+  margin: calc(var(--space-4) * -1) 0 var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+}
+
+/* What changed: one development per followed topic. Rules and type, no cards
+   (§32) - these are entries in a list, not objects to be managed. */
+.changed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.changed__item {
+  padding-block: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+.changed__item:first-child {
+  padding-block-start: 0;
+  border-block-start: none;
+}
+
+.changed__topic {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.changed__topic a {
+  color: var(--text-muted);
+  transition: color var(--dur) var(--ease);
+}
+
+.changed__topic a:hover {
+  color: var(--accent);
+}
+
+.changed__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-display-m);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+  max-inline-size: var(--measure);
+}
+
+/* §25's "varied hierarchy": the reader's own first topic leads. The desk is
+   ordered by them, so the page can treat that order as a statement of
+   priority rather than inventing one. */
+.changed__item--lead .changed__headline {
+  font-size: var(--type-display-l);
+  line-height: var(--leading-tight);
+}
+
+.changed__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-meta);
+}
+
+/* Understand: §26's three modules. */
+.understand__title {
+  font-family: var(--font-display);
+  font-size: var(--type-display-m);
+  font-weight: 600;
+  margin: 0 0 var(--space-6);
+}
+
+.understand__module {
+  margin-block-end: var(--space-8);
+  padding-block-start: var(--space-6);
+  border-block-start: 1px solid var(--border);
+}
+
+.understand__module:first-of-type {
+  padding-block-start: 0;
+  border-block-start: none;
+}
+
+.understand__heading {
+  font-size: var(--type-label);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  margin: 0;
+}
+
+.understand__note {
+  margin: var(--space-1) 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+}
+
+.understand__developments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.understand__developments li {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.understand__developments li:first-child {
+  padding-block-start: 0;
+  border-block-start: none;
+}
+
+/* The rank is the ordering made visible, not a decoration: this list is
+   sorted by how many publishers carried the story, and without the number
+   nothing on screen says the order means anything. */
+.understand__rank {
+  font-family: var(--font-display);
+  font-size: var(--type-body-l);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  line-height: var(--leading-snug);
+}
+
+.understand__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-body-l);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  max-inline-size: var(--measure);
+}
+
+.understand__meta {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-meta);
+}
 
 .desk-tiles {
   display: grid;

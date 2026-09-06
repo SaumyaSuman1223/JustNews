@@ -255,6 +255,34 @@ timeline, perspectives, overview. No premature Analysis (§26).
 **Accept:** a signed-in desk answers "what changed in my topics" above the
 fold; nothing fabricated.
 
+**Shipped.**
+
+*The index.* §24's header, then **What changed** — for each followed topic,
+the story cluster whose coverage was most recently added to (`last_seen_at`,
+tie-broken by `source_count`; both real columns, no judgement invented here) —
+then Your topics. The ordering is the point: the page leads with an answer,
+not with navigation. The first entry is set as a lead, per §25's "varied
+hierarchy", because the desk is ordered by the reader and the topic they put
+first is the one whose news should be biggest.
+
+The section also renders for a signed-out visitor over a few public topics.
+§23's complaint is that My Desk is "essentially a sign-in gate", and story
+clusters are a public read, so the gate can sit above the page's real answer
+rather than in place of it.
+
+*The topic page.* §26's three modules — what's happening (developments by
+breadth of coverage), who is saying what (perspectives), what's changing
+(timeline) — on one page, as the default view. They were three separate tabs,
+which meant a reader had to already know what each held to find any of it.
+Those tabs are **removed** rather than duplicated beside Understand; an old
+`?tab=timeline` link falls through to Understand, which contains the timeline.
+Tabs are now Understand · Latest · Analysis. Analysis is still the honest
+stub — §26 says not to build the advanced analysis system prematurely.
+
+Verified with real story-cluster data (seeded locally, since the demo corpus
+has none and production has 55 for Politics alone) and with the empty state:
+axe clean in both themes at 390/768/1440, no horizontal overflow.
+
 ### Chunk 8 — Statistics, search polish, QA *(§22, §28, §40, §45)*
 Quiet the glance card to editorial metadata. Search heading and result count.
 Then the full matrix again — five widths, both themes, keyboard, reduced
