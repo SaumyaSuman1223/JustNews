@@ -2285,9 +2285,16 @@ a.chip:active {
   --paper-ink: #171717;
   --paper-mid: #333333;
   --paper-muted: #6b675f;
-  --paper-rule: #d8d2c7;
-  --paper-hair: #e4dfd3;
+  /* Audit §18's rule colour. The old value is demoted to the hairline, which
+     is what it always was: a rule you can barely see is a hairline whatever
+     it is called, and a printed page needs both weights. */
+  --paper-rule: #a8a197;
+  --paper-hair: #d8d2c7;
   --paper-brass: #7a6444;
+  /* Audit §18's primary accent, scoped to the sheet - the application keeps
+     its brass. Measured at 6.6:1 on this paper, so it carries small type
+     (the section labels are 11px) rather than only decoration. */
+  --paper-accent: #a52e2a;
   background: var(--paper);
   color: var(--paper-ink);
   border-radius: var(--radius-editorial);
@@ -2398,8 +2405,12 @@ a.chip:active {
   /* Audit §9 asks for 78-100px, overriding the earlier spec's 70-90px
      masthead block; the newer brief wins for Aquila specifically. Cormorant
      Garamond at its heaviest weight, tracked tight - no second display face
-     was added for this, and none should be. */
-  font-size: clamp(2.4rem, 1rem + 4.6vw, 4.2rem);
+     was added for this, and none should be.
+
+     Sized in cqi, not vw: the sheet's width is set by the workspace, not by
+     the window, so a viewport unit here sizes the type against something the
+     paper cannot see. Every fluid size on the paper follows this rule. */
+  font-size: clamp(2.2rem, 8.6cqi, 5.4rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -2417,7 +2428,8 @@ a.chip:active {
 
 .paper__sectionhead h2 {
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 1rem + 2vw, 2.2rem);
+  /* Audit §17's major headline, 30-42px. */
+  font-size: clamp(1.6rem, 3.6cqi, 2.6rem);
   font-weight: 600;
   margin: 0;
 }
@@ -2562,7 +2574,9 @@ a.chip:active {
 
 .paper__focus-headline {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  /* Small headline, 15-20px: it sits in a ~190px rail, so it takes the
+     bottom of §17's secondary range rather than the top. */
+  font-size: clamp(1.1rem, 1.9cqi, 1.35rem);
   font-weight: 600;
   line-height: 1.15;
   margin: 0 0 var(--space-2);
@@ -2578,9 +2592,10 @@ a.chip:active {
    because they are one thing: the page naming a standing feature. */
 .paper__label {
   font-size: var(--type-micro);
+  /* §17: 1.2-2px of tracking. 0.18em of an 11px label is 1.96px. */
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--paper-muted);
+  color: var(--paper-accent);
   font-weight: 600;
   margin: 0 0 var(--space-3);
   padding-block-end: var(--space-2);
@@ -2613,10 +2628,12 @@ a.chip:active {
 
 .paper__lead-headline {
   font-family: var(--font-display);
-  /* Spec §27: 44-62px. */
-  font-size: clamp(1.8rem, 1.1rem + 2vw, 2.8rem);
+  /* Audit §17: 48-64px, line-height 0.90-1.00. A lead headline is the one
+     place a display face earns tight leading - three lines at 0.95 read as
+     one block rather than three sentences. */
+  font-size: clamp(1.9rem, 5.4cqi, 4rem);
   font-weight: 600;
-  line-height: 1.08;
+  line-height: 0.96;
   letter-spacing: -0.018em;
   margin: 0 0 var(--space-3);
   text-wrap: balance;
@@ -2651,8 +2668,8 @@ a.chip:active {
 
 .paper__column-headline {
   font-family: var(--font-display);
-  /* Spec §27: 24-34px, at the lower end - four of these share a column. */
-  font-size: clamp(1.15rem, 1rem + 0.3vw, 1.35rem);
+  /* Audit §17's secondary headline, 20-30px. */
+  font-size: clamp(1.15rem, 2.2cqi, 1.7rem);
   font-weight: 600;
   line-height: 1.14;
   margin: 0 0 var(--space-1);
@@ -2710,7 +2727,7 @@ a.chip:active {
 .paper__brief-number {
   font-variant-numeric: tabular-nums;
   font-size: var(--type-label);
-  color: var(--paper-brass);
+  color: var(--paper-accent);
 }
 
 .paper a {
