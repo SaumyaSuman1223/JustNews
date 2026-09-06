@@ -2260,6 +2260,7 @@ a.chip:active {
 .aquila {
   display: grid;
   gap: var(--space-6);
+  justify-items: center;
 }
 
 .aquila__stage {
@@ -2275,7 +2276,8 @@ a.chip:active {
    textures" and "fake paper physics" in the same breath as it asks for a
    newspaper, and the pastiche version stops being readable by page two. */
 .aquila__sheet {
-  inline-size: min(100%, 68.75rem); /* 1100px */
+  inline-size: min(100%, 68.75rem); /* 1100px - overridden into a landscape
+     page once there is room; see the geometry block below. */
   /* The paper is light in both themes, so its colours are fixed here rather
      than inherited - but fixed to the *accessible* values, not the direction
      document's. Hardcoding #77736c and #a28b68 straight from the brief is
@@ -2509,8 +2511,15 @@ a.chip:active {
 
   /* A section page carries no brief, so it is a two-column page. Without
      this the third track stays reserved and the page reads as a column that
-     failed to load. */
-  .paper__body:not(:has(.paper__brief)) {
+     failed to load.
+
+     `:not(.paper__body--front)` is load-bearing, not tidiness. `:has()` takes
+     the specificity of its argument, so this selector is (0,2,0) and outranks
+     `.paper__body--front` at (0,1,0). The moment the front page stopped
+     rendering a `.paper__brief` - which is exactly what moving Today's
+     Highlights into the left rail did - this rule started laying out the
+     front page as two columns, and the lead collapsed to 217px. */
+  .paper__body:not(.paper__body--front):not(:has(.paper__brief)) {
     grid-template-columns: 1.5fr 1fr;
   }
 
@@ -2526,11 +2535,18 @@ a.chip:active {
      dominant lead and a brief across the top, with a band of highlights
      under all three - audit §14. Named areas rather than line numbers
      because the shape is the point and it should be readable as one. */
+  /* §11's proportions: left rail 15-17%, lead 58-62%, right rail 23-27%.
+     One row, not two - the page has to end inside §35's 738px. */
+  /* §11's proportions - left rail 15-17%, lead 58-62%, right rail 23-27% -
+     expressed in fr, not percent. Percentages resolve against the container
+     and ignore the gaps, so 16+60+24 plus two 16px gutters overflowed; the
+     flexible track then absorbed the whole overrun and the lead column
+     collapsed from 607px to 217. fr distributes what is left after gutters,
+     which is what these proportions actually mean. */
   .paper__body--front {
-    grid-template-columns: 0.8fr 1.9fr 1fr;
-    grid-template-areas:
-      "focus lead brief"
-      "highlights highlights highlights";
+    grid-template-columns: 16fr 60fr 24fr;
+    grid-template-areas: "focus lead highlights";
+    align-items: stretch;
   }
 
   /* An issue composed before the `focus` role existed - or by a composer
@@ -2540,10 +2556,8 @@ a.chip:active {
      already had, for the same reason: a page must compose from the slots it
      actually has, not the ones it expected. */
   .paper__body--front:not(:has(.paper__focus)) {
-    grid-template-columns: 1.9fr 1fr;
-    grid-template-areas:
-      "lead brief"
-      "highlights highlights";
+    grid-template-columns: 70fr 30fr;
+    grid-template-areas: "lead highlights";
   }
 
   .paper__body--front .paper__focus {
@@ -2556,44 +2570,151 @@ a.chip:active {
     grid-area: lead;
   }
 
-  .paper__body--front .paper__brief {
-    grid-area: brief;
-    padding-inline-start: var(--space-4);
-    border-inline-start: 1px solid var(--paper-hair);
+  /* A wider crop on the front page. At 587px a 16:9 lead runs 330px tall,
+     which is nearly half the page's whole content height - the picture would
+     be pushing the headline off the sheet. A cinematic crop keeps the picture
+     dominant without spending the page on it, and it is what a broadsheet
+     does with a front-page photograph for the same reason. */
+  .paper__body--front .paper__lead-image {
+    aspect-ratio: 8 / 3;
   }
 
+  /* The rail's one picture is a column-width thumbnail, not a second lead. */
+  .paper__body--front .paper__column-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Front-page density. A page that must end has a fixed height budget, and
+     these are the spacings that fit inside it - measured, not guessed:
+     masthead 107 + rule 35 + footer 30 leaves roughly 500px for three
+     columns, and the left rail alone wanted 511 at its comfortable spacing.
+     Every value below is a few pixels bought back from somewhere the page
+     could afford it. */
+  .paper__body--front .paper__label {
+    margin-block-end: var(--space-2);
+  }
+
+  .paper__body--front .paper__motto {
+    font-size: 0.85rem;
+    margin-block-end: var(--space-3);
+    padding-block-end: var(--space-2);
+  }
+
+  .paper__body--front .paper__brief-list {
+    gap: var(--space-2);
+  }
+
+  .paper__body--front .paper__focus-image {
+    margin-block-end: var(--space-2);
+  }
+
+  .paper__body--front .paper__byline {
+    margin-block-start: var(--space-1);
+  }
+
+  /* The last 35px, taken from the three places the page can spare them
+     rather than from another story. */
+  .paper__body--front {
+    padding-block-start: var(--space-3);
+  }
+
+  .paper__body--front .paper__deck {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .paper__masthead {
+    padding-block-end: 0;
+  }
+
+  /* Clamped, because these are pointers rather than the story. §11 calls
+     TODAY'S HIGHLIGHTS a *compact* numbered list, and in a 173px rail an
+     unclamped headline runs to four lines and the list alone eats 280px of a
+     500px page. The full headline is one click away, and the numeral plus
+     the outlet still identify it. The lead's headline is never clamped - the
+     page's main story has to be readable in full on the page. */
+  .paper__body--front .paper__brief-list a {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .paper__body--front .paper__focus-headline,
+  .paper__body--front .paper__column-headline {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* The editorial right rail (§12A): secondary stories, inside the paper.
+     Stacked, not a band of equal cards - §11 asks for varied weight, so the
+     first entry keeps its picture and the rest run as text. */
   .paper__body--front .paper__highlights {
     grid-area: highlights;
-    /* Full width under the fold of the page, so it takes a rule above rather
-       than the vertical rules a middle column needs. */
-    padding-inline: 0;
-    border-inline: none;
-    border-block-start: 1px solid var(--paper-rule);
-    padding-block-start: var(--space-4);
-    margin-block-start: var(--space-2);
+    padding-inline-start: var(--space-4);
+    border-inline-start: 1px solid var(--paper-hair);
+    min-inline-size: 0;
   }
 
   .paper__body--front .paper__columns {
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: var(--space-4);
+    display: grid;
+    gap: var(--space-3);
   }
 
-  /* Side by side, these separate with vertical rules; the underline each
-     carries when they are stacked would draw three stray dashes. */
-  .paper__body--front .paper__column {
+  .paper__body--front .paper__column + .paper__column {
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--paper-hair);
+    border-block-end: none;
+    padding-block-end: 0;
+  }
+
+  .paper__body--front .paper__column:first-child {
     padding-block-end: 0;
     border-block-end: none;
   }
 
-  /* Rules between the highlight columns, not around them. */
-  .paper__body--front .paper__column + .paper__column {
-    padding-inline-start: var(--space-4);
-    border-inline-start: 1px solid var(--paper-hair);
+  /* Only the first story in the rail carries a picture. Three pictures down a
+     240px column is a strip of stamps, and §11 explicitly asks the rail to
+     vary rather than repeat one card three times. */
+  .paper__body--front .paper__column:not(:first-child) .halftone {
+    display: none;
   }
 }
 
 /* --- the front page's left rail ------------------------------------------ */
+
+/* §11's standing line. Not boxed like a magazine sidebar, which that section
+   rules out - it is set as a newspaper sets its own motto: small, italic,
+   with a rule under it and the attribution in caps beneath. */
+.paper__motto {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  color: var(--paper-mid);
+  margin: 0 0 var(--space-4);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--paper-rule);
+}
+
+.paper__motto span {
+  display: block;
+  margin-block-start: var(--space-2);
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-size: var(--type-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+}
+
+.paper__focus-image {
+  margin-block-end: var(--space-3);
+}
 
 .paper__focus-headline {
   font-family: var(--font-display);
@@ -2924,117 +3045,152 @@ a.chip:active {
   border-radius: var(--radius);
 }
 
-/* --- the right rail: editions and pages ------------------------------------ */
+/* --- the reader's utility bar (right edge) ---------------------------------
+ *
+ * Audit §12/§13. What used to live here was a permanently visible 280px rail
+ * of contents and edition controls. It cost the newspaper the width it needed
+ * - the paper measured 1004px against a 1080-1180 target - and it confused
+ * two different things: a newspaper's editorial right rail belongs inside the
+ * paper, reader controls belong outside it. This is the outside half, and it
+ * is hidden until asked for.
+ */
 
-.aquila__rail {
-  /* Spec §26: 260-300px. */
-  inline-size: 100%;
-  display: grid;
-  gap: var(--space-3);
-  align-content: start;
+.reader-utility {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  /* §13: a 20-28px trigger zone at the edge. */
+  inline-size: 1.5rem;
 }
 
-.aquila__rail-heading {
+.reader-utility__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5rem;
+  block-size: var(--reader-edge);
+  margin-block-start: var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--dur-micro) var(--ease);
+}
+
+.reader-utility__toggle:hover,
+.reader-utility[data-open] .reader-utility__toggle {
+  color: var(--text);
+}
+
+.reader-utility__panel {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  block-size: 100%;
+  /* §13: 280-320px. */
+  inline-size: 19rem;
+  padding: var(--space-6);
+  overflow-y: auto;
+  background: #101110;
+  border-inline-start: 1px solid var(--border);
+  transform: translateX(100%);
+  visibility: hidden;
+  /* §13: 200-280ms opening. The closing side is longer (250-400ms) and lives
+     on the closed state below, because a panel that leaves as briskly as it
+     arrives feels like a flinch. */
+  transition:
+    transform 240ms var(--ease),
+    visibility 240ms var(--ease);
+}
+
+[dir="rtl"] .reader-utility__panel {
+  transform: translateX(-100%);
+}
+
+.reader-utility:not([data-open]) .reader-utility__panel {
+  transition-duration: 320ms;
+}
+
+.reader-utility[data-open] .reader-utility__panel {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.reader-utility__heading {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  margin: var(--space-4) 0 var(--space-1);
+  margin: var(--space-6) 0 var(--space-3);
 }
 
-.aquila__editions,
-.aquila__pages,
-.aquila__contents {
+.reader-utility__heading:first-child {
+  margin-block-start: 0;
+}
+
+.reader-utility__pages,
+.reader-utility__editions {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-/* Audit §11: three editions are a line of standing type in a newspaper, not
-   three controls. So: one rule, three names, the current one marked - no
-   boxes, no fills, no per-edition card. The time sits under the name as
-   metadata rather than as the thing you click. */
-.aquila__editions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  border-block-start: 1px solid var(--border);
-  padding-block-start: var(--space-2);
-}
-
-.aquila__edition {
-  display: grid;
-  gap: 0.05rem;
-  padding-block-end: var(--space-1);
-  border-block-end: 1px solid transparent;
-  transition: border-color var(--dur-micro) var(--ease);
-}
-
-.aquila__edition:hover {
-  border-block-end-color: var(--border);
-}
-
-.aquila__edition[aria-current="true"] {
-  border-block-end-color: var(--brass);
-}
-
-.aquila__edition-name {
-  font-size: var(--type-label);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.aquila__edition[aria-current="true"] .aquila__edition-name {
-  color: var(--brass);
-}
-
-.aquila__edition-time {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--type-micro);
-  color: var(--text-muted);
-}
-
-.aquila__pages,
-.aquila__contents {
   display: grid;
   gap: var(--space-1);
 }
 
-.aquila__pages button,
-.aquila__contents button {
+.reader-utility__pages button,
+.reader-utility__editions a {
   inline-size: 100%;
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
-  font: inherit;
-  font-size: var(--type-body-s);
-  text-align: start;
-  color: var(--text-mid);
-  background: transparent;
+  padding: var(--space-2);
   border: 0;
   border-radius: var(--radius);
-  padding: var(--space-2) var(--space-3);
+  background: none;
+  font: inherit;
+  color: var(--text-mid);
+  text-align: start;
+  text-decoration: none;
   cursor: pointer;
-  transition:
-    background-color var(--dur-micro) var(--ease),
-    color var(--dur-micro) var(--ease);
+  transition: color var(--dur-micro) var(--ease);
 }
 
-.aquila__pages button:hover,
-.aquila__contents button:hover {
-  background: rgba(255, 255, 255, 0.05);
+.reader-utility__pages button:hover,
+.reader-utility__editions a:hover {
   color: var(--text);
 }
 
-.aquila__pages button[aria-current="true"],
-.aquila__contents button[aria-current="true"] {
-  color: var(--text);
-  box-shadow: inset 2px 0 0 var(--brass);
+.reader-utility__pages button[aria-current="true"],
+.reader-utility__editions a[aria-current="true"] {
+  color: var(--brass);
 }
 
-.aquila__contents-no {
+.reader-utility__no,
+.reader-utility__time {
   font-variant-numeric: tabular-nums;
   font-size: var(--type-micro);
   color: var(--text-muted);
+}
+
+.reader-utility__editions a {
+  justify-content: space-between;
+}
+
+.reader-utility__sign {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+  margin-block-start: var(--space-8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-utility__panel {
+    transition: none;
+  }
 }
 
 .aquila__sign {
@@ -3049,21 +3205,44 @@ a.chip:active {
   margin-block-start: var(--space-6);
 }
 
-/* The rail moves beside the sheet once there is room for both (spec §26). */
+/* --- the page as a landscape sheet ----------------------------------------
+ *
+ * Audit §35 wants 1080-1180 x 700-790 at 1440x900 and 1300-1450 x 820-900 at
+ * 1920x1080, at a ratio of 1.45-1.55. The old sheet measured 1004 x 1181 -
+ * ratio 0.85, a *portrait* page half again too tall. That single fact is why
+ * the reader still felt like a webpage: a page that does not end is scrolled,
+ * and turning pages becomes decoration.
+ *
+ * Height leads and width follows from the ratio, which is the only way both
+ * viewport sizes land in band from one rule: 82dvh is 738px at 900 and 886px
+ * at 1080, and 1.5x those is 1107 and 1329 - inside §35's widths at both.
+ * Fixing the width instead would satisfy one size and miss the other.
+ *
+ * Only from 64rem up. Below that §38 is explicit: one page at a time,
+ * scrolling inside it. A landscape sheet on a phone is the "squeezed
+ * desktop newspaper" that section forbids.
+ */
 @media (min-width: 64rem) {
   .reader__main {
     padding: var(--space-8) var(--space-12) var(--space-12);
     padding-inline-start: calc(var(--space-8) + var(--reader-edge));
+    padding-inline-end: calc(var(--space-8) + var(--reader-edge));
   }
 
-  .aquila {
-    grid-template-columns: minmax(0, 1fr) 17.5rem;
-    gap: var(--space-8);
-  }
-
-  .aquila__rail {
-    position: sticky;
-    inset-block-start: var(--space-6);
+  .aquila__sheet {
+    /* 87dvh is 783px at a 900px viewport and 940 at 1080; the cap holds the
+       taller case to 900, which is the top of §35's range for it. Both land
+       in band, and the extra height over a first attempt at 82dvh also
+       widens every column - which is what stops the 157px left rail wrapping
+       its headline into five lines. */
+    block-size: min(87dvh, 56.25rem);
+    aspect-ratio: 3 / 2;
+    inline-size: auto;
+    max-inline-size: 100%;
+    /* The page ends. Anything the composer put beyond it is the next page's
+       problem, not a scrollbar's - see FRONT_PAGE_* in the composer, which
+       is sized to fit this. */
+    overflow: hidden;
   }
 }
 
