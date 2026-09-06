@@ -1,0 +1,77 @@
+name: migrate
+
+# Applies pending Alembic migrations to the production database.
+#
+# **Why this workflow has to exist.** Until now the repository had no
+# automated path from a committed migration to the running database. The API
+# on Render is a Docker web service with no pre-deploy step, and the two
+# scheduled workflows run the ingestion CLI directly on the runner (ADR 0010)
+# without touching Alembic. So a migration was applied only when someone
+# remembered to run it by hand.
+#
+# That is not a theoretical gap. Migration 0016 widened the `issue_slots.role`
+# vocabulary to admit `focus`, and the composer started writing that role in
+# the same change. The code shipped, the migration did not, and the next
+# scheduled compose died on the CHECK constraint:
+#
+#     CheckViolationError: new row for relation "issue_slots"
+#     violates check constraint "ck_issue_slots_role"
+#
+# A whole edition of the newspaper failed to publish, silently, because a
+# schema change and the code that depended on it reached production by
+# different routes.
+#
+# Running on push to the default branch is what closes that: the migration
+# lands with the merge that introduced it, before any scheduled job can run
+# against a database that does not yet understand the new code.
+on:
+  push:
+    branches: [main]
+    # Only when a migration actually changed. A push that touches the frontend
+    # has nothing to apply, and a workflow that runs anyway is noise that
+    # trains people to ignore it.
+    paths:
+      - "backend/migrations/**"
+      - ".github/workflows/migrate.yml"
+  workflow_dispatch:
+
+concurrency:
+  # Alembic takes its own lock, so a concurrent run would block rather than
+  # corrupt - but a queued duplicate is still a confusing red mark.
+  group: migrate
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the API package
+        run: uv sync --frozen --package justnews-api --dev
+
+      - name: Show what will be applied
+        working-directory: backend
+        run: |
+          echo "current:"
+          uv run alembic current
+          echo "pending:"
+          uv run alembic history --indicate-current | head -20
+
+      - name: Apply migrations
+        working-directory: backend
+        run: uv run alembic upgrade head
+
+      - name: Confirm the database is at head
+        working-directory: backend
+        run: uv run alembic current
