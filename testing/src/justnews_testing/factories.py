@@ -46,6 +46,7 @@ async def make_article(
     published_at: datetime | None = None,
     minutes_ago: int = 0,
     snippet: str | None = None,
+    image_url: str | None = None,
 ) -> Article:
     published_at = published_at or datetime.now(UTC) - timedelta(minutes=minutes_ago)
     article = Article(
@@ -53,6 +54,7 @@ async def make_article(
         title=title,
         snippet=snippet,
         source_id=source.id,
+        image_url=image_url,
         language=language,
         published_at=published_at,
         fetched_at=datetime.now(UTC),

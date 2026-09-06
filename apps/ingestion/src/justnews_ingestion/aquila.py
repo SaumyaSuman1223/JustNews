@@ -83,6 +83,9 @@ FRONT_PAGE_LEADS = 1
 # page you have to scroll is not a page. This is an editorial call about how
 # much fits, which is exactly the kind of decision composition should own.
 FRONT_PAGE_SECONDARIES = 3
+# One piece in the left rail under a standing IN FOCUS label. One, because a
+# rail of several is just another column of secondaries with a label on it.
+FRONT_PAGE_FOCUS = 1
 FRONT_PAGE_BRIEFS = 7
 SECTION_LEADS = 1
 SECTION_SECONDARIES = 5
@@ -137,16 +140,21 @@ async def _candidates(
     since: datetime,
     topic_id: str | None,
     limit: int,
-) -> list[tuple[int, int, int | None]]:
-    """`(article_id, source_id, story_cluster_id)` for one section, best first.
+) -> list[tuple[int, int, int | None, bool]]:
+    """`(article_id, source_id, story_cluster_id, has_image)`, best first.
 
     Ordering is recency weighted by source trust rather than recency alone:
     on a corpus built from hundreds of feeds, "newest" is dominated by
     whichever aggregator posts most often, which is not the same as
     "most worth the front page".
+
+    `has_image` rides along rather than being fetched later because the slot
+    that will print an image has to be *chosen* with that in mind - see
+    `_select_for_page`. Whether an image exists is all the composer needs; the
+    URL itself is the renderer's business.
     """
     stmt = (
-        select(Article.id, Article.source_id, Article.story_cluster_id)
+        select(Article.id, Article.source_id, Article.story_cluster_id, Article.image_url)
         .join(Source, Source.id == Article.source_id)
         .where(
             Article.language == language,
@@ -168,16 +176,17 @@ async def _candidates(
             Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
         )
     rows = await session.execute(stmt)
-    return [(r[0], r[1], r[2]) for r in rows.all()]
+    return [(r[0], r[1], r[2], r[3] is not None) for r in rows.all()]
 
 
 def _select_for_page(
-    candidates: list[tuple[int, int, int | None]],
+    candidates: list[tuple[int, int, int | None, bool]],
     *,
     wanted: int,
     used_articles: set[int],
     used_clusters: set[int],
     per_source: dict[int, int],
+    prefer_image: bool = False,
 ) -> list[int]:
     """Take up to `wanted` articles, one per story cluster, capped per source.
 
@@ -191,9 +200,17 @@ def _select_for_page(
     Held locally it would reset between the lead, secondary and brief runs,
     and one outlet could take the cap in each of them - three times the
     intended limit on a single page.
+
+    `prefer_image` is what stops a picture-led slot landing on an article that
+    has no picture. It reorders rather than filters: image-bearing candidates
+    are considered first, then the rest, each group keeping its trust-weighted
+    order. So the page prints a picture whenever the corpus has one to print,
+    and a thin corpus still fills the slot instead of leaving a hole.
     """
+    if prefer_image:
+        candidates = [c for c in candidates if c[3]] + [c for c in candidates if not c[3]]
     chosen: list[int] = []
-    for article_id, source_id, cluster_id in candidates:
+    for article_id, source_id, cluster_id, _ in candidates:
         if len(chosen) >= wanted:
             break
         if article_id in used_articles:
@@ -318,10 +335,14 @@ async def compose_issue(
 
     position = 0
     front_per_source: dict[int, int] = {}
-    for role, wanted in (
-        ("lead", FRONT_PAGE_LEADS),
-        ("secondary", FRONT_PAGE_SECONDARIES),
-        ("brief", FRONT_PAGE_BRIEFS),
+    # Order matters twice over: the lead gets first refusal on the corpus, and
+    # the picture-led roles are filled before the text-only ones so they get
+    # first refusal on the articles that have pictures.
+    for role, wanted, prefer_image in (
+        ("lead", FRONT_PAGE_LEADS, True),
+        ("secondary", FRONT_PAGE_SECONDARIES, True),
+        ("focus", FRONT_PAGE_FOCUS, False),
+        ("brief", FRONT_PAGE_BRIEFS, False),
     ):
         for article_id in _select_for_page(
             front,
@@ -329,6 +350,7 @@ async def compose_issue(
             used_articles=used_articles,
             used_clusters=used_clusters,
             per_source=front_per_source,
+            prefer_image=prefer_image,
         ):
             session.add(
                 IssueSlot(
@@ -366,6 +388,7 @@ async def compose_issue(
                 used_articles=used_articles,
                 used_clusters=used_clusters,
                 per_source=page_per_source,
+                prefer_image=role == "lead",
             ):
                 session.add(
                     IssueSlot(page_id=page.id, position=position, article_id=article_id, role=role)
