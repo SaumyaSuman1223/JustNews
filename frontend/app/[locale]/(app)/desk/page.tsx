@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { AddTopicPicker } from "@/components/AddTopicPicker";
 import { DeskTiles, type DeskTile } from "@/components/DeskTiles";
 import { EmptyState } from "@/components/EmptyState";
+import Link from "next/link";
+
 import { getFollows, getTopicOverview, getTopics } from "@/lib/api";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
@@ -30,7 +32,11 @@ function TilesSkeleton() {
   );
 }
 
-export default async function DeskPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function DeskPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
@@ -48,9 +54,17 @@ export default async function DeskPage({ params }: { params: Promise<{ locale: s
   );
 }
 
-async function DeskBody({ locale }: { locale: ReturnType<typeof getLocale>["code"] }) {
+async function DeskBody({
+  locale,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+}) {
   const access = await requireBetaAccess(locale, `/${locale}/desk`);
-  if (!access.ok) return access.element;
+  // Audit §28: a gate is a fair authentication state but a poor front door.
+  // A visitor who cannot yet sign in should still be able to see what a desk
+  // is for - and every topic page behind these links is public, so this shows
+  // the real thing rather than a picture of it.
+  if (!access.ok) return <DeskPreview locale={locale} gate={access.element} />;
 
   const [follows, topics] = await Promise.all([
     getFollows(access.auth),
@@ -70,7 +84,8 @@ async function DeskBody({ locale }: { locale: ReturnType<typeof getLocale>["code
       return {
         topicId: follow.topic_id,
         label: topic.label,
-        articleCount: overview?.degraded || !overview?.data ? 0 : overview.data.articles,
+        articleCount:
+          overview?.degraded || !overview?.data ? 0 : overview.data.articles,
       };
     })
     .filter((tile): tile is DeskTile => tile !== null);
@@ -83,7 +98,11 @@ async function DeskBody({ locale }: { locale: ReturnType<typeof getLocale>["code
           body={t(locale, "desk.empty.body")}
         />
       ) : (
-        <DeskTiles tiles={tiles} locale={locale} revalidatePath={`/${locale}/desk`} />
+        <DeskTiles
+          tiles={tiles}
+          locale={locale}
+          revalidatePath={`/${locale}/desk`}
+        />
       )}
 
       <AddTopicPicker
@@ -92,6 +111,43 @@ async function DeskBody({ locale }: { locale: ReturnType<typeof getLocale>["code
         locale={locale}
         revalidatePath={`/${locale}/desk`}
       />
+    </>
+  );
+}
+
+async function DeskPreview({
+  locale,
+  gate,
+}: {
+  locale: ReturnType<typeof getLocale>["code"];
+  gate: React.ReactNode;
+}) {
+  const topics = await getTopics(locale);
+  // Real topics, in the reader's interface language, linking to pages that
+  // work signed out. Nothing here is a mock-up of a desk someone else has.
+  const preview = topics.data.slice(0, 12);
+
+  return (
+    <>
+      {gate}
+      {preview.length > 0 && (
+        <section className="desk-preview">
+          <h2 className="home-tier">{t(locale, "desk.preview.heading")}</h2>
+          <p className="form-note">{t(locale, "desk.preview.body")}</p>
+          <ul className="desk-preview__list">
+            {preview.map((topic) => (
+              <li key={topic.id}>
+                <Link
+                  className="chip"
+                  href={`/${locale}/desk/${encodeURIComponent(topic.id)}`}
+                >
+                  {topic.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

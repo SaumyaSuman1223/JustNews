@@ -21,6 +21,7 @@ async def search_articles(
     q: str,
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["en,es"]),
+    topic: str | None = Query(default=None, examples=["medtop:11000000"]),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=20, ge=1, le=50),
 ) -> SearchPageOut:
@@ -28,7 +29,12 @@ async def search_articles(
     # envelope like every other route - which is what lets the web tier fall
     # back to topic browse generically, without a search-specific error path.
     page = await service.search(
-        session, query_text=q, languages=languages, cursor=cursor, page_size=page_size
+        session,
+        query_text=q,
+        languages=languages,
+        topic_id=topic,
+        cursor=cursor,
+        page_size=page_size,
     )
     return SearchPageOut(
         items=[ArticleOut.from_row(row) for row in page.items], next_cursor=page.next_cursor

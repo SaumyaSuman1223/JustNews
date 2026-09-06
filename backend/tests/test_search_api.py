@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from httpx import AsyncClient
-from justnews_testing.factories import make_article, make_source
+from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from justnews_core.models import ArticleTopic
 
 
 class TestSearch:
@@ -42,3 +44,28 @@ class TestSearch:
 
         body = (await client.get("/v1/search?q=capital&languages=es")).json()
         assert [item["language"] for item in body["items"]] == ["es"]
+
+    async def test_topic_filter_applies(self, client: AsyncClient, session: AsyncSession) -> None:
+        """Searching within a topic must agree with browsing that topic."""
+        topic = await make_topic(session, topic_id="medtop:11000000", slug="politics")
+        source = await make_source(session)
+        tagged = await make_article(session, source, title="Election in the capital")
+        await make_article(session, source, title="Election of a club captain")
+        session.add(ArticleTopic(article_id=tagged.id, topic_id=topic.id, is_primary=True))
+        await session.commit()
+
+        unfiltered = (await client.get("/v1/search?q=election&languages=en")).json()
+        assert len(unfiltered["items"]) == 2
+
+        body = (await client.get(f"/v1/search?q=election&languages=en&topic={topic.id}")).json()
+        assert [item["title"] for item in body["items"]] == ["Election in the capital"]
+
+    async def test_an_unknown_topic_matches_nothing_rather_than_everything(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        await make_article(session, source, title="Election in the capital")
+        await session.commit()
+
+        body = (await client.get("/v1/search?q=election&languages=en&topic=medtop:00000000")).json()
+        assert body["items"] == []

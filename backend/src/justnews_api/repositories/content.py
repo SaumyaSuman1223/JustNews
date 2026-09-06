@@ -239,6 +239,7 @@ async def search_articles(
     *,
     query_text: str,
     languages: list[str] | None,
+    topic_id: str | None,
     limit: int,
     before_published_at: datetime | None,
     before_id: int | None,
@@ -263,6 +264,12 @@ async def search_articles(
     )
     if languages:
         query = query.where(Article.language.in_(languages))
+    if topic_id:
+        # The same containment the topic feed uses, so "search within a topic"
+        # and "browse that topic" cannot disagree about what is in it.
+        query = query.where(
+            Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
+        )
     if before_published_at is not None and before_id is not None:
         query = query.where(
             tuple_(Article.published_at, Article.id) < (before_published_at, before_id)

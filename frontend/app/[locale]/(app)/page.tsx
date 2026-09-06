@@ -30,7 +30,21 @@ import { getSession } from "@/lib/session";
 // second identical tag. Nulling it here leaves exactly the hoisted one.
 export const metadata: Metadata = { description: null };
 
-const HERO_COUNT = 5; // 1 lead + 4 secondaries, FeedList's own edited-layout split.
+/**
+ * Audit §2: Home reads in three levels, not one feed.
+ *
+ *   1. What matters            - a dominant lead and two beside it
+ *   2. What you should know    - a band of equal-weight stories
+ *   3. What else is happening  - the denser stream, under the tabs
+ *
+ * The ranking is untouched; this is presentation. The feed still arrives in
+ * one ranked order and the tiers are slices of it, so the reader's top story
+ * is still the model's top story - what changes is that the page stops
+ * presenting the fifteenth as though it were the first.
+ */
+const TIER_ONE = 3;
+const TIER_ONE_LEADS = 1;
+const TIER_TWO = 6;
 const TAB_PAGE_SIZE = 10;
 
 function isHomeTab(value: string | undefined): value is HomeTab {
@@ -127,11 +141,12 @@ async function FeedBody({
       : Promise.resolve(new Set<number>()),
   ]);
 
-  // The hero band always leads with the same top stories, regardless of
-  // which tab is selected below it - the tabs switch the feed under the
-  // fold, not the front page's own lead judgement.
-  const heroItems = feed.items.slice(0, HERO_COUNT);
-  const briefArticles = heroItems.slice(1, 4).map((item) => item.article);
+  // The two editorial tiers always lead with the same top stories, whichever
+  // tab is selected below them - the tabs switch the dense stream, not the
+  // page's own judgement about what matters.
+  const tierOne = feed.items.slice(0, TIER_ONE);
+  const tierTwo = feed.items.slice(TIER_ONE, TIER_ONE + TIER_TWO);
+  const briefArticles = tierOne.slice(1, 4).map((item) => item.article);
 
   return (
     <>
@@ -164,8 +179,9 @@ async function FeedBody({
       ) : (
         <div className="home">
           <div className="home__hero">
+            <TierHeading label={t(active.code, "home.tier.matters")} />
             <FeedList
-              items={heroItems.map((item) => ({
+              items={tierOne.map((item) => ({
                 article: item.article,
                 impressionId: item.impression_id,
                 saved: savedIds.has(item.article.id),
@@ -174,9 +190,30 @@ async function FeedBody({
               surface="feed"
               signedIn={hasBetaAccess}
               revalidatePath={`/${active.code}`}
+              leads={TIER_ONE_LEADS}
+              secondaries={TIER_ONE - TIER_ONE_LEADS}
               aboveFold
             />
           </div>
+
+          {tierTwo.length > 0 && (
+            <div className="home__know">
+              <TierHeading label={t(active.code, "home.tier.shouldKnow")} />
+              <FeedList
+                items={tierTwo.map((item) => ({
+                  article: item.article,
+                  impressionId: item.impression_id,
+                  saved: savedIds.has(item.article.id),
+                }))}
+                locale={active.code}
+                surface="feed"
+                signedIn={hasBetaAccess}
+                revalidatePath={`/${active.code}`}
+                leads={0}
+                secondaries={TIER_TWO}
+              />
+            </div>
+          )}
 
           <div className="home__rail">
             {!stats.degraded && <GlanceRail stats={stats.data} locale={active.code} />}
@@ -189,6 +226,7 @@ async function FeedBody({
           </div>
 
           <div className="home__feed">
+            <TierHeading label={t(active.code, "home.tier.else")} />
             <HomeTabs
               locale={active.code}
               active={tab}
@@ -200,7 +238,7 @@ async function FeedBody({
               active={active}
               auth={auth}
               hasBetaAccess={hasBetaAccess}
-              feedRest={feed.items.slice(HERO_COUNT)}
+              feedRest={feed.items.slice(TIER_ONE + TIER_TWO)}
               trending={trending.data}
               savedIds={savedIds}
               cursor={cursor}
@@ -317,6 +355,18 @@ async function TabPanel({
       />
     </>
   );
+}
+
+/**
+ * A tier's standing label.
+ *
+ * An h2 rather than a styled paragraph: these are the page's three real
+ * divisions, and a screen reader's heading list should be able to say so.
+ * The page's h1 is the visually hidden one at the top, so this is the right
+ * level and the outline stays flat rather than nesting.
+ */
+function TierHeading({ label }: { label: string }) {
+  return <h2 className="home-tier">{label}</h2>;
 }
 
 /** UTC-based: there is no reader timezone signal on the server without

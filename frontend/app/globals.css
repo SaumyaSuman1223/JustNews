@@ -2307,14 +2307,24 @@ a.chip:active {
     12px 12px 0 -1px #ece7db,
     12px 12px 0 0 rgba(0, 0, 0, 0.16),
     0 18px 40px -24px rgba(0, 0, 0, 0.6);
-  transition: opacity var(--dur-standard) var(--ease);
+  /* §21: a page turn runs 350-550ms. `--dur-editorial` is 450ms, the tier
+     this repo already reserves for exactly this kind of movement. The old
+     240ms was the standard tier - correct for a control, too brisk to read
+     as a page changing. */
+  transition: opacity var(--dur-editorial) var(--ease);
 }
 
 /* The page turn. A crossfade at the editorial tier rather than a rotation:
    the spec allows stronger movement here, but a fold that has to fake paper
    physics is the exact "AI slop" the spec is correcting for. What matters is
-   that the reader sees the page change - the fade says that in 240ms and
-   never delays reading. */
+   that the reader sees the page change - the fade says that in 450ms (§21's
+   350-550ms band) and never delays reading.
+
+   Under reduced motion the sheet holds at full opacity rather than fading
+   faster: the global override already collapses the duration to 0.01ms, and
+   a dim that arrives instantly is a flash, which is the thing the preference
+   exists to prevent. So the correct reduced-motion form of this is no
+   opacity change at all, not a quicker one. */
 .aquila__sheet[data-pending] {
   opacity: 0.45;
 }
@@ -2590,6 +2600,10 @@ a.chip:active {
 
 /* A standing label - IN FOCUS, THE BRIEF, TODAY'S HIGHLIGHTS. One class,
    because they are one thing: the page naming a standing feature. */
+/* §20: fewer rules, and the grid carried by alignment and type instead. The
+   underline these labels used to take was redundant - a red small-caps line
+   is already unmistakably a standing head, and the rule under it was drawing
+   a box around something that did not need one. */
 .paper__label {
   font-size: var(--type-micro);
   /* §17: 1.2-2px of tracking. 0.18em of an 11px label is 1.96px. */
@@ -2597,9 +2611,7 @@ a.chip:active {
   text-transform: uppercase;
   color: var(--paper-accent);
   font-weight: 600;
-  margin: 0 0 var(--space-3);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--paper-rule);
+  margin: 0 0 var(--space-4);
 }
 
 .paper__column-image {
@@ -2774,22 +2786,20 @@ a.chip:active {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--space-2);
+  /* Wider now the hairlines are gone: whitespace is what separates these. */
+  gap: var(--space-4);
   counter-reset: brief;
 }
 
+/* §20 again: the numerals already separate these. A hairline under each was
+   a second separator doing the first one's job, and it is what made the
+   brief read as a table rather than a column of headlines. */
 .paper__brief-list li {
   display: grid;
   grid-template-columns: 1.75rem 1fr;
   gap: var(--space-2);
   font-size: var(--type-body-s);
   line-height: 1.35;
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--paper-hair);
-}
-
-.paper__brief-list li:last-child {
-  border-block-end: none;
 }
 
 .paper__brief-number {
@@ -3164,13 +3174,127 @@ a.chip:active {
   text-wrap: balance;
 }
 
+/* The signed-out desk: what a desk would hold, in real topics. */
+.desk-preview {
+  margin-block-start: var(--space-12);
+}
+
+.desk-preview__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+/* --- search: input, filters, recent ---------------------------------------
+ *
+ * Audit §29. A GET form, so every refinement is a URL - shareable, and the
+ * back button walks back through the reader's own narrowing.
+ */
+
+.search-controls {
+  margin-block-end: var(--space-8);
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.search-form__input {
+  /* Prominent, per §29 - this is the page's primary control, not a repeat of
+     the masthead's shortcut into it. */
+  font-size: var(--type-body-l);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  inline-size: 100%;
+}
+
+.search-filters {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.search-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.search-filter select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  max-inline-size: 14rem;
+}
+
+.search-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.search-recent__heading,
+.search-recent__clear {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+.search-recent ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-recent__clear {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* The standing label above each of Home's three levels. A rule and a line of
+   small caps, in the application's brass - Aquila's red stays in Aquila. */
+.home-tier {
+  font-size: var(--type-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--border);
+}
+
 .home {
   display: grid;
   gap: var(--space-8);
   grid-template-columns: minmax(0, 1fr);
 }
 
-.home__hero {
+.home__hero,
+.home__know {
   min-width: 0;
 }
 
@@ -3189,13 +3313,21 @@ a.chip:active {
   .home {
     grid-template-columns: minmax(0, 1fr) 20rem;
     column-gap: var(--space-6);
+    /* The rail spans all three levels rather than sitting beside one of
+       them: "Today at a glance" is about the whole page, not about the tier
+       it happens to start next to. */
     grid-template-areas:
       "hero rail"
+      "know rail"
       "feed rail";
   }
 
   .home__hero {
     grid-area: hero;
+  }
+
+  .home__know {
+    grid-area: know;
   }
 
   .home__rail {
@@ -3204,6 +3336,23 @@ a.chip:active {
 
   .home__feed {
     grid-area: feed;
+  }
+}
+
+/* Each tier holds a fixed number of stories, so its cards take fixed spans
+   rather than the general secondary rules - which are written for a run of
+   unknown length and leave a ragged last row when the count is known and
+   does not divide. Tier one is a lead and two beside it; tier two is six,
+   which wants three per row so it is always two full rows and never 4 + 2. */
+@media (min-width: 40rem) {
+  .home__hero .card--secondary {
+    grid-column: span 6;
+  }
+}
+
+@media (min-width: 64rem) {
+  .home__know .card--secondary {
+    grid-column: span 4;
   }
 }
 

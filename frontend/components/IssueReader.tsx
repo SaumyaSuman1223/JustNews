@@ -77,6 +77,19 @@ export function IssueReader({
         setContentsOpen((open) => !open);
         return;
       }
+      // §21: Home and End reach the ends of the issue. These do not mirror
+      // under RTL - "first page" is the first page whichever way the paper
+      // is read, unlike the arrows, which follow writing direction.
+      if (event.key === "Home") {
+        event.preventDefault();
+        goTo(1);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        goTo(pageCount);
+        return;
+      }
       const forward = dir === "rtl" ? "ArrowLeft" : "ArrowRight";
       const back = dir === "rtl" ? "ArrowRight" : "ArrowLeft";
       if (event.key === forward) goTo(pageNo + 1);
@@ -84,7 +97,7 @@ export function IssueReader({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dir, goTo, pageNo]);
+  }, [dir, goTo, pageNo, pageCount]);
 
   return (
     <div className="aquila">

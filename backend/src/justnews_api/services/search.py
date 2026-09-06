@@ -24,6 +24,7 @@ async def search(
     *,
     query_text: str,
     languages: str | None,
+    topic_id: str | None,
     cursor: str | None,
     page_size: int,
 ) -> SearchPage:
@@ -43,6 +44,7 @@ async def search(
         session,
         query_text=query_text,
         languages=parse_languages(languages),
+        topic_id=topic_id,
         limit=page_size + 1,
         before_published_at=before_published_at,
         before_id=before_id,
