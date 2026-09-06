@@ -4,6 +4,25 @@ Response to `JUSTNEWS_UI_AUDIT_AND_REFACTOR_PLAN_BRIEF.md` (§35 asks for
 sections A–J before implementation; §40 asks for inspection first). Written
 after inspecting the repository at `e8f59ea`.
 
+## Status — all eight chunks landed
+
+A `ded9594`/`081532d` · B `45b318e`/`104fec9` (+`2703287`) · C `4de8f80`/`81dd4b5` ·
+D `e7effac` · E `d118678` · F `28c54ab` · G `ecbab95`/`1db9858` · H — this commit.
+
+Where the plan was wrong, and what happened instead:
+
+- **Chunk A's masthead.** I judged the three-column header impossible at a
+  600px content box and stacked it. Chunk B's escape from the app shell widened
+  the sheet to ~900px, and it was restored there. The plan should have
+  sequenced the container before judging what fits inside it.
+- **Chunk E's fidelity risk** did not materialise. The CSS/SVG halftone was
+  judged good enough by looking at it, so the cached-pipeline escalation and
+  the ADR it would have required were not needed.
+- **Chunk C grew** an image-aware composer, because an editorial grid that
+  prints pictures is worthless if selection ignores whether an article has one.
+- §36's matrix runs green: five widths, both themes, five routes, keyboard,
+  reduced motion. See the Chunk H commit for the full record.
+
 ---
 
 ## A. Current architecture

@@ -2307,14 +2307,24 @@ a.chip:active {
     12px 12px 0 -1px #ece7db,
     12px 12px 0 0 rgba(0, 0, 0, 0.16),
     0 18px 40px -24px rgba(0, 0, 0, 0.6);
-  transition: opacity var(--dur-standard) var(--ease);
+  /* §21: a page turn runs 350-550ms. `--dur-editorial` is 450ms, the tier
+     this repo already reserves for exactly this kind of movement. The old
+     240ms was the standard tier - correct for a control, too brisk to read
+     as a page changing. */
+  transition: opacity var(--dur-editorial) var(--ease);
 }
 
 /* The page turn. A crossfade at the editorial tier rather than a rotation:
    the spec allows stronger movement here, but a fold that has to fake paper
    physics is the exact "AI slop" the spec is correcting for. What matters is
-   that the reader sees the page change - the fade says that in 240ms and
-   never delays reading. */
+   that the reader sees the page change - the fade says that in 450ms (§21's
+   350-550ms band) and never delays reading.
+
+   Under reduced motion the sheet holds at full opacity rather than fading
+   faster: the global override already collapses the duration to 0.01ms, and
+   a dim that arrives instantly is a flash, which is the thing the preference
+   exists to prevent. So the correct reduced-motion form of this is no
+   opacity change at all, not a quicker one. */
 .aquila__sheet[data-pending] {
   opacity: 0.45;
 }
@@ -2590,6 +2600,10 @@ a.chip:active {
 
 /* A standing label - IN FOCUS, THE BRIEF, TODAY'S HIGHLIGHTS. One class,
    because they are one thing: the page naming a standing feature. */
+/* §20: fewer rules, and the grid carried by alignment and type instead. The
+   underline these labels used to take was redundant - a red small-caps line
+   is already unmistakably a standing head, and the rule under it was drawing
+   a box around something that did not need one. */
 .paper__label {
   font-size: var(--type-micro);
   /* §17: 1.2-2px of tracking. 0.18em of an 11px label is 1.96px. */
@@ -2597,9 +2611,7 @@ a.chip:active {
   text-transform: uppercase;
   color: var(--paper-accent);
   font-weight: 600;
-  margin: 0 0 var(--space-3);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--paper-rule);
+  margin: 0 0 var(--space-4);
 }
 
 .paper__column-image {
@@ -2774,22 +2786,20 @@ a.chip:active {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--space-2);
+  /* Wider now the hairlines are gone: whitespace is what separates these. */
+  gap: var(--space-4);
   counter-reset: brief;
 }
 
+/* §20 again: the numerals already separate these. A hairline under each was
+   a second separator doing the first one's job, and it is what made the
+   brief read as a table rather than a column of headlines. */
 .paper__brief-list li {
   display: grid;
   grid-template-columns: 1.75rem 1fr;
   gap: var(--space-2);
   font-size: var(--type-body-s);
   line-height: 1.35;
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--paper-hair);
-}
-
-.paper__brief-list li:last-child {
-  border-block-end: none;
 }
 
 .paper__brief-number {
