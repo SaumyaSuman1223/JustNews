@@ -66,6 +66,17 @@ export function IssueReader({
       // not turn the page under them.
       const target = event.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (event.key === "Escape") {
+        setContentsOpen(false);
+        return;
+      }
+      // A reader with no chrome needs its own shortcuts. `c` for contents is
+      // the one an e-reader would use; the arrows follow writing direction,
+      // which is why ArrowLeft is not hard-wired to "previous".
+      if (event.key === "c" || event.key === "C") {
+        setContentsOpen((open) => !open);
+        return;
+      }
       const forward = dir === "rtl" ? "ArrowLeft" : "ArrowRight";
       const back = dir === "rtl" ? "ArrowRight" : "ArrowLeft";
       if (event.key === forward) goTo(pageNo + 1);

@@ -62,14 +62,34 @@ export function IssuePaper({
   return (
     <article className="paper" aria-label={t(locale, "aquila.pageLabel", { page: page.page_no })}>
       {isFront ? (
-        // Coverage line, wordmark, strap. The coverage line is masthead
-        // furniture, never navigation - nothing in it is clickable, and it
-        // stays a single line of standing type (audit §6 bans a category
-        // navbar in Aquila; §10 wants exactly these words in the header).
+        // Three columns on a full-width sheet, stacked on a narrow one:
+        // edition identity, wordmark, what the paper covers. The coverage
+        // line is masthead furniture, never navigation - nothing in it is
+        // clickable, and it stays a single line of standing type (audit §6
+        // bans a category navbar in Aquila; §10 wants exactly these words).
         <header className="paper__masthead">
-          <p className="paper__standfirst">{t(locale, "aquila.standfirst")}</p>
-          <h1 className="paper__title">{t(locale, "aquila.title")}</h1>
-          <p className="paper__strap">{t(locale, "aquila.strap")}</p>
+          <p className="paper__masthead-side">
+            <span>{editionName}</span>
+            <span>
+              {t(locale, "aquila.volume", { volume: issue.volume, number: issue.number })}
+            </span>
+          </p>
+          <div className="paper__masthead-centre">
+            <h1 className="paper__title">{t(locale, "aquila.title")}</h1>
+            <p className="paper__strap">{t(locale, "aquila.strap")}</p>
+          </div>
+          {/* Stacked, one word per line. The side track is ~156px and the
+              joined line needs ~290, so left as prose it wrapped with an
+              orphaned separator. Split on the middot, which is the separator
+              in every locale's copy; a locale that used another one would
+              render as a single line rather than break. */}
+          <p className="paper__masthead-side paper__masthead-side--end">
+            {t(locale, "aquila.standfirst")
+              .split("·")
+              .map((word) => (
+                <span key={word}>{word.trim()}</span>
+              ))}
+          </p>
         </header>
       ) : (
         <header className="paper__sectionhead">
@@ -79,9 +99,14 @@ export function IssuePaper({
       )}
 
       <div className="paper__rule">
-        <span>
-          {editionName} · {t(locale, "aquila.volume", { volume: issue.volume, number: issue.number })}
-        </span>
+        {/* The front page's masthead already carries these; a section page has
+            no masthead, so the rule is where they belong there. */}
+        {!isFront && (
+          <span>
+            {editionName} ·{" "}
+            {t(locale, "aquila.volume", { volume: issue.volume, number: issue.number })}
+          </span>
+        )}
         <span>{city ? t(locale, "aquila.dateline", { city, date: dateLine }) : dateLine}</span>
         <span>{t(locale, "aquila.editionTime", { time: editionTime })}</span>
       </div>
