@@ -2329,6 +2329,17 @@ a.chip:active {
   container-type: inline-size;
 }
 
+/* A container query measures the *content* box, so the paper's own margins
+   are subtracted before the grid decides whether it fits. At a 900px viewport
+   that left 728px against a 736px threshold and the front page stacked into a
+   3000px scroll - eight pixels of padding deciding the whole composition. A
+   media query, not a container one: an element cannot query itself. */
+@media (max-width: 64rem) {
+  .paper {
+    padding-inline: var(--space-6);
+  }
+}
+
 /* Audit §9/§10: edition left, wordmark centre, coverage line right.
    Container-queried on the sheet, not the viewport, because what decides this
    is how much paper there is - the wordmark alone wants ~540px, so below a
@@ -2467,7 +2478,7 @@ a.chip:active {
     grid-column: 1;
   }
 
-  .paper__columns {
+  .paper__highlights {
     grid-column: 2;
     /* The rules between columns are the page's own vertical rules. */
     padding-inline: var(--space-4);
@@ -2488,11 +2499,112 @@ a.chip:active {
     border-block-start: none;
     padding-block-start: 0;
   }
+
+  /* The front page is not three equal-weight columns. It is a rail, a
+     dominant lead and a brief across the top, with a band of highlights
+     under all three - audit §14. Named areas rather than line numbers
+     because the shape is the point and it should be readable as one. */
+  .paper__body--front {
+    grid-template-columns: 0.8fr 1.9fr 1fr;
+    grid-template-areas:
+      "focus lead brief"
+      "highlights highlights highlights";
+  }
+
+  .paper__body--front .paper__focus {
+    grid-area: focus;
+    padding-inline-end: var(--space-4);
+    border-inline-end: 1px solid var(--paper-hair);
+  }
+
+  .paper__body--front .paper__lead {
+    grid-area: lead;
+  }
+
+  .paper__body--front .paper__brief {
+    grid-area: brief;
+    padding-inline-start: var(--space-4);
+    border-inline-start: 1px solid var(--paper-hair);
+  }
+
+  .paper__body--front .paper__highlights {
+    grid-area: highlights;
+    /* Full width under the fold of the page, so it takes a rule above rather
+       than the vertical rules a middle column needs. */
+    padding-inline: 0;
+    border-inline: none;
+    border-block-start: 1px solid var(--paper-rule);
+    padding-block-start: var(--space-4);
+    margin-block-start: var(--space-2);
+  }
+
+  .paper__body--front .paper__columns {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  /* Side by side, these separate with vertical rules; the underline each
+     carries when they are stacked would draw three stray dashes. */
+  .paper__body--front .paper__column {
+    padding-block-end: 0;
+    border-block-end: none;
+  }
+
+  /* Rules between the highlight columns, not around them. */
+  .paper__body--front .paper__column + .paper__column {
+    padding-inline-start: var(--space-4);
+    border-inline-start: 1px solid var(--paper-hair);
+  }
+}
+
+/* --- the front page's left rail ------------------------------------------ */
+
+.paper__focus-headline {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 var(--space-2);
+}
+
+.paper__focus-deck {
+  font-size: var(--type-body-s);
+  color: var(--paper-mid);
+  margin: 0 0 var(--space-2);
+}
+
+/* A standing label - IN FOCUS, THE BRIEF, TODAY'S HIGHLIGHTS. One class,
+   because they are one thing: the page naming a standing feature. */
+.paper__label {
+  font-size: var(--type-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--paper-rule);
+}
+
+.paper__column-image {
+  inline-size: 100%;
+  aspect-ratio: 3 / 2;
+  block-size: auto;
+  object-fit: cover;
+  display: block;
+  margin-block-end: var(--space-3);
+  border-radius: var(--radius-editorial);
 }
 
 .paper__lead-image {
   inline-size: 100%;
   aspect-ratio: 16 / 9;
+  /* Same presentational-hint trap as .card__media and .article-media: without
+     this the img's own height attribute wins and aspect-ratio is ignored.
+     This slot had never rendered a real picture until the composer started
+     choosing for one, so the bug shipped latent. */
+  block-size: auto;
   object-fit: cover;
   display: block;
   margin-block-end: var(--space-4);
@@ -2570,13 +2682,6 @@ a.chip:active {
 .paper__brief {
   padding-block-start: var(--space-4);
   border-block-start: 2px solid var(--paper-ink);
-}
-
-.paper__brief-heading {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  margin: 0 0 var(--space-3);
 }
 
 .paper__brief-list {
