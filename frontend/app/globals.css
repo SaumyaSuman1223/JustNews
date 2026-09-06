@@ -3164,13 +3164,27 @@ a.chip:active {
   text-wrap: balance;
 }
 
+/* The standing label above each of Home's three levels. A rule and a line of
+   small caps, in the application's brass - Aquila's red stays in Aquila. */
+.home-tier {
+  font-size: var(--type-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--border);
+}
+
 .home {
   display: grid;
   gap: var(--space-8);
   grid-template-columns: minmax(0, 1fr);
 }
 
-.home__hero {
+.home__hero,
+.home__know {
   min-width: 0;
 }
 
@@ -3189,13 +3203,21 @@ a.chip:active {
   .home {
     grid-template-columns: minmax(0, 1fr) 20rem;
     column-gap: var(--space-6);
+    /* The rail spans all three levels rather than sitting beside one of
+       them: "Today at a glance" is about the whole page, not about the tier
+       it happens to start next to. */
     grid-template-areas:
       "hero rail"
+      "know rail"
       "feed rail";
   }
 
   .home__hero {
     grid-area: hero;
+  }
+
+  .home__know {
+    grid-area: know;
   }
 
   .home__rail {
@@ -3204,6 +3226,23 @@ a.chip:active {
 
   .home__feed {
     grid-area: feed;
+  }
+}
+
+/* Each tier holds a fixed number of stories, so its cards take fixed spans
+   rather than the general secondary rules - which are written for a run of
+   unknown length and leave a ragged last row when the count is known and
+   does not divide. Tier one is a lead and two beside it; tier two is six,
+   which wants three per row so it is always two full rows and never 4 + 2. */
+@media (min-width: 40rem) {
+  .home__hero .card--secondary {
+    grid-column: span 6;
+  }
+}
+
+@media (min-width: 64rem) {
+  .home__know .card--secondary {
+    grid-column: span 4;
   }
 }
 

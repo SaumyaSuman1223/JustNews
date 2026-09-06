@@ -30,6 +30,14 @@ export interface FeedListProps {
    * no basis for.
    */
   layout?: "edited" | "list";
+  /**
+   * How many of the run take the lead and secondary weights. Defaults are the
+   * front-page shape; Home's tiers set them explicitly, because a tier is
+   * defined by how prominent its stories are and that should be stated at the
+   * call site rather than inferred from how many happen to be in the list.
+   */
+  leads?: number;
+  secondaries?: number;
   /** Set on the first screenful of the page, so the lead image preloads. */
   aboveFold?: boolean;
 }
@@ -37,14 +45,20 @@ export interface FeedListProps {
 const LEAD_COUNT = 1;
 const SECONDARY_COUNT = 4;
 
-function variantFor(index: number, total: number, layout: "edited" | "list"): CardVariant {
+function variantFor(
+  index: number,
+  total: number,
+  layout: "edited" | "list",
+  leads: number,
+  secondaries: number,
+): CardVariant {
   if (layout === "list") return "list";
   // A run too short to fill the secondary band would leave a lead card
   // stranded above one lonely row, so below that threshold everything stays
   // the same weight and the page just reads as a short list.
-  if (total < LEAD_COUNT + SECONDARY_COUNT) return "secondary";
-  if (index < LEAD_COUNT) return "lead";
-  if (index < LEAD_COUNT + SECONDARY_COUNT) return "secondary";
+  if (total < leads + secondaries) return "secondary";
+  if (index < leads) return "lead";
+  if (index < leads + secondaries) return "secondary";
   return "list";
 }
 
@@ -55,12 +69,14 @@ export function FeedList({
   signedIn,
   revalidatePath,
   layout = "edited",
+  leads = LEAD_COUNT,
+  secondaries = SECONDARY_COUNT,
   aboveFold = false,
 }: FeedListProps) {
   return (
     <ul className={`feed feed--${layout}`}>
       {items.map((item, index) => {
-        const variant = variantFor(index, items.length, layout);
+        const variant = variantFor(index, items.length, layout, leads, secondaries);
         return (
           <ArticleCard
             key={item.key ?? item.article.id}

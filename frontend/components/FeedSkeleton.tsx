@@ -7,10 +7,13 @@
  * non-uniform feed guarantees a jump on hydration.
  */
 export function FeedSkeleton({
+  lead = true,
   secondaries = 4,
   rows = 6,
   layout = "edited",
 }: {
+  /** Home's second tier is all one weight, so its placeholder has no lead. */
+  lead?: boolean;
   secondaries?: number;
   rows?: number;
   /** Mirrors FeedList's own `layout` prop: `list` is what saved, history and
@@ -23,17 +26,19 @@ export function FeedSkeleton({
     <ul className={`feed feed--${layout}`} aria-hidden="true">
       {layout === "edited" && (
         <>
-          <li className="card card--lead">
-            <div className="card__frame">
-              <div className="skeleton skeleton--media" />
-            </div>
-            <div className="card__body">
-              <div className="skeleton skeleton--title" />
-              <div className="skeleton skeleton--title skeleton--mid" />
-              <div className="skeleton skeleton--line" />
-              <div className="skeleton skeleton--line skeleton--short" />
-            </div>
-          </li>
+          {lead && (
+            <li className="card card--lead">
+              <div className="card__frame">
+                <div className="skeleton skeleton--media" />
+              </div>
+              <div className="card__body">
+                <div className="skeleton skeleton--title" />
+                <div className="skeleton skeleton--title skeleton--mid" />
+                <div className="skeleton skeleton--line" />
+                <div className="skeleton skeleton--line skeleton--short" />
+              </div>
+            </li>
+          )}
 
           {Array.from({ length: secondaries }, (_, index) => (
             <li key={`secondary-${index}`} className="card card--secondary">
