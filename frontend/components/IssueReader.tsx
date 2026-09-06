@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { IssuePaper } from "@/components/IssuePaper";
+import { ReaderUtility } from "@/components/ReaderUtility";
 import type { Issue, IssueEdition, IssuePageContent } from "@/lib/api";
 import { t, type LocaleCode } from "@/lib/i18n";
 
@@ -112,7 +113,10 @@ export function IssueReader({
           </p>
         )}
 
-        <nav className="aquila__controls" aria-label={t(locale, "aquila.pagination")}>
+        <nav
+          className="aquila__controls"
+          aria-label={t(locale, "aquila.pagination")}
+        >
           <button
             type="button"
             className="aquila__arrow"
@@ -143,87 +147,17 @@ export function IssueReader({
             {t(locale, "aquila.contents")}
           </button>
         </nav>
-
-        {contentsOpen && (
-          <ol className="aquila__contents">
-            {issue.sections.map((section) => (
-              <li key={section.page_no}>
-                <button
-                  type="button"
-                  onClick={() => goTo(section.page_no)}
-                  aria-current={section.page_no === pageNo ? "true" : undefined}
-                >
-                  <span className="aquila__contents-no">
-                    {String(section.page_no).padStart(2, "0")}
-                  </span>
-                  {section.title ?? t(locale, "aquila.frontPage")}
-                </button>
-              </li>
-            ))}
-          </ol>
-        )}
       </div>
 
-      <aside className="aquila__rail">
-        <h2 className="aquila__rail-heading">{t(locale, "aquila.editions")}</h2>
-        <ul className="aquila__editions">
-          {editions.map((edition) => {
-            const active = edition.id === issue.id;
-            return (
-              <li key={edition.id}>
-                {/* A full navigation, not a fetch: a different edition is a
-                    different issue, and its own URL is what makes it
-                    linkable and archivable. */}
-                <a
-                  href={`/${locale}/aquila?issue=${edition.id}`}
-                  className="aquila__edition"
-                  aria-current={active ? "true" : undefined}
-                >
-                  <span className="aquila__edition-name">
-                    {t(
-                      locale,
-                      `aquila.edition.${edition.edition_slot}` as "aquila.edition.morning",
-                    )}
-                  </span>
-                  {/* The edition's own hour, fixed by its slot - so these
-                      three always read 06:00 / 14:00 / 22:00 and never the
-                      minute a cron happened to fire. */}
-                  <span className="aquila__edition-time">
-                    {t(locale, "aquila.editionTime", {
-                      time: new Intl.DateTimeFormat(locale, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                        timeZone: "UTC",
-                      }).format(new Date(edition.published_at)),
-                    })}
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-
-        <h2 className="aquila__rail-heading">{t(locale, "aquila.pages")}</h2>
-        <ol className="aquila__pages">
-          {issue.sections.map((section) => (
-            <li key={section.page_no}>
-              <button
-                type="button"
-                onClick={() => goTo(section.page_no)}
-                aria-current={section.page_no === pageNo ? "true" : undefined}
-              >
-                <span className="aquila__contents-no">
-                  {String(section.page_no).padStart(2, "0")}
-                </span>
-                {section.title ?? t(locale, "aquila.frontPage")}
-              </button>
-            </li>
-          ))}
-        </ol>
-
-        <p className="aquila__sign">{t(locale, "aquila.sign")}</p>
-      </aside>
+      <ReaderUtility
+        issue={issue}
+        editions={editions}
+        locale={locale}
+        pageNo={pageNo}
+        onGoTo={goTo}
+        open={contentsOpen}
+        onOpenChange={setContentsOpen}
+      />
     </div>
   );
 }

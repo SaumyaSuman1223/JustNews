@@ -78,15 +78,21 @@ SECTION_ORDER: tuple[str, ...] = (
 )
 
 FRONT_PAGE_LEADS = 1
-# Three, not four. A front page is a fixed proportion (the frontend spec asks
-# for roughly 1.5:1) and the fourth column is what pushed it past that - a
-# page you have to scroll is not a page. This is an editorial call about how
-# much fits, which is exactly the kind of decision composition should own.
+# These four counts are not editorial preferences, they are what fits. The
+# sheet is a landscape page of a fixed size (audit §35: 1.45-1.55:1, 738px
+# tall at 1440x900), and a page that overflows is a scroll, which is the one
+# thing a newspaper page must never be. Measured against the rendered page:
+# a front page of 1 + 1 + 3 + 3 fills it and stops.
+#
+# Nothing is lost by keeping these small. Articles the front page does not
+# take stay in the candidate pool and print in their own section pages, which
+# is where a newspaper would run them anyway - so trimming the front adds
+# pages rather than dropping stories.
 FRONT_PAGE_SECONDARIES = 3
 # One piece in the left rail under a standing IN FOCUS label. One, because a
 # rail of several is just another column of secondaries with a label on it.
 FRONT_PAGE_FOCUS = 1
-FRONT_PAGE_BRIEFS = 7
+FRONT_PAGE_BRIEFS = 3
 SECTION_LEADS = 1
 SECTION_SECONDARIES = 5
 MAX_SECTION_PAGES = 8
