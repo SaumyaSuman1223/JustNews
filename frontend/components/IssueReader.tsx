@@ -155,18 +155,24 @@ export function IssueReader({
                   className="aquila__edition"
                   aria-current={active ? "true" : undefined}
                 >
-                  <span className="aquila__edition-time">
-                    {new Intl.DateTimeFormat(locale, {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      timeZone: "UTC",
-                    }).format(new Date(edition.published_at))}
-                  </span>
                   <span className="aquila__edition-name">
                     {t(
                       locale,
                       `aquila.edition.${edition.edition_slot}` as "aquila.edition.morning",
                     )}
+                  </span>
+                  {/* The edition's own hour, fixed by its slot - so these
+                      three always read 06:00 / 14:00 / 22:00 and never the
+                      minute a cron happened to fire. */}
+                  <span className="aquila__edition-time">
+                    {t(locale, "aquila.editionTime", {
+                      time: new Intl.DateTimeFormat(locale, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                        timeZone: "UTC",
+                      }).format(new Date(edition.published_at)),
+                    })}
                   </span>
                 </a>
               </li>

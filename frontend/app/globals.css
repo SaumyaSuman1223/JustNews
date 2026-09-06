@@ -2313,7 +2313,17 @@ a.chip:active {
   container-type: inline-size;
 }
 
+/* Audit §9/§10 ask for a three-column header - edition left, wordmark centre,
+   coverage line right. It does not fit this sheet: the paper's content box is
+   600px and the wordmark alone wants ~540 of it, so side columns would either
+   crush the wordmark or wrap into slivers. So the header keeps the broadsheet
+   *order* (coverage line, wordmark, strap) stacked, and the three-part split
+   moves one line down to the rule, which has the width to hold it. Widening
+   the sheet is a composition decision and belongs to the grid chunk. */
 .paper__masthead {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
   text-align: center;
   padding-block-end: var(--space-2);
 }
@@ -2329,15 +2339,16 @@ a.chip:active {
 
 .paper__title {
   font-family: var(--font-display);
-  /* Spec §27 puts the masthead at 70-90px of height; this is the type that
-     fills it. Fluid so a narrow viewport does not crop the wordmark. */
-  /* Sized so the whole masthead block lands near spec §27's 70-90px rather
-     than the 190px the display face wanted at full size. */
-  font-size: clamp(1.9rem, 0.9rem + 3.4vw, 3rem);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.02;
-  margin: var(--space-1) 0;
+  /* Audit §9 asks for 78-100px, overriding the earlier spec's 70-90px
+     masthead block; the newer brief wins for Aquila specifically. Cormorant
+     Garamond at its heaviest weight, tracked tight - no second display face
+     was added for this, and none should be. */
+  font-size: clamp(2.4rem, 1rem + 4.6vw, 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 0.94;
+  margin: 0;
 }
 
 .paper__sectionhead {
@@ -2361,19 +2372,28 @@ a.chip:active {
   color: var(--paper-muted);
 }
 
-/* The volume/date/edition rule under the masthead. */
+/* The three-part line under the masthead: what edition this is, when it is
+   dated, what hour it was filed at. Flex rather than three fixed tracks -
+   equal tracks orphaned the "No. 1" onto its own line at this sheet width -
+   and each part refuses to break internally, so a narrow paper drops a whole
+   part to the next line instead of splitting a volume number in half. */
 .paper__rule {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-3);
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  font-variant-numeric: tabular-nums;
   padding-block: var(--space-2);
   border-block: 1px solid var(--paper-rule);
   font-size: var(--type-micro);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--paper-muted);
+}
+
+.paper__rule > * {
+  white-space: nowrap;
 }
 
 .paper__body {
@@ -2671,40 +2691,47 @@ a.chip:active {
   padding: 0;
 }
 
+/* Audit §11: three editions are a line of standing type in a newspaper, not
+   three controls. So: one rule, three names, the current one marked - no
+   boxes, no fills, no per-edition card. The time sits under the name as
+   metadata rather than as the thing you click. */
 .aquila__editions {
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  border-block-start: 1px solid var(--border);
+  padding-block-start: var(--space-2);
 }
 
 .aquila__edition {
   display: grid;
-  gap: 0.1rem;
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition:
-    border-color var(--dur-micro) var(--ease),
-    background-color var(--dur-micro) var(--ease);
+  gap: 0.05rem;
+  padding-block-end: var(--space-1);
+  border-block-end: 1px solid transparent;
+  transition: border-color var(--dur-micro) var(--ease);
 }
 
 .aquila__edition:hover {
-  border-color: var(--brass);
+  border-block-end-color: var(--border);
 }
 
-/* Spec §29: a subtle border/accent, not three oversized cards. */
 .aquila__edition[aria-current="true"] {
-  border-color: var(--brass);
-  background: rgba(255, 255, 255, 0.045);
-}
-
-.aquila__edition-time {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--type-body-m);
-  font-weight: 600;
+  border-block-end-color: var(--brass);
 }
 
 .aquila__edition-name {
   font-size: var(--type-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.aquila__edition[aria-current="true"] .aquila__edition-name {
+  color: var(--brass);
+}
+
+.aquila__edition-time {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-micro);
   color: var(--text-muted);
 }
 
