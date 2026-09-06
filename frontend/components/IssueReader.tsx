@@ -66,6 +66,17 @@ export function IssueReader({
       // not turn the page under them.
       const target = event.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (event.key === "Escape") {
+        setContentsOpen(false);
+        return;
+      }
+      // A reader with no chrome needs its own shortcuts. `c` for contents is
+      // the one an e-reader would use; the arrows follow writing direction,
+      // which is why ArrowLeft is not hard-wired to "previous".
+      if (event.key === "c" || event.key === "C") {
+        setContentsOpen((open) => !open);
+        return;
+      }
       const forward = dir === "rtl" ? "ArrowLeft" : "ArrowRight";
       const back = dir === "rtl" ? "ArrowRight" : "ArrowLeft";
       if (event.key === forward) goTo(pageNo + 1);
@@ -155,18 +166,24 @@ export function IssueReader({
                   className="aquila__edition"
                   aria-current={active ? "true" : undefined}
                 >
-                  <span className="aquila__edition-time">
-                    {new Intl.DateTimeFormat(locale, {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      timeZone: "UTC",
-                    }).format(new Date(edition.published_at))}
-                  </span>
                   <span className="aquila__edition-name">
                     {t(
                       locale,
                       `aquila.edition.${edition.edition_slot}` as "aquila.edition.morning",
                     )}
+                  </span>
+                  {/* The edition's own hour, fixed by its slot - so these
+                      three always read 06:00 / 14:00 / 22:00 and never the
+                      minute a cron happened to fire. */}
+                  <span className="aquila__edition-time">
+                    {t(locale, "aquila.editionTime", {
+                      time: new Intl.DateTimeFormat(locale, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                        timeZone: "UTC",
+                      }).format(new Date(edition.published_at)),
+                    })}
                   </span>
                 </a>
               </li>

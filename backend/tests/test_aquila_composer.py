@@ -9,19 +9,23 @@ cannot support a paper.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from itertools import count
 
+import pytest
 from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.models import ArticleTopic, Issue, IssuePage, IssueSlot, StoryCluster
 from justnews_ingestion.aquila import (
+    EDITION_SLOTS,
     MAX_PER_SOURCE_PER_PAGE,
     MIN_ARTICLES_FOR_ISSUE,
     compose_issue,
     current_slot,
+    edition_published_at,
+    repair_edition_times,
 )
 
 POLITICS = "medtop:11000000"
@@ -229,6 +233,72 @@ class TestComposeIssue:
         )
         assert section is not None, "a topic with plenty of coverage should get its own page"
         assert section.page_no > 1
+
+
+class TestEditionTime:
+    """An edition is dated by its slot, never by when the composer ran.
+
+    The bug this pins: a cron that fires at 14:47 used to stamp 14:47 on the
+    issue, so the masthead read "Midday Edition" beside a 4:47 PM timestamp.
+    """
+
+    async def test_published_at_is_the_slots_hour_not_the_run_clock(
+        self, session: AsyncSession
+    ) -> None:
+        await _corpus(session)
+        await session.commit()
+        ran_at = datetime(2026, 9, 4, 14, 47, 31, tzinfo=UTC)
+
+        result = await compose_issue(session, locale="en", edition_slot="midday", now=ran_at)
+        await session.commit()
+
+        issue = await session.get(Issue, result.issue_id)
+        assert issue is not None
+        assert issue.published_at == datetime(2026, 9, 4, 14, tzinfo=UTC)
+        assert issue.published_at.hour == EDITION_SLOTS["midday"]
+
+    def test_every_slot_maps_to_its_own_hour(self) -> None:
+        day = date(2026, 9, 4)
+        for slot, hour in EDITION_SLOTS.items():
+            assert edition_published_at(day, slot) == datetime(2026, 9, 4, hour, tzinfo=UTC)
+
+    def test_an_unknown_slot_is_rejected(self) -> None:
+        with pytest.raises(ValueError):
+            edition_published_at(date(2026, 9, 4), "teatime")
+
+    async def test_repair_re_dates_issues_stamped_with_the_run_clock(
+        self, session: AsyncSession
+    ) -> None:
+        await _corpus(session)
+        await session.commit()
+        result = await compose_issue(session, locale="en", edition_slot="evening")
+        await session.commit()
+
+        issue = await session.get(Issue, result.issue_id)
+        assert issue is not None
+        # Put the old bug back, so the repair has something real to fix.
+        issue.published_at = datetime(
+            issue.published_on.year,
+            issue.published_on.month,
+            issue.published_on.day,
+            23,
+            12,
+            4,
+            tzinfo=UTC,
+        )
+        await session.commit()
+
+        assert (await repair_edition_times(session, dry_run=True))["corrected"] == 1
+        await session.refresh(issue)
+        assert issue.published_at.hour == 23, "a dry run must not write"
+
+        assert (await repair_edition_times(session))["corrected"] == 1
+        await session.commit()
+        await session.refresh(issue)
+        assert issue.published_at.hour == EDITION_SLOTS["evening"]
+
+        # Re-runnable: a repaired corpus reports nothing left to correct.
+        assert (await repair_edition_times(session))["corrected"] == 0
 
 
 class TestCurrentSlot:

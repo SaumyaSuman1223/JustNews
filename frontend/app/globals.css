@@ -60,6 +60,9 @@
   --space-2: 0.5rem; /* 8 */
   --space-3: 0.75rem; /* 12 */
   --space-4: 1rem; /* 16 */
+  /* Width of the reader's edge strip. A token because both the strip and the
+     padding that clears it have to agree, in two breakpoints. */
+  --reader-edge: 2.75rem;
   --space-6: 1.5rem; /* 24 */
   --space-8: 2rem; /* 32 */
   --space-12: 3rem; /* 48 */
@@ -2222,28 +2225,41 @@ a.chip:active {
  * 1.5:1, a 260-300px rail, and a 20-28px gap between them.
  */
 
-.aquila {
-  display: grid;
-  gap: var(--space-6);
-  /* Bleeds past the content column's padding so the dark ground reaches the
-     viewport edge - a workspace with a paper margin around it reads as a
-     desk; the same thing inside a card does not.
-
-     The bleed has to match whatever padding the shell is actually using at
-     this width. Using the desktop values everywhere overshot the mobile
-     shell's 16px by 32px and put a horizontal scrollbar on the page, which
-     the frontend spec §24 rules out outright. */
-  margin-inline: calc(var(--space-4) * -1);
-  margin-block: 0;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+/* The workspace itself. This used to bleed out of the application shell with
+   negative margins tuned to whatever padding `.shell > main` had at each
+   width - a hack that existed only because Aquila rendered inside a layout it
+   did not belong to. It renders in `(reader)` now, so there is nothing to
+   escape from and the ground is simply the ground. */
+.reader {
+  min-block-size: 100dvh;
   background: var(--charcoal);
-  /* The workspace is dark in both themes, so its own text tokens are fixed
-     rather than inherited - otherwise light mode renders ink on charcoal. */
+  /* Dark in both themes, so its tokens are fixed rather than inherited -
+     otherwise a reader who chose light mode gets ink on charcoal.
+
+     The surfaces have to be redefined alongside the text, not just the text.
+     Any shared component rendered in here - the "no edition yet" empty state
+     is the one that exists - draws its own background from --surface, and
+     leaving that at the light value put #ede9e0 text on a #fbf9f4 card at
+     1.15:1. The paper itself is unaffected: `.aquila__sheet` carries its own
+     --paper-* set and never reads --surface. */
+  --surface: #20211f;
+  --surface-sub: #2a2b28;
   --text: #ede9e0;
   --text-mid: #c6c1b6;
   --text-muted: #98938a;
   --border: #34352f;
   color: var(--text);
+}
+
+.reader__main {
+  /* Clear of the edge strip, on the inline axis so it mirrors under RTL. */
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  padding-inline-start: calc(var(--space-4) + var(--reader-edge));
+}
+
+.aquila {
+  display: grid;
+  gap: var(--space-6);
 }
 
 .aquila__stage {
@@ -2313,12 +2329,51 @@ a.chip:active {
   container-type: inline-size;
 }
 
+/* Audit §9/§10: edition left, wordmark centre, coverage line right.
+   Container-queried on the sheet, not the viewport, because what decides this
+   is how much paper there is - the wordmark alone wants ~540px, so below a
+   wide sheet the sides would crush it. Under that width the three parts stack
+   in broadsheet order instead, which is a re-set page rather than a squeezed
+   one (§24). Escaping the application shell in the reader chunk is what made
+   the wide branch reachable at all. */
 .paper__masthead {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
   text-align: center;
   padding-block-end: var(--space-2);
 }
 
-.paper__standfirst,
+@container (min-width: 52rem) {
+  .paper__masthead {
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  .paper__masthead-side {
+    justify-self: start;
+    text-align: start;
+  }
+
+  .paper__masthead-side--end {
+    justify-self: end;
+    text-align: end;
+  }
+}
+
+.paper__masthead-side {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  font-size: var(--type-micro);
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .paper__strap {
   font-size: var(--type-micro);
   letter-spacing: 0.16em;
@@ -2329,15 +2384,16 @@ a.chip:active {
 
 .paper__title {
   font-family: var(--font-display);
-  /* Spec §27 puts the masthead at 70-90px of height; this is the type that
-     fills it. Fluid so a narrow viewport does not crop the wordmark. */
-  /* Sized so the whole masthead block lands near spec §27's 70-90px rather
-     than the 190px the display face wanted at full size. */
-  font-size: clamp(1.9rem, 0.9rem + 3.4vw, 3rem);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.02;
-  margin: var(--space-1) 0;
+  /* Audit §9 asks for 78-100px, overriding the earlier spec's 70-90px
+     masthead block; the newer brief wins for Aquila specifically. Cormorant
+     Garamond at its heaviest weight, tracked tight - no second display face
+     was added for this, and none should be. */
+  font-size: clamp(2.4rem, 1rem + 4.6vw, 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 0.94;
+  margin: 0;
 }
 
 .paper__sectionhead {
@@ -2361,19 +2417,28 @@ a.chip:active {
   color: var(--paper-muted);
 }
 
-/* The volume/date/edition rule under the masthead. */
+/* The three-part line under the masthead: what edition this is, when it is
+   dated, what hour it was filed at. Flex rather than three fixed tracks -
+   equal tracks orphaned the "No. 1" onto its own line at this sheet width -
+   and each part refuses to break internally, so a narrow paper drops a whole
+   part to the next line instead of splitting a volume number in half. */
 .paper__rule {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-3);
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  font-variant-numeric: tabular-nums;
   padding-block: var(--space-2);
   border-block: 1px solid var(--paper-rule);
   font-size: var(--type-micro);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--paper-muted);
+}
+
+.paper__rule > * {
+  white-space: nowrap;
 }
 
 .paper__body {
@@ -2671,40 +2736,47 @@ a.chip:active {
   padding: 0;
 }
 
+/* Audit §11: three editions are a line of standing type in a newspaper, not
+   three controls. So: one rule, three names, the current one marked - no
+   boxes, no fills, no per-edition card. The time sits under the name as
+   metadata rather than as the thing you click. */
 .aquila__editions {
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  border-block-start: 1px solid var(--border);
+  padding-block-start: var(--space-2);
 }
 
 .aquila__edition {
   display: grid;
-  gap: 0.1rem;
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition:
-    border-color var(--dur-micro) var(--ease),
-    background-color var(--dur-micro) var(--ease);
+  gap: 0.05rem;
+  padding-block-end: var(--space-1);
+  border-block-end: 1px solid transparent;
+  transition: border-color var(--dur-micro) var(--ease);
 }
 
 .aquila__edition:hover {
-  border-color: var(--brass);
+  border-block-end-color: var(--border);
 }
 
-/* Spec §29: a subtle border/accent, not three oversized cards. */
 .aquila__edition[aria-current="true"] {
-  border-color: var(--brass);
-  background: rgba(255, 255, 255, 0.045);
-}
-
-.aquila__edition-time {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--type-body-m);
-  font-weight: 600;
+  border-block-end-color: var(--brass);
 }
 
 .aquila__edition-name {
   font-size: var(--type-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.aquila__edition[aria-current="true"] .aquila__edition-name {
+  color: var(--brass);
+}
+
+.aquila__edition-time {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-micro);
   color: var(--text-muted);
 }
 
@@ -2766,19 +2838,120 @@ a.chip:active {
 
 /* The rail moves beside the sheet once there is room for both (spec §26). */
 @media (min-width: 64rem) {
+  .reader__main {
+    padding: var(--space-8) var(--space-12) var(--space-12);
+    padding-inline-start: calc(var(--space-8) + var(--reader-edge));
+  }
+
   .aquila {
     grid-template-columns: minmax(0, 1fr) 17.5rem;
-    gap: var(--space-6);
-    /* Matches .shell > main's own padding at this breakpoint, so the dark
-       ground reaches the rail on one side and the viewport on the other. */
-    margin-inline: calc(var(--space-8) * -1) calc(var(--space-12) * -1);
-    margin-block-start: calc(var(--space-8) * -1);
-    padding: var(--space-8) var(--space-12) var(--space-12);
+    gap: var(--space-8);
   }
 
   .aquila__rail {
     position: sticky;
     inset-block-start: var(--space-6);
+  }
+}
+
+/* --- the way out of the reader --------------------------------------------
+ *
+ * A strip at the inline-start edge with one control on it, and a panel that
+ * only exists while asked for. Audit §7/§22: the reader is full-screen, but
+ * full-screen must not mean "no way back".
+ */
+
+.reader-nav {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  /* The strip is the hover target; the panel overflows it when open. */
+  inline-size: var(--reader-edge);
+}
+
+.reader-nav__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--reader-edge);
+  block-size: var(--reader-edge);
+  margin-block-start: var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--dur-micro) var(--ease);
+}
+
+.reader-nav__toggle:hover,
+.reader-nav[data-open] .reader-nav__toggle {
+  color: var(--text);
+}
+
+.reader-nav__panel {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  block-size: 100%;
+  inline-size: 15rem;
+  padding: var(--space-6);
+  background: #101110;
+  border-inline-end: 1px solid var(--border);
+  /* Translated rather than unmounted, so the toggle's aria-controls always
+     points at something real. Hidden from assistive tech and from the tab
+     order while closed - the component drops the links' tabindex to match. */
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--dur-standard) var(--ease),
+    visibility var(--dur-standard) var(--ease);
+}
+
+[dir="rtl"] .reader-nav__panel {
+  transform: translateX(100%);
+}
+
+.reader-nav[data-open] .reader-nav__panel {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.reader-nav__wordmark {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text);
+  margin: 0 0 var(--space-6);
+}
+
+.reader-nav__wordmark span {
+  color: var(--brass);
+}
+
+.reader-nav__panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.reader-nav__panel a {
+  color: var(--text-mid);
+  text-decoration: none;
+  transition: color var(--dur-micro) var(--ease);
+}
+
+.reader-nav__panel a:hover,
+.reader-nav__panel a:focus-visible {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-nav__panel {
+    transition: none;
   }
 }
 

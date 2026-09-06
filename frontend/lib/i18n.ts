@@ -38,6 +38,26 @@ export function getLocale(code: string): Locale {
 }
 
 /**
+ * The city an edition is filed from, for the Aquila dateline - or `null`.
+ *
+ * A dateline is a factual claim: it says where this edition was put together.
+ * JustNews publishes one worldwide edition per language, so for these locales
+ * there is no such city, and the map is deliberately empty. Printing a
+ * plausible capital would be a fabricated fact in the masthead, which is
+ * exactly the kind of invented detail this product does not ship.
+ *
+ * The lookup exists rather than the call site simply omitting the city,
+ * because regional editions are already a modelled concept (the `editions`
+ * table) - when an edition genuinely is filed from one place, this is where
+ * that becomes true, and the masthead already renders it.
+ */
+const DATELINE_CITIES: Partial<Record<LocaleCode, string>> = {};
+
+export function datelineCity(locale: LocaleCode): string | null {
+  return DATELINE_CITIES[locale] ?? null;
+}
+
+/**
  * The reader's content languages, as the comma-separated string every
  * `languages` query parameter takes (`en,es`).
  *
@@ -139,10 +159,12 @@ const en = {
   "home.tabs.history": "Continue Reading",
   "home.tabs.saved": "Saved",
 
-  "aquila.title": "The Aquila Tribune",
+  "aquila.title": "Aquila Tribune",
   "aquila.standfirst": "News · Ideas · People · Perspectives",
-  "aquila.strap": "A clearer tomorrow, together",
+  "aquila.strap": "The world in context",
   "aquila.volume": "Vol. {volume}  No. {number}",
+  "aquila.dateline": "{city}, {date}",
+  "aquila.editionTime": "{time} UTC",
   "aquila.edition.morning": "Morning Edition",
   "aquila.edition.midday": "Midday Edition",
   "aquila.edition.evening": "Evening Edition",
@@ -472,10 +494,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "home.tabs.history": "Sigue leyendo",
     "home.tabs.saved": "Guardados",
 
-    "aquila.title": "The Aquila Tribune",
+    "aquila.title": "Aquila Tribune",
     "aquila.standfirst": "Noticias · Ideas · Personas · Perspectivas",
-    "aquila.strap": "Un mañana más claro, juntos",
+    "aquila.strap": "El mundo en contexto",
     "aquila.volume": "Vol. {volume}  N.º {number}",
+    "aquila.dateline": "{city}, {date}",
+    "aquila.editionTime": "{time} UTC",
     "aquila.edition.morning": "Edición de la mañana",
     "aquila.edition.midday": "Edición del mediodía",
     "aquila.edition.evening": "Edición de la noche",
@@ -805,10 +829,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "home.tabs.history": "पढ़ना जारी रखें",
     "home.tabs.saved": "सहेजे गए",
 
-    "aquila.title": "The Aquila Tribune",
+    "aquila.title": "Aquila Tribune",
     "aquila.standfirst": "ख़बरें · विचार · लोग · दृष्टिकोण",
-    "aquila.strap": "एक स्पष्ट कल, साथ मिलकर",
+    "aquila.strap": "दुनिया, सन्दर्भ के साथ",
     "aquila.volume": "खंड {volume}  अंक {number}",
+    "aquila.dateline": "{city}, {date}",
+    "aquila.editionTime": "{time} UTC",
     "aquila.edition.morning": "प्रातः संस्करण",
     "aquila.edition.midday": "मध्याह्न संस्करण",
     "aquila.edition.evening": "सायं संस्करण",

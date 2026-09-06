@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { Issue, IssuePageContent } from "@/lib/api";
-import { t, type LocaleCode } from "@/lib/i18n";
+import { datelineCity, t, type LocaleCode } from "@/lib/i18n";
 
 /**
  * One page of The Aquila Tribune, rendered as a sheet of paper.
@@ -33,21 +33,63 @@ export function IssuePaper({
   const briefs = page.slots.filter((slot) => slot.role === "brief");
   const isFront = page.page_no === 1;
 
+  const published = new Date(issue.published_at);
   const dateLine = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: "UTC",
-  }).format(new Date(issue.published_at));
+  }).format(published);
+  // A newspaper's dateline names where the edition was filed. This product has
+  // one worldwide edition per language, so for most locales there is no such
+  // place, and inventing one would be a lie printed in the masthead. Absent a
+  // real city, the line is just the date.
+  const city = datelineCity(locale);
+  // The hour is the edition's, not the composer's - see `edition_published_at`
+  // in the composer. Printing it is what makes that guarantee checkable.
+  const editionTime = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).format(published);
+  const editionName = t(
+    locale,
+    `aquila.edition.${issue.edition_slot}` as "aquila.edition.morning",
+  );
 
   return (
     <article className="paper" aria-label={t(locale, "aquila.pageLabel", { page: page.page_no })}>
       {isFront ? (
+        // Three columns on a full-width sheet, stacked on a narrow one:
+        // edition identity, wordmark, what the paper covers. The coverage
+        // line is masthead furniture, never navigation - nothing in it is
+        // clickable, and it stays a single line of standing type (audit §6
+        // bans a category navbar in Aquila; §10 wants exactly these words).
         <header className="paper__masthead">
-          <p className="paper__standfirst">{t(locale, "aquila.standfirst")}</p>
-          <h1 className="paper__title">The Aquila Tribune</h1>
-          <p className="paper__strap">{t(locale, "aquila.strap")}</p>
+          <p className="paper__masthead-side">
+            <span>{editionName}</span>
+            <span>
+              {t(locale, "aquila.volume", { volume: issue.volume, number: issue.number })}
+            </span>
+          </p>
+          <div className="paper__masthead-centre">
+            <h1 className="paper__title">{t(locale, "aquila.title")}</h1>
+            <p className="paper__strap">{t(locale, "aquila.strap")}</p>
+          </div>
+          {/* Stacked, one word per line. The side track is ~156px and the
+              joined line needs ~290, so left as prose it wrapped with an
+              orphaned separator. Split on the middot, which is the separator
+              in every locale's copy; a locale that used another one would
+              render as a single line rather than break. */}
+          <p className="paper__masthead-side paper__masthead-side--end">
+            {t(locale, "aquila.standfirst")
+              .split("·")
+              .map((word) => (
+                <span key={word}>{word.trim()}</span>
+              ))}
+          </p>
         </header>
       ) : (
         <header className="paper__sectionhead">
@@ -57,11 +99,16 @@ export function IssuePaper({
       )}
 
       <div className="paper__rule">
-        <span>
-          {t(locale, "aquila.volume", { volume: issue.volume, number: issue.number })}
-        </span>
-        <span>{dateLine}</span>
-        <span>{t(locale, `aquila.edition.${issue.edition_slot}` as "aquila.edition.morning")}</span>
+        {/* The front page's masthead already carries these; a section page has
+            no masthead, so the rule is where they belong there. */}
+        {!isFront && (
+          <span>
+            {editionName} ·{" "}
+            {t(locale, "aquila.volume", { volume: issue.volume, number: issue.number })}
+          </span>
+        )}
+        <span>{city ? t(locale, "aquila.dateline", { city, date: dateLine }) : dateLine}</span>
+        <span>{t(locale, "aquila.editionTime", { time: editionTime })}</span>
       </div>
 
       {page.slots.length === 0 ? (

@@ -39,6 +39,27 @@ log = get_logger(__name__)
 # refinement for when there is more than one region to serve.
 EDITION_SLOTS: dict[str, int] = {"morning": 6, "midday": 14, "evening": 22}
 
+
+def edition_published_at(published_on: date, edition_slot: str) -> datetime:
+    """The moment an edition is *dated*, not the moment the composer ran.
+
+    A cron fires when the runner is free - 14:47, 15:02, whenever the queue
+    clears - and stamping that on the issue made the masthead read "Midday
+    Edition, 4:47 PM", which is the one thing a newspaper cannot do. The
+    edition's hour is a property of the slot, so it is derived from the slot
+    and never observed from the clock.
+    """
+    if edition_slot not in EDITION_SLOTS:
+        raise ValueError(f"Unknown edition slot: {edition_slot!r}")
+    return datetime(
+        published_on.year,
+        published_on.month,
+        published_on.day,
+        EDITION_SLOTS[edition_slot],
+        tzinfo=UTC,
+    )
+
+
 # The running order, as IPTC top-level concept IDs (ADR 0006 - the ID is the
 # canonical key; the page's displayed name is this topic's label in the
 # reader's locale, looked up at render time). Ordered the way a paper orders
@@ -270,14 +291,16 @@ async def compose_issue(
 
     # Volume is the year offset, so masthead numbering needs no stored
     # counter that could drift: 2026 is Volume 1.
-    volume = now.year - 2025
+    # From the issue's own date, not the run clock: a composer that starts at
+    # 23:58 and commits at 00:01 must not file the 31st's paper under the 1st.
+    volume = published_on.year - 2025
     number = await _next_number(session, locale=locale, volume=volume)
 
     issue = Issue(
         locale=locale,
         edition_slot=edition_slot,
         published_on=published_on,
-        published_at=now,
+        published_at=edition_published_at(published_on, edition_slot),
         volume=volume,
         number=number,
     )
@@ -373,6 +396,33 @@ async def compose_issue(
         pages=pages,
         articles=total_articles,
     )
+
+
+async def repair_edition_times(session: AsyncSession, *, dry_run: bool = False) -> dict[str, int]:
+    """Re-date issues stamped with the composer's run clock.
+
+    Data repair, not schema, so it is a command rather than a migration: it is
+    re-runnable, it reports before it writes, and a migration that rewrote
+    rows would be unreviewable in a downgrade. `published_on` and
+    `edition_slot` were always correct, so every corrected value is derivable
+    - nothing is guessed and no row is lost.
+    """
+    issues = (await session.scalars(select(Issue))).all()
+    wrong = [
+        (issue, edition_published_at(issue.published_on, issue.edition_slot))
+        for issue in issues
+        if issue.published_at != edition_published_at(issue.published_on, issue.edition_slot)
+    ]
+    if not dry_run:
+        for issue, corrected in wrong:
+            issue.published_at = corrected
+    log.info(
+        "aquila_edition_times_repaired",
+        examined=len(issues),
+        corrected=len(wrong),
+        dry_run=dry_run,
+    )
+    return {"examined": len(issues), "corrected": len(wrong)}
 
 
 def current_slot(now: datetime | None = None) -> str:

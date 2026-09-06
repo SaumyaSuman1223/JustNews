@@ -1,22 +1,29 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
-import Link from "next/link";
 
-import { AccountMenu } from "@/components/AccountMenu";
 import { ConsentBanner } from "@/components/ConsentBanner";
-import { LocaleSwitcher } from "@/components/LocaleSwitcher";
-import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavigationProgress } from "@/components/NavigationProgress";
-import { PrimaryNav } from "@/components/PrimaryNav";
-import { SearchBox } from "@/components/SearchBox";
-import { getMe } from "@/lib/api";
-import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getConsentState } from "@/lib/consent";
 import { fontVariables } from "@/lib/fonts";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
-import { getSession } from "@/lib/session";
+
+/**
+ * Everything every route shares, and nothing else.
+ *
+ * The application shell used to live here, which meant Aquila - a newspaper -
+ * rendered inside a sidebar, a mobile tab bar and a site footer. A publication
+ * cannot read as a publication while wearing an app's chrome, so the shell
+ * moved down into `(app)/layout.tsx` and Aquila took `(reader)/layout.tsx`.
+ *
+ * Route groups do not appear in URLs: `/en/aquila` and `/en/desk` are exactly
+ * the paths they were before. The parentheses are the whole mechanism.
+ *
+ * What stays here is what is true of both: the document element (so `dir` and
+ * the font variables are set once), the navigation indicator, and consent -
+ * which is a legal obligation, not a piece of app furniture, and must appear
+ * on a reader's first page whichever one that is.
+ */
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale: locale.code }));
@@ -50,17 +57,6 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  // Reading the session here - once, for the whole shell - is what makes this
-  // layout request-dynamic rather than static. That is the correct trade for
-  // a header that has to show a real account state instead of a generic one.
-  const session = await getSession();
-  const hasBetaAccess = session
-    ? ((await getMe({ accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }))
-        ?.has_beta_access ?? false)
-    : false;
-  const requestHeaders = await headers();
-  const pathname = requestHeaders.get("x-pathname") ?? `/${active.code}`;
-  const search = requestHeaders.get("x-search") ?? "";
   const consent = await getConsentState();
 
   return (
@@ -71,40 +67,7 @@ export default async function LocaleLayout({
         <Suspense fallback={null}>
           <NavigationProgress />
         </Suspense>
-        <a className="skip-link" href="#main">
-          {t(active.code, "skip.toContent")}
-        </a>
-        <div className="shell">
-          <header className="masthead">
-            <Link href={`/${active.code}`} className="wordmark">
-              Just<span>News</span>
-              <span className="wordmark__tagline">{t(active.code, "site.tagline")}</span>
-            </Link>
-            <PrimaryNav locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
-            <div className="masthead-tools">
-              <SearchBox locale={active.code} />
-              <AccountMenu
-                locale={active.code}
-                email={session?.email ?? null}
-                hasBetaAccess={hasBetaAccess}
-              />
-            </div>
-            <LocaleSwitcher active={active} pathname={pathname} search={search} />
-            <p className="masthead-sign">{t(active.code, "site.sign")}</p>
-          </header>
-          {/* tabIndex={-1}: without it, activating the skip link scrolls the
-              viewport but never actually moves keyboard focus here, which
-              defeats what a skip link is for. Not in the tab order itself -
-              only reachable as a fragment-navigation target. */}
-          <main id="main" tabIndex={-1}>
-            {children}
-          </main>
-          <footer className="site-footer">
-            <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
-            <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
-          </footer>
-        </div>
-        <MobileTabBar locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
+        {children}
         {consent === null && <ConsentBanner locale={active.code} />}
       </body>
     </html>
