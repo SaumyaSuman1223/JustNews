@@ -293,6 +293,56 @@ reduced-motion aware. Give the mobile paper more of its screen.
 **Accept:** paper grows at 1920; no scroll at 1440×900; swipe turns a page on
 a real touch device profile; drag has a keyboard equivalent already.
 
+**Shipped, after three of this chunk's four premises turned out to already be
+true or ungrounded.**
+
+*Scaling at 1920 was never broken.* The 1300–1450px figure is the second
+pass's own §35, and that spec pairs it with **1920×1080**, not 1920×900 - the
+CSS comment already sizing `.aquila__sheet` says so
+("both viewport sizes land in band from one rule"). Measured: at 1920×1080
+the sheet is 1350×900, inside the spec's 1300–1450×820–900 band exactly. At
+1920×900 it is the same size as 1440×900 because both give the *same 900px
+of height*, and the spec was never written to want a wider paper at an
+unchanged height - it drives entirely off `dvh`. I nearly built a
+container-query rework to fix a viewport combination no written spec asks to
+differ. Left untouched.
+
+*The 94px of scroll was already gone.* Chunk 1's trims took it to 8px,
+rounding-level, before this chunk started.
+
+*"Give the mobile paper more of its screen" had no written source.* Neither
+audit gives a mobile paper-width number; that line was this plan's own
+inference, not a requirement. Measured: the sheet already takes ~100% of the
+available content width on mobile, after the app's own edge-nav strip and
+margins - which is the width a single-column mobile layout should have.
+Nothing to fix, and no defect found to fix it against.
+
+*Touch swipe was the one real, confirmed gap - now built.* A horizontal
+`pointerdown`→`pointerup` gesture on `.aquila__sheet`, scoped to
+`pointerType === "touch"` so mouse users - selecting text, clicking a
+headline - are entirely unaffected; nothing listens to a mouse drag at all,
+which is also why "pointer drag" is not separately implemented: the audit
+calls it optional, and a mouse-drag recognizer risks misfiring against the
+clicks and text selection that already work. On release, a swipe past a
+56px threshold and clearly more horizontal than vertical (mobile Aquila
+still scrolls vertically inside a page, §38, and a swipe recognised too
+eagerly would fight that) calls the same `goTo()` the buttons and keyboard
+arrows already use - no new animation, because the page turn is already a
+crossfade rather than a physical peel, and a drag that tried to fake paper
+physics is exactly what §36 rules out.
+
+RTL: the direction flip mirrors the keyboard's own `dir === "rtl" ? ... :
+...` structure exactly, verified by explicit derivation rather than by a
+live test - no RTL locale exists in the product yet (en/es/hi are all LTR),
+and the keyboard's own RTL branch, shipped earlier, has no automated test
+for the same reason. This matches that precedent rather than falling short
+of it.
+
+Verified against a real touch device profile: swipe left turns forward,
+swipe right turns back, a twitch under the threshold does nothing, a mouse
+pointer does nothing. Full QA matrix (5 widths × 2 themes, axe at the
+extremes) clean on both the front page and a section page.
+
 ### Chunk 3 — Source diversity, made visible *(§21, §16 Cluster)*
 The one backend change: cluster counts on `ArticleOut`. Then the `cluster`
 card variant, and the diversity line on significant stories — sources,
