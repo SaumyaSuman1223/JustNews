@@ -92,6 +92,7 @@ export function SearchControls({
   topic,
   language,
   source,
+  date,
   topics,
   sources,
 }: {
@@ -100,6 +101,7 @@ export function SearchControls({
   topic: string;
   language: string;
   source: string;
+  date: string;
   topics: Topic[];
   sources: SourceOption[];
 }) {
@@ -207,6 +209,20 @@ export function SearchControls({
                   {item.name}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className="search-filter">
+            <span>{t(locale, "search.filter.date")}</span>
+            <select
+              name="date"
+              defaultValue={date}
+              onChange={() => form.current?.requestSubmit()}
+            >
+              <option value="">{t(locale, "search.filter.anyDate")}</option>
+              <option value="day">{t(locale, "search.filter.date.day")}</option>
+              <option value="week">{t(locale, "search.filter.date.week")}</option>
+              <option value="month">{t(locale, "search.filter.date.month")}</option>
             </select>
           </label>
         </div>

@@ -46,6 +46,19 @@ export function IssuePaper({
   // ordering), the rest into the lower row as text.
   const rail = secondaries.slice(0, 3);
   const lower = secondaries.slice(3, 6);
+  // Fourth-pass §10: the masthead's "News · Ideas · People · Perspectives"
+  // named nothing about this issue and read as site navigation. Its
+  // replacement is the section pages this specific issue actually carries -
+  // real IPTC labels already resolved for section pages by `_sections`
+  // (title is null only for the front page itself), so the line is always
+  // true of the paper in the reader's hands rather than a generic promise.
+  const coveredSections = Array.from(
+    new Set(
+      issue.sections
+        .map((section) => section.title)
+        .filter((title): title is string => title != null),
+    ),
+  );
 
   const sectionTitle = (pageRef: number | null | undefined): string | null =>
     pageRef == null
@@ -53,12 +66,16 @@ export function IssuePaper({
       : (issue.sections.find((section) => section.page_no === pageRef)?.title ?? null);
 
   const published = new Date(issue.published_at);
+  // `IssuePaper` only ever renders inside `IssueReader` ("use client"), so
+  // this runs in the reader's own browser - `Intl` with no `timeZone`
+  // resolves to their real local zone. A fixed "UTC" here previously printed
+  // developer output as reader-facing copy, and was wrong for almost every
+  // reader on a worldwide edition (fourth-pass §9).
   const dateLine = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
   }).format(published);
   // A newspaper's dateline names where the edition was filed. This product has
   // one worldwide edition per language, so for most locales there is no such
@@ -66,12 +83,12 @@ export function IssuePaper({
   // real city, the line is just the date.
   const city = datelineCity(locale);
   // The hour is the edition's, not the composer's - see `edition_published_at`
-  // in the composer. Printing it is what makes that guarantee checkable.
+  // in the composer. Printing it in the reader's own zone is what makes that
+  // guarantee checkable without also asserting a place the paper doesn't have.
   const editionTime = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "UTC",
   }).format(published);
   const editionName = t(
     locale,
@@ -103,18 +120,17 @@ export function IssuePaper({
             <h1 className="paper__title">{t(locale, "aquila.title")}</h1>
             <p className="paper__strap">{t(locale, "aquila.strap")}</p>
           </div>
-          {/* Stacked, one word per line. The side track is ~156px and the
-              joined line needs ~290, so left as prose it wrapped with an
-              orphaned separator. Split on the middot, which is the separator
-              in every locale's copy; a locale that used another one would
-              render as a single line rather than break. */}
-          <p className="paper__masthead-side paper__masthead-side--end">
-            {t(locale, "aquila.standfirst")
-              .split("·")
-              .map((word) => (
-                <span key={word}>{word.trim()}</span>
+          {/* Stacked, one section per line, same track that used to carry
+              the generic standfirst - only rendered when this issue actually
+              has section pages to name. An issue with only a front page
+              prints no third column rather than inventing one. */}
+          {coveredSections.length > 0 && (
+            <p className="paper__masthead-side paper__masthead-side--end">
+              {coveredSections.map((title) => (
+                <span key={title}>{title}</span>
               ))}
-          </p>
+            </p>
+          )}
         </header>
       ) : (
         <header className="paper__sectionhead">

@@ -1185,6 +1185,8 @@ export interface components {
             source_id: number;
             /** Source Name */
             source_name: string;
+            /** Source Role */
+            source_role?: string | null;
             /** Source Slug */
             source_slug: string;
             /** Story Cluster Id */
@@ -1296,8 +1298,18 @@ export interface components {
             articles: number;
             /** Countries */
             countries: number;
+            /**
+             * First Seen At
+             * Format: date-time
+             */
+            first_seen_at: string;
             /** Languages */
             languages: number;
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
+            last_seen_at: string;
             /** Sources */
             sources: number;
         };
@@ -1782,6 +1794,16 @@ export interface components {
         SearchPageOut: {
             /** Items */
             items: components["schemas"]["ArticleOut"][];
+            /**
+             * Matched Sources
+             * @description Sources whose name matches the query. Present on the first page only.
+             */
+            matched_sources?: components["schemas"]["SearchSourceMatchOut"][] | null;
+            /**
+             * Matched Topics
+             * @description Topics whose name matches the query. Present on the first page only.
+             */
+            matched_topics?: components["schemas"]["SearchTopicMatchOut"][] | null;
             /** Next Cursor */
             next_cursor?: string | null;
             /**
@@ -1789,6 +1811,22 @@ export interface components {
              * @description Total matches for this query. Present on the first page only - a later page would recount the same predicate for the same answer.
              */
             total?: number | null;
+        };
+        /** SearchSourceMatchOut */
+        SearchSourceMatchOut: {
+            /** Homepage Url */
+            homepage_url: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /** SearchTopicMatchOut */
+        SearchTopicMatchOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
         };
         /** SectionOut */
         SectionOut: {
@@ -3779,6 +3817,10 @@ export interface operations {
                 topic?: string | null;
                 /** @description Filter to one source's own id. */
                 source?: number | null;
+                /** @description One of 'day', 'week', 'month' - articles published within. */
+                date?: string | null;
+                /** @description Interface language, for matched-topic labels. */
+                language?: string;
                 cursor?: string | null;
                 page_size?: number;
             };

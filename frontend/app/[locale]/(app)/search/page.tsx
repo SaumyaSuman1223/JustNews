@@ -39,16 +39,18 @@ export default async function SearchPage({
     topic?: string;
     lang?: string;
     source?: string;
+    date?: string;
   }>;
 }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  const { q, cursor, topic, lang, source } = await searchParams;
+  const { q, cursor, topic, lang, source, date } = await searchParams;
   const query = (q ?? "").trim();
   // An unknown locale code in `lang` is dropped rather than passed through:
   // no query may return content in a language this product does not ship.
   const language = lang && isLocaleCode(lang) ? lang : "";
+  const dateWindow = date === "day" || date === "week" || date === "month" ? date : "";
   const [topics, sources] = await Promise.all([getTopics(active.code), getAllSources()]);
 
   return (
@@ -64,12 +66,13 @@ export default async function SearchPage({
         topic={topic ?? ""}
         language={language}
         source={source ?? ""}
+        date={dateWindow}
         topics={topics.data}
         sources={sources.data}
       />
 
       <Suspense
-        key={`${query}:${topic ?? ""}:${language}:${source ?? ""}:${cursor ?? "start"}`}
+        key={`${query}:${topic ?? ""}:${language}:${source ?? ""}:${dateWindow}:${cursor ?? "start"}`}
         fallback={
           query.length >= 2 ? (
             <FeedSkeleton layout="list" secondaries={0} rows={5} />
@@ -82,6 +85,7 @@ export default async function SearchPage({
           topic={topic ?? ""}
           language={language}
           source={source ?? ""}
+          date={dateWindow}
           cursor={cursor}
         />
       </Suspense>
@@ -95,6 +99,7 @@ async function SearchBody({
   topic,
   language,
   source,
+  date,
   cursor,
 }: {
   locale: ReturnType<typeof getLocale>["code"];
@@ -102,6 +107,7 @@ async function SearchBody({
   topic: string;
   language: string;
   source: string;
+  date: string;
   cursor?: string;
 }) {
   const session = await getSession();
@@ -128,10 +134,18 @@ async function SearchBody({
           languages,
           topic: topic || undefined,
           source: source || undefined,
+          date: date || undefined,
+          interfaceLanguage: locale,
           cursor,
         })
       : Promise.resolve({
-          data: { items: [], next_cursor: null, total: null },
+          data: {
+            items: [],
+            next_cursor: null,
+            total: null,
+            matched_topics: null,
+            matched_sources: null,
+          },
           degraded: false,
         }),
     auth
@@ -140,6 +154,14 @@ async function SearchBody({
         )
       : Promise.resolve(new Set<number>()),
   ]);
+
+  // §21's result grouping: a query naming a topic or a source says so, not
+  // just the articles that happen to mention the word. Both are `null` past
+  // the first page (the service reuses the first page's answer rather than
+  // recomputing an unchanging predicate).
+  const matchedTopics = results.data.matched_topics ?? [];
+  const matchedSources = results.data.matched_sources ?? [];
+  const hasGroups = matchedTopics.length > 0 || matchedSources.length > 0;
 
   return (
     <>
@@ -157,8 +179,47 @@ async function SearchBody({
         <p className="empty">{t(locale, "search.tooShort")}</p>
       )}
 
+      {(matchedTopics.length > 0 || matchedSources.length > 0) && (
+        <section className="search-groups">
+          {matchedTopics.length > 0 && (
+            <div className="search-group">
+              <h2 className="search-group__heading">{t(locale, "search.group.topics")}</h2>
+              <ul className="search-group__list">
+                {matchedTopics.map((match) => (
+                  <li key={match.id}>
+                    <a className="topic-chip" href={`/${locale}/desk/${encodeURIComponent(match.id)}`}>
+                      {match.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {matchedSources.length > 0 && (
+            <div className="search-group">
+              <h2 className="search-group__heading">{t(locale, "search.group.sources")}</h2>
+              <ul className="search-group__list">
+                {matchedSources.map((match) => (
+                  <li key={match.id}>
+                    <a
+                      className="topic-chip"
+                      href={match.homepage_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {match.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
       {query.length >= 2 &&
         results.data.items.length === 0 &&
+        !hasGroups &&
         !results.degraded && (
           <EmptyState
             title={t(locale, "search.empty.title", { query })}
@@ -177,7 +238,9 @@ async function SearchBody({
               its own result set, and recounting the same predicate on page
               four returns the same number. So a later page keeps the heading
               and drops the count rather than showing a number for the page. */}
-          <h2 className="home-tier">{t(locale, "search.results")}</h2>
+          <h2 className="home-tier">
+            {hasGroups ? t(locale, "search.group.stories") : t(locale, "search.results")}
+          </h2>
           {typeof results.data.total === "number" && (
             <p className="search-count">
               {tPlural(locale, "search.resultCount", results.data.total)}
@@ -195,7 +258,7 @@ async function SearchBody({
           locale={locale}
           surface="search"
           signedIn={Boolean(session)}
-          revalidatePath={searchHref(locale, query, topic, language, source)}
+          revalidatePath={searchHref(locale, query, topic, language, source, date)}
           layout="list"
         />
       )}
@@ -206,7 +269,7 @@ async function SearchBody({
       {query.length >= 2 && (
         <Pagination
           locale={locale}
-          baseHref={searchHref(locale, query, topic, language, source)}
+          baseHref={searchHref(locale, query, topic, language, source, date)}
           nextCursor={results.data.next_cursor}
           onLaterPage={Boolean(cursor)}
         />
@@ -222,10 +285,12 @@ function searchHref(
   topic: string,
   language: string,
   source: string,
+  date: string,
 ): string {
   const params = new URLSearchParams({ q: query });
   if (topic) params.set("topic", topic);
   if (language) params.set("lang", language);
   if (source) params.set("source", source);
+  if (date) params.set("date", date);
   return `/${locale}/search?${params}`;
 }

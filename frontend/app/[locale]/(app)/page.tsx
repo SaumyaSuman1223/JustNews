@@ -156,7 +156,14 @@ async function FeedBody({
   // page's own judgement about what matters.
   const tierOne = feed.items.slice(0, TIER_ONE);
   const tierTwo = feed.items.slice(TIER_ONE, TIER_ONE + TIER_TWO);
-  const briefArticles = tierOne.slice(1, 4).map((item) => item.article);
+  // Fourth-pass §14: this used to be `tierOne.slice(1, 4)` - over a 3-item
+  // hero tier that yields two items, both already printed a few hundred
+  // pixels above in the hero itself. The Brief draws from what neither
+  // editorial tier above it shows, so it is additional reading rather than
+  // the same page condensed.
+  const briefArticles = feed.items
+    .slice(TIER_ONE + TIER_TWO, TIER_ONE + TIER_TWO + 5)
+    .map((item) => item.article);
 
   return (
     <>
@@ -238,6 +245,7 @@ async function FeedBody({
                 secondaries={TIER_TWO_PICTURES}
                 rest="compact"
                 allowClusterPromotion
+                allowPerspectivePromotion
               />
             </div>
           )}
@@ -309,6 +317,7 @@ async function TabPanel({
         revalidatePath={`/${active.code}`}
         layout="list"
         allowClusterPromotion
+        allowPerspectivePromotion
       />
     );
   }
@@ -375,6 +384,7 @@ async function TabPanel({
         revalidatePath={`/${active.code}`}
         layout="list"
         allowClusterPromotion
+        allowPerspectivePromotion
       />
       <Pagination
         locale={active.code}

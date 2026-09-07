@@ -40,6 +40,12 @@ class ClusterCoverage:
     sources: int
     languages: int
     countries: int
+    #: When this story cluster first appeared and when it was last added to -
+    #: real `StoryCluster` columns, already joined by every query that builds
+    #: an `ArticleRow`. Fourth-pass §19's `timeline` card variant is the first
+    #: reader to need them; nothing new is fetched to carry them.
+    first_seen_at: datetime
+    last_seen_at: datetime
 
     @classmethod
     def from_cluster(cls, cluster: StoryCluster) -> ClusterCoverage:
@@ -48,6 +54,8 @@ class ClusterCoverage:
             sources=cluster.source_count,
             languages=cluster.language_count,
             countries=cluster.country_count,
+            first_seen_at=cluster.first_seen_at,
+            last_seen_at=cluster.last_seen_at,
         )
 
 
@@ -64,6 +72,10 @@ class ArticleRow:
     source_name: str
     source_slug: str
     story_cluster_id: int | None
+    # ADR 0013's Perspectives fact, carried onto the row for the fourth-pass
+    # `perspective` card variant - `None` for the large majority of sources
+    # that carry no assigned role, same as everywhere else this field is used.
+    source_role: str | None = None
     # Internal only - never exposed on ArticleOut. The Stage 5 ranker's one
     # use for it; a public API response has no business telling a client how
     # much we trust the source.
@@ -96,6 +108,7 @@ class ArticleRow:
             source_name=source.name,
             source_slug=source.slug,
             story_cluster_id=article.story_cluster_id,
+            source_role=source.source_role,
             source_trust_score=source.trust_score,
             coverage=ClusterCoverage.from_cluster(cluster) if cluster else None,
         )
@@ -302,6 +315,8 @@ def _search_predicates(
     languages: list[str] | None,
     topic_id: str | None,
     source_id: int | None,
+    published_after: datetime | None,
+    published_before: datetime | None,
 ) -> list[Any]:
     """What a search matches, in one place.
 
@@ -328,6 +343,10 @@ def _search_predicates(
         )
     if source_id is not None:
         predicates.append(Article.source_id == source_id)
+    if published_after is not None:
+        predicates.append(Article.published_at >= published_after)
+    if published_before is not None:
+        predicates.append(Article.published_at < published_before)
     return predicates
 
 
@@ -338,6 +357,8 @@ async def search_articles(
     languages: list[str] | None,
     topic_id: str | None,
     source_id: int | None,
+    published_after: datetime | None,
+    published_before: datetime | None,
     limit: int,
     before_published_at: datetime | None,
     before_id: int | None,
@@ -350,7 +371,12 @@ async def search_articles(
         _base_query()
         .where(
             *_search_predicates(
-                query_text=query_text, languages=languages, topic_id=topic_id, source_id=source_id
+                query_text=query_text,
+                languages=languages,
+                topic_id=topic_id,
+                source_id=source_id,
+                published_after=published_after,
+                published_before=published_before,
             )
         )
         .order_by(Article.published_at.desc(), Article.id.desc())
@@ -374,6 +400,8 @@ async def count_search_articles(
     languages: list[str] | None,
     topic_id: str | None,
     source_id: int | None,
+    published_after: datetime | None,
+    published_before: datetime | None,
 ) -> int:
     """How many articles the search matches in total.
 
@@ -395,11 +423,31 @@ async def count_search_articles(
         .where(
             Article.removed_at.is_(None),
             *_search_predicates(
-                query_text=query_text, languages=languages, topic_id=topic_id, source_id=source_id
+                query_text=query_text,
+                languages=languages,
+                topic_id=topic_id,
+                source_id=source_id,
+                published_after=published_after,
+                published_before=published_before,
             ),
         )
     )
     return int(result.scalar_one())
+
+
+async def search_sources(session: AsyncSession, *, query: str, limit: int) -> list[Source]:
+    """Sources whose name matches the search query - the other half of §21's
+    result grouping, alongside `topics.search_topics`. A reader who typed a
+    publisher's name should see that publisher as a match, not only articles
+    that happen to mention it in their text."""
+    pattern = f"%{query}%"
+    result = await session.execute(
+        select(Source)
+        .where(Source.active.is_(True), Source.name.ilike(pattern))
+        .order_by(Source.name)
+        .limit(limit)
+    )
+    return list(result.scalars().all())
 
 
 async def list_story_clusters(

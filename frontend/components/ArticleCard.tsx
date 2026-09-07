@@ -16,6 +16,18 @@ import {
 } from "@/lib/i18n";
 import { formatRankReason, type RankReason } from "@/lib/rankReason";
 
+/** ADR 0013's roles, in the same order and under the same labels
+ * `Perspectives.tsx` uses - "wire" is deliberately absent from both: a wire
+ * service is not a perspective. */
+const ROLE_LABEL_KEY = {
+  industry: "desk.perspectives.role.industry",
+  government: "desk.perspectives.role.government",
+  academic: "desk.perspectives.role.academic",
+  investor: "desk.perspectives.role.investor",
+  consumer: "desk.perspectives.role.consumer",
+  public: "desk.perspectives.role.public",
+} as const;
+
 /**
  * The fixed card size set from docs/design/design-system.md.
  *
@@ -37,8 +49,24 @@ import { formatRankReason, type RankReason } from "@/lib/rankReason";
  * `features`), the same way `lead` and `secondary` are, because unlike
  * `cluster` there is no independent data signal that says "this one is a
  * feature" - only an editorial choice about where variety helps.
+ *
+ * `timeline` and `perspective` are fourth-pass §19's remaining story types,
+ * chosen the same way `cluster` is - by what the data actually says, not by
+ * position. `timeline` promotes a cluster that has genuinely developed over
+ * time (see `promoteOneClusterOrTimeline` in FeedList); `perspective`
+ * promotes an article whose source carries an assigned ADR 0013 role. Both
+ * degrade to an ordinary card wherever their data is not there - see the
+ * guards below, the same pattern `cluster`'s own coverage line already uses.
  */
-export type CardVariant = "lead" | "feature" | "secondary" | "list" | "compact" | "cluster";
+export type CardVariant =
+  | "lead"
+  | "feature"
+  | "secondary"
+  | "list"
+  | "compact"
+  | "cluster"
+  | "timeline"
+  | "perspective";
 
 /** Image geometry per variant. Fixed, so nothing shifts while a photo loads. */
 const MEDIA: Record<CardVariant, { width: number; height: number } | null> = {
@@ -51,6 +79,13 @@ const MEDIA: Record<CardVariant, { width: number; height: number } | null> = {
   // and a thumbnail here would just be one of the covering sources' photos
   // standing in for all the others, which overstates that one source.
   cluster: null,
+  // Same reasoning as `cluster`: a timeline card's identity is when the
+  // story developed, not which source's photo happened to run first.
+  timeline: null,
+  // A perspective card's identity is who is speaking - the role and the
+  // publisher, in text, the same restraint the Perspectives module itself
+  // uses (a list of sources, never a picture standing in for one of them).
+  perspective: null,
 };
 
 export interface ArticleCardProps {
@@ -161,9 +196,28 @@ export function ArticleCard({
   // whose coverage turned out to be a single source (data changed under it)
   // must still fall back to a normal byline instead of printing "1 sources".
   const coverageLine =
-    variant === "cluster" && article.coverage && article.coverage.sources > 1
+    (variant === "cluster" || variant === "timeline") &&
+    article.coverage &&
+    article.coverage.sources > 1
       ? formatArticleCoverage(locale, article.coverage)
       : null;
+  // Same guard shape as `coverageLine`: only when FeedList actually promoted
+  // this card (see `promoteOneClusterOrTimeline`), and re-checked here rather
+  // than trusted, since a `timeline` card whose cluster no longer has a real
+  // span must still read as a plain multi-source story instead of claiming
+  // one that isn't there.
+  const developingSince =
+    variant === "timeline" && article.coverage
+      ? formatRelativeTime(article.coverage.first_seen_at, locale)
+      : null;
+  // Present whenever FeedList promoted this card to `perspective` (see
+  // `promoteOnePerspective`) and the source still carries a role §21/ADR
+  // 0013 recognises - the same six roles `Perspectives.tsx` groups by,
+  // "wire" excluded on purpose in both places.
+  const roleLabelKey =
+    variant === "perspective" && article.source_role
+      ? ROLE_LABEL_KEY[article.source_role as keyof typeof ROLE_LABEL_KEY]
+      : undefined;
   const showContextToggle = variant === "lead" && expandable;
   const contextId = `lead-context-${article.id}`;
 
@@ -196,6 +250,14 @@ export function ArticleCard({
           </Link>
         </h2>
         {showSnippet && <p className="card__snippet">{article.snippet}</p>}
+        {developingSince && (
+          // A timeline card leads with when the story developed, not who
+          // filed the article this card happens to link - the coverage line
+          // right below it (same markup `cluster` uses) still says how widely.
+          <p className="card__developing">
+            {t(locale, "card.timeline.developing", { time: developingSince })}
+          </p>
+        )}
         {coverageLine ? (
           // The coverage line replaces the byline entirely rather than
           // sitting beside it: "reported by 7 sources across 4 countries"
@@ -203,6 +265,18 @@ export function ArticleCard({
           // same story, and printing both invites a reader to wonder which
           // one this card is actually about.
           <p className="card__coverage">{coverageLine}</p>
+        ) : roleLabelKey ? (
+          // A perspective card's byline leads with the role, not the outlet -
+          // "Industry press · Trade Daily" says who is speaking before it says
+          // which publication, the same order the Perspectives module itself
+          // groups by.
+          <p className="card__meta card__meta--role">
+            <span className="card__role">{t(locale, roleLabelKey)}</span>
+            <span className="card__source">{article.source_name}</span>
+            <time dateTime={article.published_at}>
+              {formatRelativeTime(article.published_at, locale)}
+            </time>
+          </p>
         ) : (
           <p className="card__meta">
             <span className="card__source">{article.source_name}</span>

@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import ArticleTopic
+from justnews_core.models import ArticleTopic, TopicLabel
 
 
 class TestSearch:
@@ -27,7 +27,13 @@ class TestSearch:
 
     async def test_no_match_is_an_empty_page_not_an_error(self, client: AsyncClient) -> None:
         body = (await client.get("/v1/search?q=nonexistentword")).json()
-        assert body == {"items": [], "next_cursor": None, "total": 0}
+        assert body == {
+            "items": [],
+            "next_cursor": None,
+            "total": 0,
+            "matched_topics": [],
+            "matched_sources": [],
+        }
 
     async def test_rejects_a_too_short_query(self, client: AsyncClient) -> None:
         response = await client.get("/v1/search?q=a")
@@ -93,6 +99,71 @@ class TestSearch:
 
         body = (await client.get("/v1/search?q=election&languages=en&source=999999")).json()
         assert body["items"] == []
+
+    async def test_date_filter_excludes_older_articles(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        await make_article(session, source, title="Election result recent", minutes_ago=30)
+        await make_article(session, source, title="Election result old", minutes_ago=60 * 24 * 10)
+        await session.commit()
+
+        unfiltered = (await client.get("/v1/search?q=election&languages=en")).json()
+        assert len(unfiltered["items"]) == 2
+
+        body = (await client.get("/v1/search?q=election&languages=en&date=day")).json()
+        assert [item["title"] for item in body["items"]] == ["Election result recent"]
+
+    async def test_rejects_an_unknown_date_window(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/search?q=election&date=decade")
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == "validation_error"
+
+
+class TestSearchGrouping:
+    """Audit §21's result grouping: a query that names a topic or a source
+    says so, alongside whatever articles happen to mention the word."""
+
+    async def test_matches_a_topic_by_label(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        topic = await make_topic(session, topic_id="medtop:20000170", slug="climate-change")
+        session.add(TopicLabel(topic_id=topic.id, language="en", label="Climate Change"))
+        await session.commit()
+
+        body = (await client.get("/v1/search?q=climate&language=en")).json()
+        assert body["matched_topics"] == [{"id": topic.id, "label": "Climate Change"}]
+
+    async def test_matches_a_source_by_name(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, slug="meridian-press", name="Meridian Press")
+        await session.commit()
+
+        body = (await client.get("/v1/search?q=meridian")).json()
+        assert body["matched_sources"] == [
+            {"id": source.id, "name": "Meridian Press", "homepage_url": source.homepage_url}
+        ]
+
+    async def test_a_later_page_does_not_regroup(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, slug="meridian-press", name="Meridian Press")
+        for index in range(3):
+            await make_article(session, source, title=f"Meridian result number {index}")
+        await session.commit()
+
+        first = (await client.get("/v1/search?q=meridian&languages=en&page_size=1")).json()
+        assert first["matched_sources"] != []
+        assert first["next_cursor"] is not None
+
+        second = (
+            await client.get(
+                f"/v1/search?q=meridian&languages=en&page_size=1&cursor={first['next_cursor']}"
+            )
+        ).json()
+        assert second["matched_sources"] is None
+        assert second["matched_topics"] is None
 
 
 class TestSearchTotal:

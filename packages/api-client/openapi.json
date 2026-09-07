@@ -224,6 +224,17 @@
             "title": "Source Name",
             "type": "string"
           },
+          "source_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Role"
+          },
           "source_slug": {
             "title": "Source Slug",
             "type": "string"
@@ -527,9 +538,19 @@
             "title": "Countries",
             "type": "integer"
           },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
           "languages": {
             "title": "Languages",
             "type": "integer"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
           },
           "sources": {
             "title": "Sources",
@@ -540,7 +561,9 @@
           "articles",
           "sources",
           "languages",
-          "countries"
+          "countries",
+          "first_seen_at",
+          "last_seen_at"
         ],
         "title": "CoverageOut",
         "type": "object"
@@ -1765,6 +1788,36 @@
             "title": "Items",
             "type": "array"
           },
+          "matched_sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SearchSourceMatchOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sources whose name matches the query. Present on the first page only.",
+            "title": "Matched Sources"
+          },
+          "matched_topics": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SearchTopicMatchOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Topics whose name matches the query. Present on the first page only.",
+            "title": "Matched Topics"
+          },
           "next_cursor": {
             "anyOf": [
               {
@@ -1793,6 +1846,47 @@
           "items"
         ],
         "title": "SearchPageOut",
+        "type": "object"
+      },
+      "SearchSourceMatchOut": {
+        "properties": {
+          "homepage_url": {
+            "title": "Homepage Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "homepage_url"
+        ],
+        "title": "SearchSourceMatchOut",
+        "type": "object"
+      },
+      "SearchTopicMatchOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "SearchTopicMatchOut",
         "type": "object"
       },
       "SectionOut": {
@@ -5719,6 +5813,36 @@
               ],
               "description": "Filter to one source's own id.",
               "title": "Source"
+            }
+          },
+          {
+            "description": "One of 'day', 'week', 'month' - articles published within.",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One of 'day', 'week', 'month' - articles published within.",
+              "title": "Date"
+            }
+          },
+          {
+            "description": "Interface language, for matched-topic labels.",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "Interface language, for matched-topic labels.",
+              "title": "Language",
+              "type": "string"
             }
           },
           {
