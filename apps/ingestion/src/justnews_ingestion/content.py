@@ -34,6 +34,16 @@ log = get_logger(__name__)
 #: the whole corpus.
 SAMPLE_SIZE = 8
 
+#: Rows fetched per round trip. `select(Article)` with no limit pulled every
+#: row - title, snippet, embedding vector, search vector - across the pooler
+#: in one shot, and against production that query timed out before returning
+#: anything at all. Keyset pagination on `id` keeps each round trip small and
+#: makes the command resumable in spirit: a failure partway through has
+#: already committed nothing past `--dry-run`, but a future run picks up
+#: where a working one left off simply by re-scanning from the start, which
+#: is cheap because unchanged rows are skipped in Python, not re-written.
+BATCH_SIZE = 500
+
 
 def clean_article_text(
     title: str, snippet: str | None, settings: Settings
@@ -56,46 +66,71 @@ def clean_article_text(
 async def repair_snippets(
     session: AsyncSession, settings: Settings, *, dry_run: bool = False
 ) -> dict[str, Any]:
-    """Re-clean every stored title and snippet. Idempotent."""
-    articles = (await session.scalars(select(Article))).all()
+    """Re-clean every stored title and snippet. Idempotent.
 
-    changed: list[Article] = []
-    samples: list[dict[str, str]] = []
+    Paged rather than one `select(Article)` for the whole table - see
+    `BATCH_SIZE`. Ordered by `id` so a batch boundary is stable even as the
+    corpus keeps ingesting underneath a long-running repair; each batch asks
+    for `id > last_id`, which a concurrently inserted row (a higher id) cannot
+    retroactively land inside.
+    """
+    examined = 0
+    changed = 0
     titles_changed = 0
     snippets_changed = 0
+    samples: list[dict[str, str]] = []
 
-    for article in articles:
-        title, snippet = clean_article_text(article.title, article.snippet, settings)
-        if title == article.title and snippet == article.snippet:
-            continue
-
-        if len(samples) < SAMPLE_SIZE:
-            samples.append(
-                {
-                    "id": str(article.id),
-                    "before": (article.snippet or article.title)[:160],
-                    "after": (snippet or title)[:160],
-                }
+    last_id = 0
+    while True:
+        batch = (
+            await session.scalars(
+                select(Article).where(Article.id > last_id).order_by(Article.id).limit(BATCH_SIZE)
             )
-        if title != article.title:
-            titles_changed += 1
-        if snippet != article.snippet:
-            snippets_changed += 1
-        changed.append(article)
+        ).all()
+        if not batch:
+            break
+        last_id = batch[-1].id
+        examined += len(batch)
 
+        for article in batch:
+            title, snippet = clean_article_text(article.title, article.snippet, settings)
+            if title == article.title and snippet == article.snippet:
+                continue
+
+            if len(samples) < SAMPLE_SIZE:
+                samples.append(
+                    {
+                        "id": str(article.id),
+                        "before": (article.snippet or article.title)[:160],
+                        "after": (snippet or title)[:160],
+                    }
+                )
+            if title != article.title:
+                titles_changed += 1
+            if snippet != article.snippet:
+                snippets_changed += 1
+            changed += 1
+
+            if not dry_run:
+                article.title = title
+                article.snippet = snippet
+                # The search index is built from title and snippet, so leaving
+                # it alone would keep the entity-laden text searchable and the
+                # clean text not.
+                article.search_vector = func.to_tsvector(
+                    tsvector_config(article.language), f"{title} {snippet or ''}"
+                )
+
+        # Flushed per batch rather than only once at the end by the caller's
+        # session_scope, so a changed row's UPDATE goes out while its batch is
+        # still warm instead of all of them queuing up for one flush at the
+        # close of the whole run.
         if not dry_run:
-            article.title = title
-            article.snippet = snippet
-            # The search index is built from title and snippet, so leaving it
-            # alone would keep the entity-laden text searchable and the clean
-            # text not.
-            article.search_vector = func.to_tsvector(
-                tsvector_config(article.language), f"{title} {snippet or ''}"
-            )
+            await session.flush()
 
     result = {
-        "examined": len(articles),
-        "corrected": len(changed),
+        "examined": examined,
+        "corrected": changed,
         "titles": titles_changed,
         "snippets": snippets_changed,
         "dry_run": dry_run,
