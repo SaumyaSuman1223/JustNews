@@ -190,15 +190,37 @@ class TestArticleCoverage:
         assert body["story_cluster_id"] is None
         assert body["coverage"] is None
 
+    async def test_exposes_the_source_role_when_assigned(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, source_role="industry")
+        article = await make_article(session, source, title="An industry press story")
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles/{article.id}")).json()
+        assert body["source_role"] == "industry"
+
+    async def test_source_role_is_null_when_unassigned(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source, title="An unroled story")
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles/{article.id}")).json()
+        assert body["source_role"] is None
+
     async def test_an_article_in_a_cluster_reports_real_counts(
         self, client: AsyncClient, session: AsyncSession
     ) -> None:
         uk = await make_source(session, slug="uk-wire", country="GB")
         us = await make_source(session, slug="us-wire", country="US")
+        first_seen = datetime(2026, 9, 1, 6, 0, tzinfo=UTC)
+        last_seen = datetime(2026, 9, 3, 18, 0, tzinfo=UTC)
         cluster = StoryCluster(
             title="A widely covered story",
-            first_seen_at=datetime.now(UTC),
-            last_seen_at=datetime.now(UTC),
+            first_seen_at=first_seen,
+            last_seen_at=last_seen,
             article_count=2,
             source_count=2,
             language_count=1,
@@ -219,6 +241,8 @@ class TestArticleCoverage:
             "sources": 2,
             "languages": 1,
             "countries": 2,
+            "first_seen_at": "2026-09-01T06:00:00Z",
+            "last_seen_at": "2026-09-03T18:00:00Z",
         }
 
     async def test_a_single_source_cluster_reports_one_honestly(

@@ -245,6 +245,7 @@ async function FeedBody({
                 secondaries={TIER_TWO_PICTURES}
                 rest="compact"
                 allowClusterPromotion
+                allowPerspectivePromotion
               />
             </div>
           )}
@@ -316,6 +317,7 @@ async function TabPanel({
         revalidatePath={`/${active.code}`}
         layout="list"
         allowClusterPromotion
+        allowPerspectivePromotion
       />
     );
   }
@@ -382,6 +384,7 @@ async function TabPanel({
         revalidatePath={`/${active.code}`}
         layout="list"
         allowClusterPromotion
+        allowPerspectivePromotion
       />
       <Pagination
         locale={active.code}

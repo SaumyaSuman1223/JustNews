@@ -35,6 +35,11 @@ class CoverageOut(BaseModel):
     sources: int
     languages: int
     countries: int
+    #: Fourth-pass §19's `timeline` card variant: when this story first broke
+    #: and when it was last added to, so a feed can say "developing" honestly
+    #: rather than only naming how many sources are on it.
+    first_seen_at: datetime
+    last_seen_at: datetime
 
 
 class ArticleOut(BaseModel):
@@ -50,6 +55,11 @@ class ArticleOut(BaseModel):
     source_id: int
     source_name: str
     source_slug: str
+    # ADR 0013's Perspectives fact (industry/government/academic/investor/
+    # consumer/public), already public on the Perspectives endpoint - this
+    # is the same value, so a feed card can say "Industry press" the way a
+    # topic's Perspectives module already does, without a second request.
+    source_role: str | None = None
     story_cluster_id: int | None
     # `None` whenever `story_cluster_id` is null - most articles are not part
     # of a cluster at all. Never rebuild this from `story_cluster_id` on the
@@ -65,6 +75,8 @@ class ArticleOut(BaseModel):
                 sources=row.coverage.sources,
                 languages=row.coverage.languages,
                 countries=row.coverage.countries,
+                first_seen_at=row.coverage.first_seen_at,
+                last_seen_at=row.coverage.last_seen_at,
             )
             if row.coverage is not None
             else None
@@ -80,6 +92,7 @@ class ArticleOut(BaseModel):
             source_id=row.source_id,
             source_name=row.source_name,
             source_slug=row.source_slug,
+            source_role=row.source_role,
             story_cluster_id=row.story_cluster_id,
             coverage=coverage,
         )

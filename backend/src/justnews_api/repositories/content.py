@@ -40,6 +40,12 @@ class ClusterCoverage:
     sources: int
     languages: int
     countries: int
+    #: When this story cluster first appeared and when it was last added to -
+    #: real `StoryCluster` columns, already joined by every query that builds
+    #: an `ArticleRow`. Fourth-pass §19's `timeline` card variant is the first
+    #: reader to need them; nothing new is fetched to carry them.
+    first_seen_at: datetime
+    last_seen_at: datetime
 
     @classmethod
     def from_cluster(cls, cluster: StoryCluster) -> ClusterCoverage:
@@ -48,6 +54,8 @@ class ClusterCoverage:
             sources=cluster.source_count,
             languages=cluster.language_count,
             countries=cluster.country_count,
+            first_seen_at=cluster.first_seen_at,
+            last_seen_at=cluster.last_seen_at,
         )
 
 
@@ -64,6 +72,10 @@ class ArticleRow:
     source_name: str
     source_slug: str
     story_cluster_id: int | None
+    # ADR 0013's Perspectives fact, carried onto the row for the fourth-pass
+    # `perspective` card variant - `None` for the large majority of sources
+    # that carry no assigned role, same as everywhere else this field is used.
+    source_role: str | None = None
     # Internal only - never exposed on ArticleOut. The Stage 5 ranker's one
     # use for it; a public API response has no business telling a client how
     # much we trust the source.
@@ -96,6 +108,7 @@ class ArticleRow:
             source_name=source.name,
             source_slug=source.slug,
             story_cluster_id=article.story_cluster_id,
+            source_role=source.source_role,
             source_trust_score=source.trust_score,
             coverage=ClusterCoverage.from_cluster(cluster) if cluster else None,
         )

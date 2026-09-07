@@ -70,6 +70,13 @@ export interface FeedListProps {
    */
   allowClusterPromotion?: boolean;
   /**
+   * Fourth-pass §19: whether a story whose source carries an ADR 0013 role
+   * may be promoted to the `perspective` card. Same opt-in reasoning as
+   * `allowClusterPromotion` - a call site this pass never reviewed should not
+   * silently change shape the day one of its sources gets a role assigned.
+   */
+  allowPerspectivePromotion?: boolean;
+  /**
    * Audit §35's Home gesture ("expand a story / move from headline to
    * context"), applied to the run's own lead card only - Home's hero is the
    * one place this run has a single dominant story worth a second layer, and
@@ -103,22 +110,30 @@ function variantFor(
   return rest;
 }
 
+/** A cluster counts as genuinely "developing" - worth `timeline` over the
+ * plainer `cluster` - once there is real time between when it broke and when
+ * it was last added to, not just a handful of sources filing within the same
+ * hour. Six hours, not a shorter gap: same-hour multi-source coverage is
+ * normal for any story with wire pickup and says nothing about development. */
+const DEVELOPING_SPAN_MS = 6 * 60 * 60 * 1000;
+
 /**
- * Audit §16's `cluster` card, chosen rather than assigned by position.
+ * Audit §16's `cluster` card (and fourth-pass §19's `timeline`, a refinement
+ * of it), chosen rather than assigned by position.
  *
  * Every other variant is a function of where an item falls in the run;
- * `cluster` is a function of what the ranker actually returned that day - a
- * multi-source story is real signal, not a slot the page decided to have.
- * Capped at one per list on purpose: promoting every eligible item would
- * make the page's rhythm depend on how many stories happened to cluster
- * today, which is exactly the "personalised must not mean random" property
- * the fixed variant set exists to hold onto. One clustered story, treated
- * once, reads as an editorial choice; several would read as the layout
- * losing control of itself. Only past the lead and secondary bands, so the
- * story that already earned the front of the run keeps its own weight
- * rather than being re-labelled on the way past.
+ * `cluster`/`timeline` are a function of what the ranker actually returned
+ * that day - a multi-source story is real signal, not a slot the page
+ * decided to have. Capped at one per list on purpose: promoting every
+ * eligible item would make the page's rhythm depend on how many stories
+ * happened to cluster today, which is exactly the "personalised must not
+ * mean random" property the fixed variant set exists to hold onto. One
+ * clustered story, treated once, reads as an editorial choice; several would
+ * read as the layout losing control of itself. Only past the lead and
+ * secondary bands, so the story that already earned the front of the run
+ * keeps its own weight rather than being re-labelled on the way past.
  */
-function promoteOneCluster(
+function promoteOneClusterOrTimeline(
   items: FeedItem[],
   variants: CardVariant[],
   leadsAndSecondaries: number,
@@ -127,8 +142,39 @@ function promoteOneCluster(
     (item, index) => index >= leadsAndSecondaries && (item.article.coverage?.sources ?? 0) > 1,
   );
   if (eligible === -1) return variants;
+  const coverage = items[eligible]?.article.coverage;
+  const span = coverage
+    ? Date.parse(coverage.last_seen_at) - Date.parse(coverage.first_seen_at)
+    : 0;
   const promoted = [...variants];
-  promoted[eligible] = "cluster";
+  promoted[eligible] = span >= DEVELOPING_SPAN_MS ? "timeline" : "cluster";
+  return promoted;
+}
+
+/**
+ * Fourth-pass §19's `perspective` card - promoted the same way `cluster` is,
+ * by a real signal (ADR 0013's assigned source role) rather than by position,
+ * and capped at one per list for the same rhythm reason. Independent of the
+ * cluster/timeline slot above: a story can be both widely covered and filed
+ * by a roled source, but promoting the same card twice would just be one
+ * card fighting itself over which fact it is presenting.
+ */
+function promoteOnePerspective(
+  items: FeedItem[],
+  variants: CardVariant[],
+  leadsAndSecondaries: number,
+): CardVariant[] {
+  const eligible = items.findIndex(
+    (item, index) =>
+      index >= leadsAndSecondaries &&
+      variants[index] !== "cluster" &&
+      variants[index] !== "timeline" &&
+      item.article.source_role &&
+      item.article.source_role !== "wire",
+  );
+  if (eligible === -1) return variants;
+  const promoted = [...variants];
+  promoted[eligible] = "perspective";
   return promoted;
 }
 
@@ -145,18 +191,19 @@ export function FeedList({
   rest = "list",
   aboveFold = false,
   allowClusterPromotion = false,
+  allowPerspectivePromotion = false,
   expandableLead = false,
 }: FeedListProps) {
   const baseVariants = items.map((_, index) =>
     variantFor(index, items.length, layout, leads, features, secondaries, rest),
   );
-  const variants = allowClusterPromotion
-    ? promoteOneCluster(
-        items,
-        baseVariants,
-        layout === "edited" ? leads + features + secondaries : 0,
-      )
+  const leadsAndSecondaries = layout === "edited" ? leads + features + secondaries : 0;
+  const clusterVariants = allowClusterPromotion
+    ? promoteOneClusterOrTimeline(items, baseVariants, leadsAndSecondaries)
     : baseVariants;
+  const variants = allowPerspectivePromotion
+    ? promoteOnePerspective(items, clusterVariants, leadsAndSecondaries)
+    : clusterVariants;
 
   return (
     <ul className={`feed feed--${layout}`}>

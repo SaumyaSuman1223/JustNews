@@ -1185,6 +1185,8 @@ export interface components {
             source_id: number;
             /** Source Name */
             source_name: string;
+            /** Source Role */
+            source_role?: string | null;
             /** Source Slug */
             source_slug: string;
             /** Story Cluster Id */
@@ -1296,8 +1298,18 @@ export interface components {
             articles: number;
             /** Countries */
             countries: number;
+            /**
+             * First Seen At
+             * Format: date-time
+             */
+            first_seen_at: string;
             /** Languages */
             languages: number;
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
+            last_seen_at: string;
             /** Sources */
             sources: number;
         };

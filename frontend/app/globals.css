@@ -744,6 +744,41 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+/* §19's `timeline` card - a `cluster` card that has genuinely developed over
+   time, so it takes the same restrained treatment (no box, no fill) plus one
+   more line stating since when. */
+.card--timeline {
+  gap: var(--space-1);
+}
+
+.card--timeline .card__title {
+  font-size: var(--type-list);
+  font-weight: 600;
+}
+
+.card__developing {
+  margin: 0;
+  color: var(--text-mid);
+  font-size: var(--type-meta);
+  font-style: italic;
+}
+
+/* §19's `perspective` card: text-only, like `cluster` and `timeline`, since
+   its identity is who is speaking rather than a picture. */
+.card--perspective {
+  gap: var(--space-1);
+}
+
+.card--perspective .card__title {
+  font-size: var(--type-list);
+  font-weight: 600;
+}
+
+.card__meta--role .card__role {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* A run the reader assembled themselves - saved, history - where promoting
    one item to a lead would be the page inventing an editorial judgement. */
 .feed--list {

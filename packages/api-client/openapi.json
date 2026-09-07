@@ -224,6 +224,17 @@
             "title": "Source Name",
             "type": "string"
           },
+          "source_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Role"
+          },
           "source_slug": {
             "title": "Source Slug",
             "type": "string"
@@ -527,9 +538,19 @@
             "title": "Countries",
             "type": "integer"
           },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
           "languages": {
             "title": "Languages",
             "type": "integer"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
           },
           "sources": {
             "title": "Sources",
@@ -540,7 +561,9 @@
           "articles",
           "sources",
           "languages",
-          "countries"
+          "countries",
+          "first_seen_at",
+          "last_seen_at"
         ],
         "title": "CoverageOut",
         "type": "object"

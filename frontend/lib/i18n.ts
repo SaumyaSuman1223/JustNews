@@ -495,6 +495,7 @@ const en = {
   "card.why.followedSource": "Because you follow {source}",
   "card.why.trending": "Trending now",
   "card.why.exploration": "Something different, on purpose",
+  "card.timeline.developing": "Developing since {time}",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -905,6 +906,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "card.why.followedSource": "Porque sigues {source}",
     "card.why.trending": "Tendencia ahora",
     "card.why.exploration": "Algo distinto, a propósito",
+    "card.timeline.developing": "En desarrollo desde {time}",
   },
   hi: {
     "skip.toContent": "सामग्री पर जाएँ",
@@ -1308,6 +1310,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "card.why.followedSource": "क्योंकि आप {source} को फ़ॉलो करते हैं",
     "card.why.trending": "अभी ट्रेंड में",
     "card.why.exploration": "जान-बूझकर कुछ अलग",
+    "card.timeline.developing": "{time} से विकसित हो रही है",
   },
 };
 
