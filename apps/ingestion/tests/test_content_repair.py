@@ -108,6 +108,34 @@ class TestRepairSnippets:
             "Row 2 'quoted'",
         ]
 
+    async def test_samples_show_a_change_that_lands_past_the_old_160char_slice(
+        self, session: AsyncSession
+    ) -> None:
+        # The first production dry run showed 8 samples whose visible
+        # "before"/"after" were identical. The cause: a length-only change -
+        # the most common kind this repair makes - almost always cuts a
+        # 300-char snippet down to ~200 chars, well past a 160-char prefix,
+        # so slicing both strings to 160 before comparing them for display
+        # hid the only thing that had changed. This snippet is built to
+        # reproduce exactly that: identical for its first 160 characters,
+        # different only after the summary cap.
+        source = await make_source(session)
+        # No sentence-ending punctuation anywhere, so `make_snippet` falls
+        # through to its word-boundary cut rather than stopping at an early
+        # sentence - which is what makes the shared prefix run well past 160
+        # characters instead of ending at the first ".".
+        await make_article(session, source, title="Headline", snippet="word " * 100)
+        await session.commit()
+
+        result = await repair_snippets(session, get_settings(), dry_run=True)
+        assert result["corrected"] == 1
+        sample = result["samples"][0]
+        assert sample["before"] != sample["after"]
+        # The regression specifically: the bug's symptom was that a 160-char
+        # slice of both strings was identical even though the full strings
+        # were not.
+        assert sample["before"][:160] == sample["after"][:160]
+
     async def test_samples_are_capped_even_over_many_batches(
         self, session: AsyncSession, monkeypatch
     ) -> None:

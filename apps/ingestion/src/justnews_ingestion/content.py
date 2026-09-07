@@ -98,11 +98,21 @@ async def repair_snippets(
                 continue
 
             if len(samples) < SAMPLE_SIZE:
+                # Full text, not a fixed-length prefix. A slice was tried
+                # first and it lied: this repair's most common change is
+                # trimming a 300-character snippet down to a ~200-character
+                # summary, and that cut almost always lands *past* the first
+                # 160 characters - a prefix of both strings is identical by
+                # construction whenever that is the only thing that changed,
+                # which produced samples that looked like the command had
+                # done nothing on the very first production run. Both fields
+                # are already bounded by the storage cap, so printing them in
+                # full costs nothing and shows the actual cut.
                 samples.append(
                     {
                         "id": str(article.id),
-                        "before": (article.snippet or article.title)[:160],
-                        "after": (snippet or title)[:160],
+                        "before": article.snippet or article.title,
+                        "after": snippet or title,
                     }
                 )
             if title != article.title:
