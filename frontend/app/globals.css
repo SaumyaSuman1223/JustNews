@@ -560,6 +560,57 @@ a {
   }
 }
 
+/* Audit §35's Home gesture: "expand a story / move from headline to
+ * context." A plain text toggle, not an icon button - design-system.md's
+ * banned-pattern list names decorative icons specifically, and this app has
+ * no icon for "expand" anywhere else to reuse. The panel animates open with
+ * CSS grid-rows (0fr -> 1fr), the standard no-JS-measurement technique for
+ * animating to an unknown height; `inert` (see ArticleCard) keeps it out of
+ * the tab order while collapsed without blocking that transition the way
+ * `hidden` would. Standard tier (240ms) - a real state change the reader
+ * caused, not decoration - and the global prefers-reduced-motion rule zeroes
+ * it out like every other transition in the app.
+ */
+.card__context-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.card__context-toggle:hover {
+  color: var(--text);
+}
+
+.card__context {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-standard) var(--ease);
+}
+
+.card__context[data-expanded] {
+  grid-template-rows: 1fr;
+}
+
+.card__context-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.card__context-inner p {
+  margin: 0;
+  padding-block-start: var(--space-2);
+  color: var(--text-mid);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- feature (audit §16) ---------------------------------------------------
  *
  * "Large image + large headline": stacked, full-width, image on top - the
@@ -4481,6 +4532,20 @@ span.paper__pageref {
 
 .desk-add .chip-list {
   margin-block-start: var(--space-4);
+}
+
+/* §35's My Desk gesture: the tab body dims while the next tab streams in
+   (see TopicTabs), rather than a hard navigation flash. Standard tier
+   (240ms) - "navigation, panels, menus" per design-system.md - not the
+   editorial tier reserved for Aquila's page turn. `prefers-reduced-motion`
+   is handled by the global rule that zeroes every transition duration. */
+.topic-unfold {
+  transition: opacity var(--dur-standard) var(--ease);
+}
+
+.topic-unfold[data-pending] {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .desk-layout {

@@ -69,6 +69,15 @@ export interface FeedListProps {
    * avoids.
    */
   allowClusterPromotion?: boolean;
+  /**
+   * Audit §35's Home gesture ("expand a story / move from headline to
+   * context"), applied to the run's own lead card only - Home's hero is the
+   * one place this run has a single dominant story worth a second layer, and
+   * every other `FeedList` caller (search, a topic feed, saved, history) has
+   * no lead in the same sense. Off by default for the same opt-in reasons as
+   * `allowClusterPromotion`.
+   */
+  expandableLead?: boolean;
 }
 
 const LEAD_COUNT = 1;
@@ -136,6 +145,7 @@ export function FeedList({
   rest = "list",
   aboveFold = false,
   allowClusterPromotion = false,
+  expandableLead = false,
 }: FeedListProps) {
   const baseVariants = items.map((_, index) =>
     variantFor(index, items.length, layout, leads, features, secondaries, rest),
@@ -167,6 +177,7 @@ export function FeedList({
             revalidatePath={revalidatePath}
             variant={variant}
             priority={aboveFold && index === 0}
+            expandable={expandableLead && variant === "lead" && index === 0}
           />
         );
       })}

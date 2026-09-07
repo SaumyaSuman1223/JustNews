@@ -65,7 +65,12 @@ export default async function TopicDetailPage({
   const tab: TopicTab = isTopicTab(tabParam) ? tabParam : "understand";
 
   return (
-    <Suspense key={`${tab}:${cursor ?? "start"}`} fallback={<TopicDetailSkeleton />}>
+    // Keyed by cursor alone, not tab: a tab switch must stay the same
+    // Suspense boundary so React's transition keeps the outgoing tab's
+    // content on screen (see TopicTabs) instead of discarding it for the
+    // fallback skeleton. A cursor change (paging within a tab) still gets a
+    // fresh boundary, same as before.
+    <Suspense key={cursor ?? "start"} fallback={<TopicDetailSkeleton />}>
       <TopicDetailBody locale={active.code} id={id} cursor={cursor} tab={tab} />
     </Suspense>
   );
@@ -110,28 +115,28 @@ async function TopicDetailBody({
         <h1>{topic.label}</h1>
       </div>
 
-      <TopicTabs locale={locale} active={tab} basePath={basePath} />
-
-      <div className="desk-layout">
-        <div className="desk-layout__main">
-          <TabBody
-            tab={tab}
+      <TopicTabs locale={locale} active={tab} basePath={basePath}>
+        <div className="desk-layout">
+          <div className="desk-layout__main">
+            <TabBody
+              tab={tab}
+              locale={locale}
+              topicId={topicId}
+              topicLabel={topic.label}
+              basePath={basePath}
+              cursor={cursor}
+              auth={auth}
+              languages={readerLanguages(profile?.preferred_languages, locale)}
+              signedIn={Boolean(session)}
+            />
+          </div>
+          <DeskRail
+            overview={overview.degraded ? null : overview.data}
+            related={related.data}
             locale={locale}
-            topicId={topicId}
-            topicLabel={topic.label}
-            basePath={basePath}
-            cursor={cursor}
-            auth={auth}
-            languages={readerLanguages(profile?.preferred_languages, locale)}
-            signedIn={Boolean(session)}
           />
         </div>
-        <DeskRail
-          overview={overview.degraded ? null : overview.data}
-          related={related.data}
-          locale={locale}
-        />
-      </div>
+      </TopicTabs>
     </>
   );
 }

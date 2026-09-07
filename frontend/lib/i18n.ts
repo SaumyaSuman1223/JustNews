@@ -160,6 +160,10 @@ const en = {
   "home.glance.heading": "Today at a glance",
   "home.brief.heading": "The Daily Brief",
   "home.brief.cta": "Read today’s issue",
+  "home.lead.context.show": "More about this story",
+  "home.lead.context.hide": "Less",
+  "home.lead.context.published": "Published {time}",
+  "home.lead.context.coverage": "See full coverage",
   "home.tabs.label": "Feed",
   "home.tabs.forYou": "For You",
   "home.tabs.trending": "Trending",
@@ -552,6 +556,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "home.glance.heading": "Hoy de un vistazo",
     "home.brief.heading": "El resumen diario",
     "home.brief.cta": "Leer la edición de hoy",
+    "home.lead.context.show": "Más sobre esta historia",
+    "home.lead.context.hide": "Menos",
+    "home.lead.context.published": "Publicado {time}",
+    "home.lead.context.coverage": "Ver cobertura completa",
     "home.tabs.label": "Feed",
     "home.tabs.forYou": "Para ti",
     "home.tabs.trending": "Tendencias",
@@ -939,6 +947,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "home.glance.heading": "आज एक नज़र में",
     "home.brief.heading": "दैनिक सार",
     "home.brief.cta": "आज का अंक पढ़ें",
+    "home.lead.context.show": "इस कहानी के बारे में और",
+    "home.lead.context.hide": "कम करें",
+    "home.lead.context.published": "प्रकाशित {time}",
+    "home.lead.context.coverage": "पूरी कवरेज देखें",
     "home.tabs.label": "फ़ीड",
     "home.tabs.forYou": "आपके लिए",
     "home.tabs.trending": "ट्रेंडिंग",
@@ -1369,6 +1381,15 @@ export function formatArticleCoverage(
   }
   parts.push(tPlural(locale, "coverage.languages", coverage.languages));
   return parts.join(" · ");
+}
+
+/** Locale-aware absolute time, e.g. "September 6, 2026 at 2:45 PM" - the
+ * exact instant a reader reaches for once "yesterday" isn't precise enough
+ * (Home's lead expansion, audit §35). */
+export function formatAbsoluteTime(iso: string, locale: LocaleCode): string {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "long", timeStyle: "short" }).format(
+    new Date(iso),
+  );
 }
 
 /** Locale-aware relative time, e.g. "3 hours ago" / "منذ ٣ ساعات". */

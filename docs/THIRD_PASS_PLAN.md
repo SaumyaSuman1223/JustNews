@@ -543,6 +543,52 @@ built from composition, no new animation library, both reduced-motion aware.
 **Accept:** each gesture works by keyboard; neither is required to reach any
 content.
 
+**Shipped, one direction changed by design-system.md itself.** The original
+instinct for My Desk's "topic unfolding" was an entrance animation on the
+Understand modules when a topic page loads. Re-reading design-system.md's
+own Motion section before building stopped that: "no bounce, no floating
+elements, no parallax, no entrance animations on load" is explicit, and an
+on-load reveal is exactly that pattern. The honest reading of §35's "open a
+topic and progressively reveal context" is the *tab switch* itself - Latest
+/ Understand / Analysis were still a hard page navigation (a blank flash,
+then the next page), which is the "page load" feeling the audit is asking
+this surface to move past, not the first arrival on the page.
+
+`TopicTabs` became a client component wrapping the tab body as `children`,
+using `useTransition` to keep the outgoing tab's content on screen at 0.5
+opacity while the next tab streams in (`--dur-standard`, 240ms - "navigation,
+panels, menus" is design-system.md's own bucket for exactly this), then
+snapping back to full opacity once it resolves - a real state the reader
+caused, not decoration. Still real `<Link>`s throughout: a plain left click
+intercepts the navigation to animate it, but a modifier click (new tab, copy
+link) passes through untouched. The page-level Suspense boundary is now
+keyed by `cursor` alone rather than `tab`, so a tab switch stays the same
+boundary and lets React's transition keep the stale content visible instead
+of discarding it for a fallback skeleton - both wired together let the
+concurrent-rendering/Suspense contract do the actual work.
+
+Home's lead gesture is real "headline to context": a text toggle ("More
+about this story") under the byline, gated to the run's own lead card via a
+new `expandableLead` prop on `FeedList` (opt-in, wired only at Home's hero).
+Expanding reveals the exact publish instant (`formatAbsoluteTime`, new) and,
+only when the lead is genuinely part of a multi-source cluster, the same
+coverage line the `cluster` card already uses plus a link to the full
+coverage page - never a "why this matters" paragraph, which ADR 0004 rules
+out. The panel animates open with a CSS grid-rows trick (0fr → 1fr, no JS
+height measurement) and carries `inert` while collapsed so a keyboard user
+can't tab into a link inside it before it's visible - `hidden` was
+considered and rejected because it blocks the transition outright.
+
+Verified live: the toggle opens/closes via mouse and via keyboard
+(Enter on a focused button, `aria-expanded` flips both ways); My Desk's tab
+opacity was sampled at 60ms intervals during a real transition and confirmed
+it actually dips (~0.56) before recovering to 1.0, not just present in
+markup. axe clean on `/en` and `/en/desk/{topic}` (0 violations each); full
+e2e suite green (one confirmed flake, a Next.js dev-mode devtools portal
+unrelated to any route this chunk touched); typecheck/lint/build clean; no
+backend files changed. QA screenshots across 390/1440 × light/dark show no
+regressions.
+
 ### Chunk 8 — QA and the audit's edge cases *(§43 Phase 9, §51)*
 The full matrix plus long headlines, missing images, missing metadata,
 multilingual text, edition boundaries. Performance re-measured against the
