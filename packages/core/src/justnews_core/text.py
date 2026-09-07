@@ -275,7 +275,20 @@ def _shorten(text: str, max_chars: int, *, min_sentence_chars: int = 30) -> str:
     cut = text[: max_chars - 1]
     if " " in cut:
         cut = cut[: cut.rindex(" ")]
-    return cut.rstrip(" ,;:.-") + "…"
+    # Three ASCII periods, not U+2026 "…". NFKC has a compatibility
+    # decomposition for the single-character ellipsis - it *is* three periods,
+    # canonically - and `normalise_text` runs NFKC on every call, including on
+    # text this function itself already produced. A "…" appended here was
+    # rewritten to "..." the next time this same text passed through
+    # `make_snippet`, which is exactly what happened the first time
+    # `repair-snippets` was run twice against production: every row this
+    # branch had touched came back "changed" on the second pass, not because
+    # anything about the row was still wrong, but because the marker this
+    # function itself had written was not stable under its own normalisation
+    # step. Three literal periods have no further decomposition, so they
+    # survive any number of passes unchanged - which is what "idempotent"
+    # actually requires, not "converges after one extra run".
+    return cut.rstrip(" ,;:.-") + "..."
 
 
 def make_snippet(

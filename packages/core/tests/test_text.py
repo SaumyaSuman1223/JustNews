@@ -245,7 +245,9 @@ class TestSummaryLength:
         result = make_snippet("word " * 100, 300, summary_max_chars=200)
         assert result is not None
         assert len(result) <= 200
-        assert result.endswith("…")
+        # Three literal periods, not U+2026 "…" - see the idempotency tests
+        # below for why that distinction is load-bearing rather than cosmetic.
+        assert result.endswith("...")
 
     def test_summary_cap_never_exceeds_the_storage_cap(self) -> None:
         # The storage cap is a copyright constraint and wins whenever the two
@@ -272,6 +274,44 @@ class TestSummaryLength:
             summary_max_chars=200,
         )
         assert once is not None
+        assert make_snippet(once, 300, summary_max_chars=200) == once
+
+    def test_is_idempotent_when_the_cut_falls_on_a_word_boundary(self) -> None:
+        # The regression this test exists for: this input has no early
+        # sentence boundary, so it takes the *other* branch of `_shorten` -
+        # the one that appends a truncation marker. `test_is_idempotent`
+        # above only exercises the sentence-boundary branch, which is why it
+        # passed while production found the bug: the marker character used to
+        # be U+2026 "…", which NFKC (run by `normalise_text` on every call,
+        # including this function's own prior output) silently rewrites to
+        # three ASCII periods. A second pass over already-cleaned text with
+        # that marker was therefore never a no-op.
+        once = make_snippet("word " * 100, 300, summary_max_chars=200)
+        assert once is not None
+        assert once.endswith("...")
+        assert make_snippet(once, 300, summary_max_chars=200) == once
+
+    def test_the_exact_string_that_broke_in_production_now_converges(self) -> None:
+        # `repair-snippets` ran twice against production, twelve minutes
+        # apart. The first run genuinely cleaned 3,474 rows. The second
+        # should have reported zero and instead reported 1,568 - every row
+        # from the first run whose snippet had been truncated with the old
+        # "…" marker. This is that exact string, captured from the first
+        # run's own sample output.
+        #
+        # A single pass over it still changes it once - correctly: this text
+        # predates the fix and genuinely carries the old marker, and there is
+        # no way to clean stored legacy text without touching it at least
+        # once. What must not happen again is a *second* pass finding more
+        # work, which is the actual bug this incident exposed.
+        stored = (
+            "Venture capitalist Joshua Kushner says he would not have got involved in "
+            "Fifa president Gianni Infantino's scrapped plan to sell off stakes in the "
+            "World Cup if he had known how the football world…"
+        )
+        once = make_snippet(stored, 300, summary_max_chars=200)
+        assert once != stored
+        assert once is not None and once.endswith("...")
         assert make_snippet(once, 300, summary_max_chars=200) == once
 
 
