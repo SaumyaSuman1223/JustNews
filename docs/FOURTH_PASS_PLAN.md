@@ -182,6 +182,28 @@ Firefox and WebKit or falls back to today's filter; no new dependency; still
 one line to remove. Timeboxed — if the primitive chain does not hold up across
 engines, the finding is recorded and the current treatment stays.
 
+**Tried, and reverted.** Built the amplitude-modulation graph: a tiled radial
+ramp painted through `feImage href="#screen-rect"` (an in-document `<rect>`
+filled by an SVG `<pattern>`), compared against luminance with
+`feComposite operator="arithmetic"`, then binarized. The math is sound and
+was checked by hand before implementing — but `feImage` referencing local SVG
+content by fragment identifier is a long-standing cross-browser weak spot, and
+it showed up immediately: in Chromium (the best-supported engine, tested
+first) every halftoned image rendered as a flat paper-coloured rectangle, no
+photograph and no dots at all — confirmed with `img.complete`/`naturalWidth`
+that the source image itself loaded fine, so the failure is in the filter
+graph, not the fetch. WebKit could not even be launched in this environment
+to check a second engine (missing system libraries for the sandboxed
+Playwright install), and Firefox was never reached once Chromium failed the
+accept criterion outright. A blank front page is a worse regression than the
+fixed dot grid it was replacing, so the change was reverted rather than
+shipped and iterated on live. `Halftone.tsx` and the `.halftone` CSS are
+unchanged from the third pass. The real fix, if this is picked up again,
+almost certainly needs the dot screen supplied as a **data URI**
+(`feImage href="data:image/svg+xml,..."`) rather than a same-document
+fragment reference — data URIs are `feImage`'s well-supported path — which
+this pass did not have the remaining timebox to rebuild and re-verify.
+
 ### Chunk 7 — The remaining story types *(§19)*
 `Timeline` and `Perspectives` exist as page modules but not as story
 compositions a feed can place. `ContextStory` has no honest content source and
