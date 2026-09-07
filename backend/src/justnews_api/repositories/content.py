@@ -26,6 +26,32 @@ from justnews_core.models import (
 
 
 @dataclass(frozen=True, slots=True)
+class ClusterCoverage:
+    """Audit §21's diversity line - "7 sources / 4 countries / 2 languages".
+
+    One object, not four independently-optional counts on `ArticleRow`: the
+    four numbers only ever exist together (they all come from the same
+    `StoryCluster` row) and this makes that structural rather than a
+    convention four separate `int | None` fields would rely on the reader to
+    notice.
+    """
+
+    articles: int
+    sources: int
+    languages: int
+    countries: int
+
+    @classmethod
+    def from_cluster(cls, cluster: StoryCluster) -> ClusterCoverage:
+        return cls(
+            articles=cluster.article_count,
+            sources=cluster.source_count,
+            languages=cluster.language_count,
+            countries=cluster.country_count,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ArticleRow:
     id: int
     title: str
@@ -42,9 +68,22 @@ class ArticleRow:
     # use for it; a public API response has no business telling a client how
     # much we trust the source.
     source_trust_score: float = 0.5
+    # `None` whenever `story_cluster_id` is null (most articles are not part
+    # of a cluster at all, which is a different fact from "a cluster of one").
+    # Never inferred from `story_cluster_id` alone: a cluster genuinely can
+    # have a single source, and `coverage.sources == 1` says that honestly
+    # rather than the caller having to guess it from an id.
+    coverage: ClusterCoverage | None = None
 
     @classmethod
     def from_pair(cls, article: Article, source: Source) -> ArticleRow:
+        """For the two callers with no cluster in scope (Aquila slots,
+        admin's own listing query) - narrower queries this chunk did not
+        touch. `from_row` is the real constructor; this is `cluster=None`."""
+        return cls.from_row(article, source, None)
+
+    @classmethod
+    def from_row(cls, article: Article, source: Source, cluster: StoryCluster | None) -> ArticleRow:
         return cls(
             id=article.id,
             title=article.title,
@@ -58,16 +97,30 @@ class ArticleRow:
             source_slug=source.slug,
             story_cluster_id=article.story_cluster_id,
             source_trust_score=source.trust_score,
+            coverage=ClusterCoverage.from_cluster(cluster) if cluster else None,
         )
 
 
-def _base_query() -> Select[tuple[Article, Source]]:
+def _base_query() -> Select[tuple[Article, Source, StoryCluster]]:
+    # The `StoryCluster` in this type is optimistic - SQLAlchemy's stubs do
+    # not carry the outer join's nullability into the element type, and
+    # every unpacking call site below binds it to a `StoryCluster | None`
+    # anyway, so this is a documented gap in the annotation rather than a
+    # runtime risk.
     # The one choke point every read path shares: a taken-down article stops
     # existing for readers here, without the row itself being deleted (the
     # admin console and the audit log both need it to still be there).
+    #
+    # Outer-joined to `story_clusters`, not inner: most articles carry no
+    # `story_cluster_id` at all (clustering only happens on the second
+    # article of a story - see `dedup.attach_to_cluster`), and an inner join
+    # would silently drop every one of them from every feed. The join itself
+    # is a single indexed primary-key lookup per row, which is why it is
+    # unconditional here rather than a second query only some callers pay for.
     return (
-        select(Article, Source)
+        select(Article, Source, StoryCluster)
         .join(Source, Article.source_id == Source.id)
+        .outerjoin(StoryCluster, StoryCluster.id == Article.story_cluster_id)
         .where(Article.removed_at.is_(None))
     )
 
@@ -116,7 +169,9 @@ async def list_articles(
         )
 
     result = await session.execute(query)
-    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+    return [
+        ArticleRow.from_row(article, source, cluster) for article, source, cluster in result.all()
+    ]
 
 
 async def list_articles_window(
@@ -152,7 +207,9 @@ async def list_articles_window(
         query = query.where(Article.id.notin_(exclude_article_ids))
 
     result = await session.execute(query)
-    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+    return [
+        ArticleRow.from_row(article, source, cluster) for article, source, cluster in result.all()
+    ]
 
 
 async def get_article(session: AsyncSession, article_id: int) -> ArticleRow | None:
@@ -160,8 +217,8 @@ async def get_article(session: AsyncSession, article_id: int) -> ArticleRow | No
     row = result.first()
     if row is None:
         return None
-    article, source = row
-    return ArticleRow.from_pair(article, source)
+    article, source, cluster = row
+    return ArticleRow.from_row(article, source, cluster)
 
 
 async def get_article_including_removed(
@@ -171,15 +228,16 @@ async def get_article_including_removed(
     ``get_article``, which is what makes a takedown actually take an article
     down everywhere else."""
     query = (
-        select(Article, Source)
+        select(Article, Source, StoryCluster)
         .join(Source, Article.source_id == Source.id)
+        .outerjoin(StoryCluster, StoryCluster.id == Article.story_cluster_id)
         .where(Article.id == article_id)
     )
     row = (await session.execute(query)).first()
     if row is None:
         return None
-    article, source = row
-    return ArticleRow.from_pair(article, source)
+    article, source, cluster = row
+    return ArticleRow.from_row(article, source, cluster)
 
 
 async def get_articles_by_id(
@@ -190,7 +248,10 @@ async def get_articles_by_id(
     if not article_ids:
         return {}
     result = await session.execute(_base_query().where(Article.id.in_(set(article_ids))))
-    return {article.id: ArticleRow.from_pair(article, source) for article, source in result.all()}
+    return {
+        article.id: ArticleRow.from_row(article, source, cluster)
+        for article, source, cluster in result.all()
+    }
 
 
 async def get_article_topics(session: AsyncSession, article_id: int) -> list[tuple[Topic, bool]]:
@@ -290,7 +351,9 @@ async def search_articles(
         )
 
     result = await session.execute(query)
-    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+    return [
+        ArticleRow.from_row(article, source, cluster) for article, source, cluster in result.all()
+    ]
 
 
 async def count_search_articles(
@@ -348,7 +411,9 @@ async def list_articles_in_cluster(session: AsyncSession, story_id: int) -> list
         .order_by(Article.published_at.asc())
     )
     result = await session.execute(query)
-    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+    return [
+        ArticleRow.from_row(article, source, cluster) for article, source, cluster in result.all()
+    ]
 
 
 async def dominant_topic_for_story(session: AsyncSession, story_id: int) -> Topic | None:
@@ -529,7 +594,9 @@ async def list_trending(
         query = query.where(Article.language.in_(languages))
 
     result = await session.execute(query)
-    return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+    return [
+        ArticleRow.from_row(article, source, cluster) for article, source, cluster in result.all()
+    ]
 
 
 async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:

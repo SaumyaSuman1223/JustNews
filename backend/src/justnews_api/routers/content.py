@@ -24,6 +24,19 @@ from justnews_core.models import StoryCluster
 router = APIRouter(prefix="/v1", tags=["content"])
 
 
+class CoverageOut(BaseModel):
+    """Third-pass audit §21: "7 sources / 4 countries / 2 languages" - how
+    widely the story this article belongs to is being covered, as of the last
+    time the cluster changed. Real counts from `story_clusters`, never
+    inferred: a cluster of one source is a real, honest `sources: 1`, not
+    something the client has to guess from `story_cluster_id` alone."""
+
+    articles: int
+    sources: int
+    languages: int
+    countries: int
+
+
 class ArticleOut(BaseModel):
     id: int
     title: str
@@ -38,9 +51,24 @@ class ArticleOut(BaseModel):
     source_name: str
     source_slug: str
     story_cluster_id: int | None
+    # `None` whenever `story_cluster_id` is null - most articles are not part
+    # of a cluster at all. Never rebuild this from `story_cluster_id` on the
+    # client: a cluster with a single source is a real cluster, so its
+    # presence is not itself a signal of how many sources are covering it.
+    coverage: CoverageOut | None = None
 
     @classmethod
     def from_row(cls, row: repo.ArticleRow) -> ArticleOut:
+        coverage = (
+            CoverageOut(
+                articles=row.coverage.articles,
+                sources=row.coverage.sources,
+                languages=row.coverage.languages,
+                countries=row.coverage.countries,
+            )
+            if row.coverage is not None
+            else None
+        )
         return cls(
             id=row.id,
             title=row.title,
@@ -53,6 +81,7 @@ class ArticleOut(BaseModel):
             source_name=row.source_name,
             source_slug=row.source_slug,
             story_cluster_id=row.story_cluster_id,
+            coverage=coverage,
         )
 
 

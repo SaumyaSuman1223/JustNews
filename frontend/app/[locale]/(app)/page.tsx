@@ -233,6 +233,7 @@ async function FeedBody({
                 // hierarchy instead of six equal rectangles.
                 secondaries={TIER_TWO_PICTURES}
                 rest="compact"
+                allowClusterPromotion
               />
             </div>
           )}
@@ -303,6 +304,7 @@ async function TabPanel({
         signedIn={hasBetaAccess}
         revalidatePath={`/${active.code}`}
         layout="list"
+        allowClusterPromotion
       />
     );
   }
@@ -368,6 +370,7 @@ async function TabPanel({
         signedIn={hasBetaAccess}
         revalidatePath={`/${active.code}`}
         layout="list"
+        allowClusterPromotion
       />
       <Pagination
         locale={active.code}

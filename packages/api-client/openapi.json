@@ -171,6 +171,16 @@
       },
       "ArticleOut": {
         "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -504,6 +514,35 @@
           "active_users"
         ],
         "title": "CohortWeekOut",
+        "type": "object"
+      },
+      "CoverageOut": {
+        "description": "Third-pass audit \u00a721: \"7 sources / 4 countries / 2 languages\" - how\nwidely the story this article belongs to is being covered, as of the last\ntime the cluster changed. Real counts from `story_clusters`, never\ninferred: a cluster of one source is a real, honest `sources: 1`, not\nsomething the client has to guess from `story_cluster_id` alone.",
+        "properties": {
+          "articles": {
+            "title": "Articles",
+            "type": "integer"
+          },
+          "countries": {
+            "title": "Countries",
+            "type": "integer"
+          },
+          "languages": {
+            "title": "Languages",
+            "type": "integer"
+          },
+          "sources": {
+            "title": "Sources",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articles",
+          "sources",
+          "languages",
+          "countries"
+        ],
+        "title": "CoverageOut",
         "type": "object"
       },
       "DeckCardOut": {

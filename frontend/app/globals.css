@@ -632,6 +632,31 @@ a {
   font-weight: 600;
 }
 
+/* --- cluster (audit §16) --------------------------------------------------
+ *
+ * "One story connecting several sources" - carried entirely by typography,
+ * per §32's "do not turn everything into cards": no box, no fill, no border.
+ * The accent-coloured coverage line is what marks this card as different
+ * from its neighbours, the same way `.card__source` is already the one
+ * piece of a normal card's metadata that is not grey.
+ */
+.card--cluster {
+  gap: var(--space-1);
+}
+
+.card--cluster .card__title {
+  font-size: var(--type-list);
+  font-weight: 600;
+}
+
+.card__coverage {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: var(--type-meta);
+  font-variant-numeric: tabular-nums;
+}
+
 /* A run the reader assembled themselves - saved, history - where promoting
    one item to a lead would be the page inventing an editorial judgement. */
 .feed--list {

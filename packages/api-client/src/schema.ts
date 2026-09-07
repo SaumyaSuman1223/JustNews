@@ -1173,6 +1173,7 @@ export interface components {
         };
         /** ArticleOut */
         ArticleOut: {
+            coverage?: components["schemas"]["CoverageOut"] | null;
             /** Id */
             id: number;
             /** Image Url */
@@ -1287,6 +1288,24 @@ export interface components {
             active_users: number;
             /** Week Offset */
             week_offset: number;
+        };
+        /**
+         * CoverageOut
+         * @description Third-pass audit §21: "7 sources / 4 countries / 2 languages" - how
+         *     widely the story this article belongs to is being covered, as of the last
+         *     time the cluster changed. Real counts from `story_clusters`, never
+         *     inferred: a cluster of one source is a real, honest `sources: 1`, not
+         *     something the client has to guess from `story_cluster_id` alone.
+         */
+        CoverageOut: {
+            /** Articles */
+            articles: number;
+            /** Countries */
+            countries: number;
+            /** Languages */
+            languages: number;
+            /** Sources */
+            sources: number;
         };
         /** DeckCardOut */
         DeckCardOut: {

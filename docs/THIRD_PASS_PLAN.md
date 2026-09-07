@@ -350,6 +350,57 @@ countries, languages, each omitted when unknown rather than guessed.
 **Accept:** every number traces to a column; a single-source story shows no
 diversity line at all; `make generate-client` committed.
 
+**Shipped, and it turned out to need a real migration.** `source_count` and
+`language_count` already lived on `story_clusters`; `country_count` did not -
+country is a property of the *publisher*, not the article, so counting it
+needed a join `dedup.refresh_cluster_counts` had never made. Migration
+`0017` adds the column (`NOT NULL DEFAULT 0`, additive, no data migration of
+its own); `justnews-ingest repair-cluster-counts [--dry-run]` backfills
+existing clusters, same shape as `repair-edition-times` and
+`repair-snippets` - paginated by id from the start, learning that lesson
+before repeating it rather than after.
+
+**Perspectives is not in this chunk.** §21's mockup shows four numbers;
+this ships three. `source_role` is only 4/9 populated in the local corpus,
+and a perspectives count is a live join per cluster (source role can change
+via the admin console, so a *stored* count would go stale exactly the way
+the other three don't) - cheap for one article, not something to compute for
+every card in a feed. Sources/countries/languages are real and general;
+perspectives is real but narrow, and belongs with whichever surface
+specifically wants it rather than bolted onto every `ArticleOut`.
+
+**API shape:** `ArticleOut.coverage: CoverageOut | None` -
+`{articles, sources, languages, countries}` - null whenever the article
+carries no `story_cluster_id`, present (even at `sources: 1`) whenever it
+does. Never inferred from the id alone: a cluster of one source is real and
+says so honestly rather than making the client guess. `countries` is a
+genuine count of *known* countries - a source with none recorded contributes
+nothing rather than counting as a fourth "unknown" country, and the
+frontend's `formatArticleCoverage` omits the whole segment rather than
+print a false zero.
+
+**The `cluster` card is chosen, not assigned by position** - the one variant
+in the set that depends on what the ranker actually returned rather than
+where an item falls in the run. Capped at one per `FeedList` call
+deliberately: promoting every eligible item would make the page's rhythm
+depend on how many stories happened to cluster that day, which is exactly
+what the fixed variant set (`design-system.md`'s "personalised must not mean
+random") exists to prevent. Gated by a new `allowClusterPromotion` prop,
+off by default and turned on explicitly at Home's four relevant call sites
+(the "what you should know" tier, trending, the ranked continuation) -
+not inferred from `layout`, because `layout="list"` also covers Saved and
+History, where the reader assembled the set themselves and no promotion
+should touch it. Off everywhere else in the app this chunk did not review
+(search, a topic page, the edition archive) rather than silently on.
+
+Verified against real local data: composed a genuine 5-source cluster,
+confirmed `coverage` is null for an unclustered article and correct for a
+clustered one via both the single-article route and the feed listing (an
+integration test for each), watched the `cluster` card actually render on
+Home with real coverage text ("5 sources · 1 country · 1 language"), then
+reverted the local timestamp used to position it there. Full QA matrix
+clean; migration round-trips; `alembic check` reports no drift.
+
 ### Chunk 4 — The story as a first-class object *(§22)*
 `/story/[id]` becomes §22's composition: the story, who is covering it, what
 differs. Built from clusters and `source_role`, which both exist.

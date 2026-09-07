@@ -423,6 +423,17 @@ const en = {
   "desk.coverage.sources.other": "{count} sources",
   "desk.coverage.languages.one": "{count} language",
   "desk.coverage.languages.other": "{count} languages",
+  // Audit §21's diversity line - "7 sources / 4 countries / 2 languages".
+  // A fresh set rather than reusing desk.coverage.* above: that pair is
+  // My Desk's topic-coverage line (Chunk 8), and this is a different
+  // feature - an article's own story-cluster coverage - that only happens
+  // to want the same shape of sentence.
+  "coverage.sources.one": "{count} source",
+  "coverage.sources.other": "{count} sources",
+  "coverage.countries.one": "{count} country",
+  "coverage.countries.other": "{count} countries",
+  "coverage.languages.one": "{count} language",
+  "coverage.languages.other": "{count} languages",
   "desk.keyDevelopments.empty": "No major developments yet.",
   "desk.perspectives.empty":
     "Not enough named-source coverage yet to show perspectives for this topic.",
@@ -805,6 +816,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.coverage.sources.other": "{count} fuentes",
     "desk.coverage.languages.one": "{count} idioma",
     "desk.coverage.languages.other": "{count} idiomas",
+    "coverage.sources.one": "{count} fuente",
+    "coverage.sources.other": "{count} fuentes",
+    "coverage.countries.one": "{count} país",
+    "coverage.countries.other": "{count} países",
+    "coverage.languages.one": "{count} idioma",
+    "coverage.languages.other": "{count} idiomas",
     "desk.keyDevelopments.empty": "Todavía no hay desarrollos importantes.",
     "desk.perspectives.empty":
       "Todavía no hay suficiente cobertura de fuentes identificadas para mostrar perspectivas de este tema.",
@@ -1180,6 +1197,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.coverage.sources.other": "{count} स्रोत",
     "desk.coverage.languages.one": "{count} भाषा",
     "desk.coverage.languages.other": "{count} भाषाएँ",
+    "coverage.sources.one": "{count} स्रोत",
+    "coverage.sources.other": "{count} स्रोत",
+    "coverage.countries.one": "{count} देश",
+    "coverage.countries.other": "{count} देश",
+    "coverage.languages.one": "{count} भाषा",
+    "coverage.languages.other": "{count} भाषाएँ",
     "desk.keyDevelopments.empty": "अभी कोई बड़ा घटनाक्रम नहीं है।",
     "desk.perspectives.empty":
       "इस विषय के लिए दृष्टिकोण दिखाने के लिए अभी पर्याप्त पहचाने गए स्रोतों की कवरेज नहीं है।",
@@ -1253,6 +1276,9 @@ export function t(
 type PluralBase =
   | "article.otherLanguages"
   | "article.otherSources"
+  | "coverage.countries"
+  | "coverage.languages"
+  | "coverage.sources"
   | "desk.coverage.languages"
   | "desk.coverage.sources"
   | "search.resultCount"
@@ -1312,6 +1338,25 @@ export function formatCoverage(
     tPlural(locale, "desk.coverage.sources", sources),
     tPlural(locale, "desk.coverage.languages", languages),
   ].join(" · ");
+}
+
+/**
+ * Audit §21's diversity line - "7 sources / 4 countries / 2 languages" - for
+ * an article's own story-cluster coverage. Countries is omitted entirely
+ * rather than printed as "0 countries" when no source in the cluster has a
+ * recorded country: a real zero and an unknown value are different facts,
+ * and this line only ever states the first one.
+ */
+export function formatArticleCoverage(
+  locale: LocaleCode,
+  coverage: { sources: number; countries: number; languages: number },
+): string {
+  const parts = [tPlural(locale, "coverage.sources", coverage.sources)];
+  if (coverage.countries > 0) {
+    parts.push(tPlural(locale, "coverage.countries", coverage.countries));
+  }
+  parts.push(tPlural(locale, "coverage.languages", coverage.languages));
+  return parts.join(" · ");
 }
 
 /** Locale-aware relative time, e.g. "3 hours ago" / "منذ ٣ ساعات". */
