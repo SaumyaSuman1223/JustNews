@@ -220,16 +220,24 @@ export function searchArticles(params: {
   languages?: string;
   topic?: string;
   source?: string;
+  date?: string;
+  interfaceLanguage?: string;
   cursor?: string;
 }): Promise<Degradable<SearchPage>> {
   const query = new URLSearchParams({ q: params.query });
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
   if (params.source) query.set("source", params.source);
+  if (params.date) query.set("date", params.date);
+  if (params.interfaceLanguage) query.set("language", params.interfaceLanguage);
   if (params.cursor) query.set("cursor", params.cursor);
   // Search results are per-query already; a short cache just absorbs repeats
   // (back button, double submit) rather than serving stale results.
-  return get<SearchPage>(`/v1/search?${query}`, { items: [], next_cursor: null, total: null }, 30);
+  return get<SearchPage>(
+    `/v1/search?${query}`,
+    { items: [], next_cursor: null, total: null, matched_topics: null, matched_sources: null },
+    30,
+  );
 }
 
 // --- personalised, authenticated calls ----------------------------------
