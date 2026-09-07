@@ -2070,6 +2070,35 @@ a.chip:active {
   margin-block-end: var(--space-4);
 }
 
+/* Flat scan list of every source on the story - "who's covering this",
+   answered in one line rather than requiring the reader to open each
+   language group. Middot-separated like .site-footer__line, since this is
+   the same "line of links" shape, just longer. */
+.story-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) 0;
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.story-sources li {
+  display: flex;
+}
+
+.story-sources li + li::before {
+  content: "·";
+  margin-inline: var(--space-2);
+  color: var(--border);
+}
+
+.story-sources a:hover {
+  color: var(--accent);
+}
+
 /* --- blindspot rail ------------------------------------------------------ */
 
 .blindspot {

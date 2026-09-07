@@ -237,6 +237,8 @@ const en = {
   "story.reports.other": "{count} reports",
   "story.firstReported": "First reported {time}",
   "story.lastUpdated": "Last updated {time}",
+  "story.sources.label": "Sources covering this story",
+  "story.perspectives.heading": "What differs between them?",
   "story.related.heading": "Related stories",
 
   "settings.heading": "Settings",
@@ -626,6 +628,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "story.reports.other": "{count} informaciones",
     "story.firstReported": "Primer informe {time}",
     "story.lastUpdated": "Última actualización {time}",
+    "story.sources.label": "Fuentes que cubren esta historia",
+    "story.perspectives.heading": "¿En qué se diferencian?",
     "story.related.heading": "Historias relacionadas",
 
     "settings.heading": "Ajustes",
@@ -1009,6 +1013,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "story.reports.other": "{count} रिपोर्ट",
     "story.firstReported": "पहली बार रिपोर्ट {time}",
     "story.lastUpdated": "आख़िरी अपडेट {time}",
+    "story.sources.label": "इस कहानी को कवर करने वाले स्रोत",
+    "story.perspectives.heading": "इनमें क्या फ़र्क़ है?",
     "story.related.heading": "संबंधित कहानियाँ",
 
     "settings.heading": "सेटिंग्स",

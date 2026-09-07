@@ -98,6 +98,16 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
     articles: detail.articles.filter((article) => article.language === language),
   }));
 
+  // Every source in the cluster, once each - built from `detail.articles`
+  // (complete by construction, matches `source_count` exactly) rather than
+  // `detail.perspectives` (only the sources with a recorded role, which the
+  // live data shows can be a strict subset). Each name links to that
+  // source's own article in this cluster: a real link, without adding a
+  // homepage field this endpoint doesn't otherwise need.
+  const sources = Array.from(
+    new Map(detail.articles.map((article) => [article.source_id, article])).values(),
+  ).sort((a, b) => a.source_name.localeCompare(b.source_name, active.code));
+
   let position = 0;
 
   return (
@@ -120,6 +130,15 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
             time: formatRelativeTime(detail.story.last_seen_at, active.code),
           })}
         </p>
+        {sources.length > 0 && (
+          <ul className="story-sources" aria-label={t(active.code, "story.sources.label")}>
+            {sources.map((article) => (
+              <li key={article.source_id}>
+                <Link href={`/${active.code}/a/${article.id}`}>{article.source_name}</Link>
+              </li>
+            ))}
+          </ul>
+        )}
         <CoverageChips coverage={detail.coverage} locale={active.code} />
       </div>
 
@@ -162,7 +181,9 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
 
       {detail.perspectives.length > 0 && (
         <section className="coverage-group">
-          <h2 className="coverage-group__heading">{t(active.code, "desk.tabs.perspectives")}</h2>
+          <h2 className="coverage-group__heading">
+            {t(active.code, "story.perspectives.heading")}
+          </h2>
           <Perspectives groups={detail.perspectives} locale={active.code} />
         </section>
       )}

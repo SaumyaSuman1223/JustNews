@@ -406,6 +406,35 @@ clean; migration round-trips; `alembic check` reports no drift.
 differs. Built from clusters and `source_role`, which both exist.
 **Accept:** nothing on the page is inferred; every source is a real link.
 
+**Shipped.** Found live: the coverage-view page already existed in full —
+language-grouped article cards, `CoverageChips`, and a role-grouped
+`Perspectives` section — from an earlier pass. What §22 actually asked for
+and the page didn't have: a flat, complete "who is covering this" list near
+the top for quick scanning, and an explicit frame on the differs-by-role
+section naming what it's answering.
+
+Two additions, both frontend-only:
+- A `story-sources` list under the "Covered by N sources" line: every source
+  in the cluster, once each, alphabetized, each name a real link to that
+  source's own article within the cluster. Deliberately built from
+  `detail.articles` rather than `detail.perspectives` — live data confirmed
+  `perspectives` only carries sources with a recorded `source_role` (3 of 5
+  in the test cluster), so building the flat list from it would have quietly
+  under-counted against the `source_count` stated one line above.
+- A "What differs between them?" heading in front of the existing
+  `Perspectives` section, replacing the borrowed `desk.tabs.perspectives`
+  label ("Perspectives") with copy that names the question the role-grouped
+  data actually answers on this page.
+
+No backend or migration changes — `ArticleOut` already carried `source_id`
+and `source_name` from Chunk 3's widening, enough to dedupe and link without
+adding a `homepage_url` field. New i18n keys (`story.sources.label`,
+`story.perspectives.heading`) added across en/es/hi. Verified against the
+live 5-source cluster (`GET /v1/stories/1?language=en`): all 5 sources
+listed and linked, `perspectives` correctly a 3-of-5 subset underneath its
+new framing. axe: 0 violations on `/en/story/1`. Full e2e suite green,
+typecheck/lint/build clean.
+
 ### Chunk 5 — My Desk topic selection *(§24)*
 A curated topic layer — AI, Markets, India, Space, Climate, Energy,
 Semiconductors, Politics — mapping onto IPTC concept ids, which stay the
