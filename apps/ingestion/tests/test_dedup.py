@@ -162,6 +162,10 @@ class TestClustering:
         assert cluster is not None
         assert cluster.article_count == 2
         assert cluster.source_count == 2
+        # Both test sources default to the same country - source_count is 2,
+        # but that says nothing about country_count, which is a genuinely
+        # different question (two publishers can share a country).
+        assert cluster.country_count == 1
         await session.refresh(first)
         assert first.story_cluster_id == cluster.id
 
@@ -177,6 +181,7 @@ class TestClustering:
             article_count=99,
             source_count=99,
             language_count=99,
+            country_count=99,
         )
         session.add(cluster)
         await session.flush()
@@ -192,6 +197,128 @@ class TestClustering:
         assert cluster.article_count == 3
         assert cluster.language_count == 2  # en, es
         assert cluster.source_count == 1
+        assert cluster.country_count == 1
+
+    async def test_country_count_reflects_distinct_publisher_countries(
+        self, session: AsyncSession
+    ) -> None:
+        from justnews_core.models import StoryCluster
+
+        uk_source = await make_source(session, slug="uk-wire", country="GB")
+        us_source = await make_source(session, slug="us-wire", country="US")
+        # A source with no recorded country - it must not count as a third,
+        # "unknown" country; it should simply not add to the count.
+        unknown_source = await make_source(session, slug="no-country", country=None)
+
+        cluster = StoryCluster(
+            title="A story with three publishers",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+        )
+        session.add(cluster)
+        await session.flush()
+
+        for source in (uk_source, us_source, unknown_source):
+            article = await make_article(session, source, title=f"From {source.slug}")
+            article.story_cluster_id = cluster.id
+        await session.flush()
+
+        await dedup.refresh_cluster_counts(session, cluster)
+        assert cluster.article_count == 3
+        assert cluster.source_count == 3
+        assert cluster.country_count == 2
+
+
+class TestRepairClusterCounts:
+    """`repair-cluster-counts`, added alongside the `country_count` column
+    for the clusters that predate it and sit at its default of 0."""
+
+    async def test_dry_run_reports_but_writes_nothing(self, session: AsyncSession) -> None:
+        from justnews_core.models import StoryCluster
+
+        uk = await make_source(session, slug="uk-wire", country="GB")
+        us = await make_source(session, slug="us-wire", country="US")
+        cluster = StoryCluster(
+            title="A story",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            # Wrong on purpose - as if this cluster predates country_count.
+            country_count=0,
+        )
+        session.add(cluster)
+        await session.flush()
+        for source in (uk, us):
+            article = await make_article(session, source, title=f"From {source.slug}")
+            article.story_cluster_id = cluster.id
+        await session.commit()
+
+        result = await dedup.repair_cluster_counts(session, dry_run=True)
+        assert result["examined"] == 1
+        assert result["corrected"] == 1
+        assert result["dry_run"] is True
+
+        await session.refresh(cluster)
+        assert cluster.country_count == 0, "a dry run must not write, even via a dirty ORM object"
+
+    async def test_real_run_writes_and_a_second_run_reports_zero(
+        self, session: AsyncSession
+    ) -> None:
+        from justnews_core.models import StoryCluster
+
+        uk = await make_source(session, slug="uk-wire-2", country="GB")
+        us = await make_source(session, slug="us-wire-2", country="US")
+        cluster = StoryCluster(
+            title="A story",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            country_count=0,
+        )
+        session.add(cluster)
+        await session.flush()
+        for source in (uk, us):
+            article = await make_article(session, source, title=f"From {source.slug}")
+            article.story_cluster_id = cluster.id
+        await session.commit()
+
+        first = await dedup.repair_cluster_counts(session, dry_run=False)
+        assert first["corrected"] == 1
+        await session.commit()
+
+        await session.refresh(cluster)
+        assert cluster.country_count == 2
+
+        second = await dedup.repair_cluster_counts(session, dry_run=False)
+        assert second == {"examined": 1, "corrected": 0, "dry_run": False}
+
+    async def test_examines_every_cluster_across_more_than_one_batch(
+        self, session: AsyncSession, monkeypatch
+    ) -> None:
+        from justnews_core.models import StoryCluster
+
+        monkeypatch.setattr(dedup, "_REPAIR_BATCH_SIZE", 2)
+
+        source = await make_source(session, country="GB")
+        clusters = []
+        for i in range(5):
+            cluster = StoryCluster(
+                title=f"Story {i}",
+                first_seen_at=datetime.now(UTC),
+                last_seen_at=datetime.now(UTC),
+                country_count=0,
+            )
+            session.add(cluster)
+            await session.flush()
+            article = await make_article(session, source, title=f"Coverage {i}")
+            article.story_cluster_id = cluster.id
+            clusters.append(cluster)
+        await session.commit()
+
+        result = await dedup.repair_cluster_counts(session, dry_run=False)
+        assert result["examined"] == 5
+        assert result["corrected"] == 5
+        for cluster in clusters:
+            await session.refresh(cluster)
+            assert cluster.country_count == 1
 
 
 class TestNoBodyTextIsEverStored:

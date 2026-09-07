@@ -256,6 +256,11 @@ class StoryCluster(Base):
     article_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     source_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     language_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Audit §21's "4 countries". Not derivable from anything on `Article`
+    # itself - country is a property of the publisher, so this is a distinct
+    # count of `Source.country` across the cluster's articles, not a fourth
+    # copy of the same join the other three counts already share.
+    country_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     __table_args__ = (Index("ix_story_clusters_last_seen", "last_seen_at"),)
 

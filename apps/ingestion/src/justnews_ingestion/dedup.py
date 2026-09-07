@@ -39,7 +39,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.logging import get_logger
-from justnews_core.models import Article, StoryCluster
+from justnews_core.models import Article, Source, StoryCluster
 from justnews_core.settings import Settings
 from justnews_core.text import hamming_distance
 
@@ -230,6 +230,10 @@ async def attach_to_cluster(
         cluster = await session.get(StoryCluster, sibling.story_cluster_id)
 
     if cluster is None:
+        # country_count is left at its column default (0) here rather than
+        # guessed at 1: the sibling's own country is not known without the
+        # join `refresh_cluster_counts` makes a few lines down, which runs
+        # unconditionally right after this and corrects it immediately.
         cluster = StoryCluster(
             title=sibling.title,
             centroid=sibling.embedding,
@@ -249,6 +253,48 @@ async def attach_to_cluster(
     return cluster
 
 
+@dataclass(frozen=True, slots=True)
+class _ClusterCounts:
+    article_count: int
+    source_count: int
+    language_count: int
+    country_count: int
+    first_seen_at: datetime
+    last_seen_at: datetime
+
+
+async def _compute_cluster_counts(session: AsyncSession, cluster_id: int) -> _ClusterCounts | None:
+    """The pure half of `refresh_cluster_counts`: reads, computes, assigns
+    nothing. Split out so a dry run can see what *would* change without ever
+    mutating the ORM object - a repair command that touched the object even
+    in `--dry-run` would hand its changes to whatever `session.commit()` the
+    caller's `session_scope` runs at the end, dry run or not.
+
+    Joined to `sources` for country, which is the one count here that is not a
+    property of the article itself - it belongs to the publisher. A source with
+    no recorded country contributes nothing to `country_count` rather than
+    counting as an "unknown" country, the same way an article's language never
+    goes uncounted (language is required on every row) but a source's country
+    can be genuinely absent.
+    """
+    result = await session.execute(
+        select(Article.source_id, Article.language, Article.published_at, Source.country)
+        .join(Source, Source.id == Article.source_id)
+        .where(Article.story_cluster_id == cluster_id)
+    )
+    rows = result.all()
+    if not rows:
+        return None
+    return _ClusterCounts(
+        article_count=len(rows),
+        source_count=len({row[0] for row in rows}),
+        language_count=len({row[1] for row in rows}),
+        country_count=len({row[3] for row in rows if row[3] is not None}),
+        first_seen_at=min(row[2] for row in rows),
+        last_seen_at=max(row[2] for row in rows),
+    )
+
+
 async def refresh_cluster_counts(
     session: AsyncSession, cluster: StoryCluster, *, now: datetime | None = None
 ) -> None:
@@ -257,17 +303,78 @@ async def refresh_cluster_counts(
     Incremented counters drift the first time a write is retried; a recount over
     the handful of rows in one cluster is cheap and always correct.
     """
-    result = await session.execute(
-        select(Article.source_id, Article.language, Article.published_at).where(
-            Article.story_cluster_id == cluster.id
-        )
-    )
-    rows = result.all()
-    if not rows:
+    counts = await _compute_cluster_counts(session, cluster.id)
+    if counts is None:
         return
+    cluster.article_count = counts.article_count
+    cluster.source_count = counts.source_count
+    cluster.language_count = counts.language_count
+    cluster.country_count = counts.country_count
+    cluster.first_seen_at = counts.first_seen_at
+    cluster.last_seen_at = counts.last_seen_at
 
-    cluster.article_count = len(rows)
-    cluster.source_count = len({row[0] for row in rows})
-    cluster.language_count = len({row[1] for row in rows})
-    cluster.first_seen_at = min(row[2] for row in rows)
-    cluster.last_seen_at = max(row[2] for row in rows)
+
+#: Rows fetched per round trip. `repair-snippets` timed out in production on
+#: a single unbounded `select(Article)`; this pages for the same reason
+#: before it can ever have the same problem.
+_REPAIR_BATCH_SIZE = 500
+
+
+async def repair_cluster_counts(session: AsyncSession, *, dry_run: bool = False) -> dict[str, int]:
+    """Recompute every cluster's counts, including `country_count` on
+    clusters that predate this column and are sitting at its default of 0.
+
+    Data repair, not schema, for the same reasons `repair_edition_times` and
+    `repair_snippets` are commands rather than migrations: re-runnable,
+    reports before it writes, and every value here is fully derivable from
+    `articles`/`sources` - nothing is guessed and a second run is a no-op.
+    """
+    examined = 0
+    corrected = 0
+    last_id = 0
+    while True:
+        batch = (
+            await session.scalars(
+                select(StoryCluster)
+                .where(StoryCluster.id > last_id)
+                .order_by(StoryCluster.id)
+                .limit(_REPAIR_BATCH_SIZE)
+            )
+        ).all()
+        if not batch:
+            break
+        last_id = batch[-1].id
+        examined += len(batch)
+
+        for cluster in batch:
+            before = (
+                cluster.article_count,
+                cluster.source_count,
+                cluster.language_count,
+                cluster.country_count,
+            )
+            counts = await _compute_cluster_counts(session, cluster.id)
+            if counts is None:
+                continue
+            after = (
+                counts.article_count,
+                counts.source_count,
+                counts.language_count,
+                counts.country_count,
+            )
+            if after != before:
+                corrected += 1
+            if not dry_run and after != before:
+                cluster.article_count = counts.article_count
+                cluster.source_count = counts.source_count
+                cluster.language_count = counts.language_count
+                cluster.country_count = counts.country_count
+                cluster.first_seen_at = counts.first_seen_at
+                cluster.last_seen_at = counts.last_seen_at
+
+        if not dry_run:
+            await session.flush()
+
+    result = {"examined": examined, "corrected": corrected, "dry_run": dry_run}
+    log.info("cluster_counts_repaired", **result)
+    return result

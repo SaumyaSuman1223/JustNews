@@ -26,13 +26,13 @@ export function DailyBrief({
       <h2 id="brief-heading" className="brief__heading">
         {t(locale, "home.brief.heading")}
       </h2>
-      <ul className="brief__list">
+      <ol className="brief__list">
         {articles.map((article) => (
           <li key={article.id}>
             <Link href={`/${locale}/a/${article.id}`}>{article.title}</Link>
           </li>
         ))}
-      </ul>
+      </ol>
       <Link className="brief__cta" href={`/${locale}/aquila`}>
         {t(locale, "home.brief.cta")}
       </Link>

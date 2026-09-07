@@ -175,6 +175,106 @@ class TestGetArticle:
         assert error["request_id"]
 
 
+class TestArticleCoverage:
+    """Third-pass audit §21's diversity line, exposed as `coverage` on
+    `ArticleOut` - real `story_clusters` counts, never inferred."""
+
+    async def test_an_article_outside_any_cluster_has_no_coverage(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source, title="A standalone story")
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles/{article.id}")).json()
+        assert body["story_cluster_id"] is None
+        assert body["coverage"] is None
+
+    async def test_an_article_in_a_cluster_reports_real_counts(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        uk = await make_source(session, slug="uk-wire", country="GB")
+        us = await make_source(session, slug="us-wire", country="US")
+        cluster = StoryCluster(
+            title="A widely covered story",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            article_count=2,
+            source_count=2,
+            language_count=1,
+            country_count=2,
+        )
+        session.add(cluster)
+        await session.flush()
+        article = await make_article(session, uk, title="From the UK wire")
+        article.story_cluster_id = cluster.id
+        other = await make_article(session, us, title="From the US wire")
+        other.story_cluster_id = cluster.id
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles/{article.id}")).json()
+        assert body["story_cluster_id"] == cluster.id
+        assert body["coverage"] == {
+            "articles": 2,
+            "sources": 2,
+            "languages": 1,
+            "countries": 2,
+        }
+
+    async def test_a_single_source_cluster_reports_one_honestly(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        # A cluster of one source is still a real cluster - this is the case
+        # the frontend uses to decide *not* to show a diversity line, and it
+        # has to be able to tell "not clustered" (coverage: null) apart from
+        # "clustered, but only one source so far" (coverage.sources == 1).
+        source = await make_source(session)
+        cluster = StoryCluster(
+            title="A story with one source so far",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            article_count=1,
+            source_count=1,
+            language_count=1,
+            country_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        article = await make_article(session, source, title="The only report")
+        article.story_cluster_id = cluster.id
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles/{article.id}")).json()
+        assert body["coverage"]["sources"] == 1
+
+    async def test_the_feed_carries_coverage_too_not_only_the_single_article_route(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        uk = await make_source(session, slug="uk-wire-2", country="GB")
+        us = await make_source(session, slug="us-wire-2", country="US")
+        cluster = StoryCluster(
+            title="A story on the feed",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            article_count=2,
+            source_count=2,
+            language_count=1,
+            country_count=2,
+        )
+        session.add(cluster)
+        await session.flush()
+        article = await make_article(session, uk, title="Feed story A")
+        article.story_cluster_id = cluster.id
+        other = await make_article(session, us, title="Feed story B")
+        other.story_cluster_id = cluster.id
+        await session.commit()
+
+        items = (await client.get("/v1/articles")).json()["items"]
+        by_id = {item["id"]: item for item in items}
+        assert by_id[article.id]["coverage"]["sources"] == 2
+        assert by_id[other.id]["coverage"]["sources"] == 2
+
+
 class TestGetStory:
     async def test_returns_every_member_article_cross_lingual(
         self, client: AsyncClient, session: AsyncSession
@@ -311,13 +411,31 @@ class TestSources:
         body = (await client.get("/v1/sources", params={"language": "en"})).json()
         assert [row["name"] for row in body] == ["High", "Low"]
 
-    async def test_requires_a_language(self, client: AsyncClient) -> None:
-        response = await client.get("/v1/sources")
-        assert response.status_code == 422
-
     async def test_rejects_an_invalid_language_code(self, client: AsyncClient) -> None:
         response = await client.get("/v1/sources", params={"language": "zzzz9"})
         assert response.status_code == 422
+
+    async def test_omitting_language_returns_the_complete_catalogue(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        """Search's source filter (audit §27) needs every source, not one
+        language's bounded discovery sample - omitting `language` is how it
+        asks for that, alphabetical rather than trust-ranked."""
+        await make_source(session, slug="hindi-source", language="hi", name="Hindi Source")
+        await make_source(session, slug="english-source", language="en", name="English Source")
+        await session.commit()
+
+        body = (await client.get("/v1/sources")).json()
+        assert [row["name"] for row in body] == ["English Source", "Hindi Source"]
+
+    async def test_omitting_language_still_excludes_inactive_sources(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        await make_source(session, slug="retired", active=False)
+        await session.commit()
+
+        body = (await client.get("/v1/sources")).json()
+        assert body == []
 
 
 class TestStats:

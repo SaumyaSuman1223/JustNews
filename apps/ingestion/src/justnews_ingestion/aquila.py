@@ -82,13 +82,22 @@ FRONT_PAGE_LEADS = 1
 # sheet is a landscape page of a fixed size (audit §35: 1.45-1.55:1, 738px
 # tall at 1440x900), and a page that overflows is a scroll, which is the one
 # thing a newspaper page must never be. Measured against the rendered page:
-# a front page of 1 + 1 + 3 + 3 fills it and stops.
+# a front page of 1 + 1 + 6 + 3 fills it and stops.
 #
 # Nothing is lost by keeping these small. Articles the front page does not
 # take stay in the candidate pool and print in their own section pages, which
 # is where a newspaper would run them anyway - so trimming the front adds
 # pages rather than dropping stories.
-FRONT_PAGE_SECONDARIES = 3
+#
+# Six, not three: the third-pass audit (§8) asks for an editorial right rail
+# *and* a lower row of major stories, which the front page did not have a
+# second row for before. Both draw from this same count - the frontend splits
+# the six by position, first three into the right rail (picture-led, since
+# `prefer_image` fills those first) and the rest into the lower row - rather
+# than the composer knowing about two different front-page rows. That split
+# is presentation, not selection, and keeping it out of the composer is what
+# lets the frontend change the cut point without a redeploy of the CLI.
+FRONT_PAGE_SECONDARIES = 6
 # One piece in the left rail under a standing IN FOCUS label. One, because a
 # rail of several is just another column of secondaries with a label on it.
 FRONT_PAGE_FOCUS = 1

@@ -184,6 +184,9 @@ const en = {
   "aquila.moreNews": "Also today",
   "aquila.inFocus": "In focus",
   "aquila.highlights": "Today’s highlights",
+  "aquila.pageRef": "Page {page}",
+  "aquila.pageRef.label": "More {section} coverage, page {page}",
+  "aquila.pageRef.labelPlain": "Page {page}",
   "aquila.footer": "Curated news for a more informed world",
   "aquila.sign": "Read deeper. See further.",
   "aquila.contents": "Contents",
@@ -234,6 +237,8 @@ const en = {
   "story.reports.other": "{count} reports",
   "story.firstReported": "First reported {time}",
   "story.lastUpdated": "Last updated {time}",
+  "story.sources.label": "Sources covering this story",
+  "story.perspectives.heading": "What differs between them?",
   "story.related.heading": "Related stories",
 
   "settings.heading": "Settings",
@@ -326,7 +331,7 @@ const en = {
 
   "search.heading": "Search",
   "search.titleWithQuery": "Search: {query}",
-  "search.intro": "Full text search over headlines and summaries in your languages.",
+  "search.intro": "What are you trying to understand?",
   "search.results": "Results",
   "search.resultCount.one": "{count} result",
   "search.resultCount.other": "{count} results",
@@ -336,6 +341,8 @@ const en = {
   "search.filter.anyTopic": "Any topic",
   "search.filter.language": "Language",
   "search.filter.anyLanguage": "Any language you read",
+  "search.filter.source": "Source",
+  "search.filter.anySource": "Any source",
   "search.recent": "Recent searches",
   "search.recent.clear": "Clear",
   "search.tooShort": "Type at least two characters to search.",
@@ -420,6 +427,17 @@ const en = {
   "desk.coverage.sources.other": "{count} sources",
   "desk.coverage.languages.one": "{count} language",
   "desk.coverage.languages.other": "{count} languages",
+  // Audit §21's diversity line - "7 sources / 4 countries / 2 languages".
+  // A fresh set rather than reusing desk.coverage.* above: that pair is
+  // My Desk's topic-coverage line (Chunk 8), and this is a different
+  // feature - an article's own story-cluster coverage - that only happens
+  // to want the same shape of sentence.
+  "coverage.sources.one": "{count} source",
+  "coverage.sources.other": "{count} sources",
+  "coverage.countries.one": "{count} country",
+  "coverage.countries.other": "{count} countries",
+  "coverage.languages.one": "{count} language",
+  "coverage.languages.other": "{count} languages",
   "desk.keyDevelopments.empty": "No major developments yet.",
   "desk.perspectives.empty":
     "Not enough named-source coverage yet to show perspectives for this topic.",
@@ -558,6 +576,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.moreNews": "También hoy",
     "aquila.inFocus": "En foco",
     "aquila.highlights": "Destacados de hoy",
+    "aquila.pageRef": "Página {page}",
+    "aquila.pageRef.label": "Más cobertura de {section}, página {page}",
+    "aquila.pageRef.labelPlain": "Página {page}",
     "aquila.footer": "Noticias seleccionadas para un mundo mejor informado",
     "aquila.sign": "Lee más a fondo. Mira más lejos.",
     "aquila.contents": "Índice",
@@ -609,6 +630,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "story.reports.other": "{count} informaciones",
     "story.firstReported": "Primer informe {time}",
     "story.lastUpdated": "Última actualización {time}",
+    "story.sources.label": "Fuentes que cubren esta historia",
+    "story.perspectives.heading": "¿En qué se diferencian?",
     "story.related.heading": "Historias relacionadas",
 
     "settings.heading": "Ajustes",
@@ -703,7 +726,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "search.heading": "Buscar",
     "search.titleWithQuery": "Buscar: {query}",
-    "search.intro": "Búsqueda de texto completo en titulares y resúmenes en tus idiomas.",
+    "search.intro": "¿Qué estás tratando de entender?",
     "search.results": "Resultados",
     "search.resultCount.one": "{count} resultado",
     "search.resultCount.other": "{count} resultados",
@@ -713,6 +736,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "search.filter.anyTopic": "Cualquier tema",
     "search.filter.language": "Idioma",
     "search.filter.anyLanguage": "Cualquier idioma que leas",
+    "search.filter.source": "Fuente",
+    "search.filter.anySource": "Cualquier fuente",
     "search.recent": "Búsquedas recientes",
     "search.recent.clear": "Borrar",
     "search.tooShort": "Escribe al menos dos caracteres para buscar.",
@@ -799,6 +824,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.coverage.sources.other": "{count} fuentes",
     "desk.coverage.languages.one": "{count} idioma",
     "desk.coverage.languages.other": "{count} idiomas",
+    "coverage.sources.one": "{count} fuente",
+    "coverage.sources.other": "{count} fuentes",
+    "coverage.countries.one": "{count} país",
+    "coverage.countries.other": "{count} países",
+    "coverage.languages.one": "{count} idioma",
+    "coverage.languages.other": "{count} idiomas",
     "desk.keyDevelopments.empty": "Todavía no hay desarrollos importantes.",
     "desk.perspectives.empty":
       "Todavía no hay suficiente cobertura de fuentes identificadas para mostrar perspectivas de este tema.",
@@ -932,6 +963,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.moreNews": "आज और भी",
     "aquila.inFocus": "विशेष",
     "aquila.highlights": "आज की मुख्य बातें",
+    "aquila.pageRef": "पृष्ठ {page}",
+    "aquila.pageRef.label": "{section} पर और कवरेज, पृष्ठ {page}",
+    "aquila.pageRef.labelPlain": "पृष्ठ {page}",
     "aquila.footer": "बेहतर जानकारी वाली दुनिया के लिए चुनी हुई ख़बरें",
     "aquila.sign": "गहराई से पढ़ें। दूर तक देखें।",
     "aquila.contents": "अनुक्रम",
@@ -983,6 +1017,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "story.reports.other": "{count} रिपोर्ट",
     "story.firstReported": "पहली बार रिपोर्ट {time}",
     "story.lastUpdated": "आख़िरी अपडेट {time}",
+    "story.sources.label": "इस कहानी को कवर करने वाले स्रोत",
+    "story.perspectives.heading": "इनमें क्या फ़र्क़ है?",
     "story.related.heading": "संबंधित कहानियाँ",
 
     "settings.heading": "सेटिंग्स",
@@ -1077,7 +1113,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "search.heading": "खोज",
     "search.titleWithQuery": "खोज: {query}",
-    "search.intro": "आपकी भाषाओं में सुर्ख़ियों और सारांशों में पूरा-पाठ खोज।",
+    "search.intro": "आप क्या समझना चाहते हैं?",
     "search.results": "परिणाम",
     "search.resultCount.one": "{count} परिणाम",
     "search.resultCount.other": "{count} परिणाम",
@@ -1087,6 +1123,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "search.filter.anyTopic": "कोई भी विषय",
     "search.filter.language": "भाषा",
     "search.filter.anyLanguage": "आपकी पढ़ी जाने वाली कोई भी भाषा",
+    "search.filter.source": "स्रोत",
+    "search.filter.anySource": "कोई भी स्रोत",
     "search.recent": "हाल की खोजें",
     "search.recent.clear": "साफ़ करें",
     "search.tooShort": "खोजने के लिए कम से कम दो अक्षर लिखें।",
@@ -1171,6 +1209,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.coverage.sources.other": "{count} स्रोत",
     "desk.coverage.languages.one": "{count} भाषा",
     "desk.coverage.languages.other": "{count} भाषाएँ",
+    "coverage.sources.one": "{count} स्रोत",
+    "coverage.sources.other": "{count} स्रोत",
+    "coverage.countries.one": "{count} देश",
+    "coverage.countries.other": "{count} देश",
+    "coverage.languages.one": "{count} भाषा",
+    "coverage.languages.other": "{count} भाषाएँ",
     "desk.keyDevelopments.empty": "अभी कोई बड़ा घटनाक्रम नहीं है।",
     "desk.perspectives.empty":
       "इस विषय के लिए दृष्टिकोण दिखाने के लिए अभी पर्याप्त पहचाने गए स्रोतों की कवरेज नहीं है।",
@@ -1244,6 +1288,9 @@ export function t(
 type PluralBase =
   | "article.otherLanguages"
   | "article.otherSources"
+  | "coverage.countries"
+  | "coverage.languages"
+  | "coverage.sources"
   | "desk.coverage.languages"
   | "desk.coverage.sources"
   | "search.resultCount"
@@ -1303,6 +1350,25 @@ export function formatCoverage(
     tPlural(locale, "desk.coverage.sources", sources),
     tPlural(locale, "desk.coverage.languages", languages),
   ].join(" · ");
+}
+
+/**
+ * Audit §21's diversity line - "7 sources / 4 countries / 2 languages" - for
+ * an article's own story-cluster coverage. Countries is omitted entirely
+ * rather than printed as "0 countries" when no source in the cluster has a
+ * recorded country: a real zero and an unknown value are different facts,
+ * and this line only ever states the first one.
+ */
+export function formatArticleCoverage(
+  locale: LocaleCode,
+  coverage: { sources: number; countries: number; languages: number },
+): string {
+  const parts = [tPlural(locale, "coverage.sources", coverage.sources)];
+  if (coverage.countries > 0) {
+    parts.push(tPlural(locale, "coverage.countries", coverage.countries));
+  }
+  parts.push(tPlural(locale, "coverage.languages", coverage.languages));
+  return parts.join(" · ");
 }
 
 /** Locale-aware relative time, e.g. "3 hours ago" / "منذ ٣ ساعات". */

@@ -29,6 +29,7 @@ async def search_articles(
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["en,es"]),
     topic: str | None = Query(default=None, examples=["medtop:11000000"]),
+    source: int | None = Query(default=None, description="Filter to one source's own id."),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=20, ge=1, le=50),
 ) -> SearchPageOut:
@@ -40,6 +41,7 @@ async def search_articles(
         query_text=q,
         languages=languages,
         topic_id=topic,
+        source_id=source,
         cursor=cursor,
         page_size=page_size,
     )

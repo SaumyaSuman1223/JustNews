@@ -37,6 +37,14 @@ export interface FeedListProps {
    * call site rather than inferred from how many happen to be in the list.
    */
   leads?: number;
+  /**
+   * How many items right after the lead band take §16's `feature` weight -
+   * large image, large headline, full-width - before the run drops into
+   * `secondaries`. Zero by default: most lists have no reason to interrupt
+   * their own rhythm, so a call site states this explicitly the same way it
+   * states `leads`, rather than the page guessing where variety would help.
+   */
+  features?: number;
   secondaries?: number;
   /**
    * What everything past the lead and secondary bands takes.
@@ -49,6 +57,18 @@ export interface FeedListProps {
   rest?: "list" | "compact";
   /** Set on the first screenful of the page, so the lead image preloads. */
   aboveFold?: boolean;
+  /**
+   * Whether a multi-source story in this run may be promoted to §16's
+   * `cluster` card (see `promoteOneCluster`). Off by default and turned on
+   * explicitly at each call site that wants it - Home's tiers and its
+   * ranked-continuation tabs - rather than on by default and turned off for
+   * reader-curated sets: this repo has other `FeedList` callers (search, a
+   * topic page, the edition archive) this chunk never reviewed, and a
+   * default that silently changed their output the next time one of their
+   * articles happened to cluster is exactly the kind of surprise an opt-in
+   * avoids.
+   */
+  allowClusterPromotion?: boolean;
 }
 
 const LEAD_COUNT = 1;
@@ -59,17 +79,48 @@ function variantFor(
   total: number,
   layout: "edited" | "list",
   leads: number,
+  features: number,
   secondaries: number,
   rest: "list" | "compact",
 ): CardVariant {
   if (layout === "list") return "list";
-  // A run too short to fill the secondary band would leave a lead card
+  // A run too short to fill every band would leave a lead or feature card
   // stranded above one lonely row, so below that threshold everything stays
   // the same weight and the page just reads as a short list.
-  if (total < leads + secondaries) return "secondary";
+  if (total < leads + features + secondaries) return "secondary";
   if (index < leads) return "lead";
-  if (index < leads + secondaries) return "secondary";
+  if (index < leads + features) return "feature";
+  if (index < leads + features + secondaries) return "secondary";
   return rest;
+}
+
+/**
+ * Audit §16's `cluster` card, chosen rather than assigned by position.
+ *
+ * Every other variant is a function of where an item falls in the run;
+ * `cluster` is a function of what the ranker actually returned that day - a
+ * multi-source story is real signal, not a slot the page decided to have.
+ * Capped at one per list on purpose: promoting every eligible item would
+ * make the page's rhythm depend on how many stories happened to cluster
+ * today, which is exactly the "personalised must not mean random" property
+ * the fixed variant set exists to hold onto. One clustered story, treated
+ * once, reads as an editorial choice; several would read as the layout
+ * losing control of itself. Only past the lead and secondary bands, so the
+ * story that already earned the front of the run keeps its own weight
+ * rather than being re-labelled on the way past.
+ */
+function promoteOneCluster(
+  items: FeedItem[],
+  variants: CardVariant[],
+  leadsAndSecondaries: number,
+): CardVariant[] {
+  const eligible = items.findIndex(
+    (item, index) => index >= leadsAndSecondaries && (item.article.coverage?.sources ?? 0) > 1,
+  );
+  if (eligible === -1) return variants;
+  const promoted = [...variants];
+  promoted[eligible] = "cluster";
+  return promoted;
 }
 
 export function FeedList({
@@ -80,14 +131,27 @@ export function FeedList({
   revalidatePath,
   layout = "edited",
   leads = LEAD_COUNT,
+  features = 0,
   secondaries = SECONDARY_COUNT,
   rest = "list",
   aboveFold = false,
+  allowClusterPromotion = false,
 }: FeedListProps) {
+  const baseVariants = items.map((_, index) =>
+    variantFor(index, items.length, layout, leads, features, secondaries, rest),
+  );
+  const variants = allowClusterPromotion
+    ? promoteOneCluster(
+        items,
+        baseVariants,
+        layout === "edited" ? leads + features + secondaries : 0,
+      )
+    : baseVariants;
+
   return (
     <ul className={`feed feed--${layout}`}>
       {items.map((item, index) => {
-        const variant = variantFor(index, items.length, layout, leads, secondaries, rest);
+        const variant = variants[index];
         return (
           <ArticleCard
             key={item.key ?? item.article.id}

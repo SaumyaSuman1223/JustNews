@@ -7,7 +7,7 @@ import { FeedList } from "@/components/FeedList";
 import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { SearchControls } from "@/components/SearchControls";
-import { getMe, getSaves, getTopics, searchArticles } from "@/lib/api";
+import { getAllSources, getMe, getSaves, getTopics, searchArticles } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode, readerLanguages, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -38,17 +38,18 @@ export default async function SearchPage({
     cursor?: string;
     topic?: string;
     lang?: string;
+    source?: string;
   }>;
 }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  const { q, cursor, topic, lang } = await searchParams;
+  const { q, cursor, topic, lang, source } = await searchParams;
   const query = (q ?? "").trim();
   // An unknown locale code in `lang` is dropped rather than passed through:
   // no query may return content in a language this product does not ship.
   const language = lang && isLocaleCode(lang) ? lang : "";
-  const topics = await getTopics(active.code);
+  const [topics, sources] = await Promise.all([getTopics(active.code), getAllSources()]);
 
   return (
     <>
@@ -62,11 +63,13 @@ export default async function SearchPage({
         query={query}
         topic={topic ?? ""}
         language={language}
+        source={source ?? ""}
         topics={topics.data}
+        sources={sources.data}
       />
 
       <Suspense
-        key={`${query}:${topic ?? ""}:${language}:${cursor ?? "start"}`}
+        key={`${query}:${topic ?? ""}:${language}:${source ?? ""}:${cursor ?? "start"}`}
         fallback={
           query.length >= 2 ? (
             <FeedSkeleton layout="list" secondaries={0} rows={5} />
@@ -78,6 +81,7 @@ export default async function SearchPage({
           query={query}
           topic={topic ?? ""}
           language={language}
+          source={source ?? ""}
           cursor={cursor}
         />
       </Suspense>
@@ -90,12 +94,14 @@ async function SearchBody({
   query,
   topic,
   language,
+  source,
   cursor,
 }: {
   locale: ReturnType<typeof getLocale>["code"];
   query: string;
   topic: string;
   language: string;
+  source: string;
   cursor?: string;
 }) {
   const session = await getSession();
@@ -117,7 +123,13 @@ async function SearchBody({
 
   const [results, savedIds] = await Promise.all([
     query.length >= 2
-      ? searchArticles({ query, languages, topic: topic || undefined, cursor })
+      ? searchArticles({
+          query,
+          languages,
+          topic: topic || undefined,
+          source: source || undefined,
+          cursor,
+        })
       : Promise.resolve({
           data: { items: [], next_cursor: null, total: null },
           degraded: false,
@@ -183,7 +195,7 @@ async function SearchBody({
           locale={locale}
           surface="search"
           signedIn={Boolean(session)}
-          revalidatePath={searchHref(locale, query, topic, language)}
+          revalidatePath={searchHref(locale, query, topic, language, source)}
           layout="list"
         />
       )}
@@ -194,7 +206,7 @@ async function SearchBody({
       {query.length >= 2 && (
         <Pagination
           locale={locale}
-          baseHref={searchHref(locale, query, topic, language)}
+          baseHref={searchHref(locale, query, topic, language, source)}
           nextCursor={results.data.next_cursor}
           onLaterPage={Boolean(cursor)}
         />
@@ -209,9 +221,11 @@ function searchHref(
   query: string,
   topic: string,
   language: string,
+  source: string,
 ): string {
   const params = new URLSearchParams({ q: query });
   if (topic) params.set("topic", topic);
   if (language) params.set("lang", language);
+  if (source) params.set("source", source);
   return `/${locale}/search?${params}`;
 }

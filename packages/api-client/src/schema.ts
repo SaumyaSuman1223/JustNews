@@ -919,13 +919,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Sources
-         * @description A discovery list for onboarding - the handful of sources publishing in
-         *     one language a new reader is most likely to already recognise. Not a
-         *     directory: no pagination, no filtering beyond language, bounded to
-         *     service.SOURCE_DISCOVERY_LIMIT.
-         */
+        /** Sources */
         get: operations["sources_v1_sources_get"];
         put?: never;
         post?: never;
@@ -1173,6 +1167,7 @@ export interface components {
         };
         /** ArticleOut */
         ArticleOut: {
+            coverage?: components["schemas"]["CoverageOut"] | null;
             /** Id */
             id: number;
             /** Image Url */
@@ -1287,6 +1282,24 @@ export interface components {
             active_users: number;
             /** Week Offset */
             week_offset: number;
+        };
+        /**
+         * CoverageOut
+         * @description Third-pass audit §21: "7 sources / 4 countries / 2 languages" - how
+         *     widely the story this article belongs to is being covered, as of the last
+         *     time the cluster changed. Real counts from `story_clusters`, never
+         *     inferred: a cluster of one source is a real, honest `sources: 1`, not
+         *     something the client has to guess from `story_cluster_id` alone.
+         */
+        CoverageOut: {
+            /** Articles */
+            articles: number;
+            /** Countries */
+            countries: number;
+            /** Languages */
+            languages: number;
+            /** Sources */
+            sources: number;
         };
         /** DeckCardOut */
         DeckCardOut: {
@@ -1805,6 +1818,8 @@ export interface components {
             article: components["schemas"]["ArticleOut"];
             /** Impression Id */
             impression_id: number | null;
+            /** Page Ref */
+            page_ref?: number | null;
             /** Position */
             position: number;
             /** Role */
@@ -3762,6 +3777,8 @@ export interface operations {
                 q: string;
                 languages?: string | null;
                 topic?: string | null;
+                /** @description Filter to one source's own id. */
+                source?: number | null;
                 cursor?: string | null;
                 page_size?: number;
             };
@@ -3826,8 +3843,9 @@ export interface operations {
     };
     sources_v1_sources_get: {
         parameters: {
-            query: {
-                language: string;
+            query?: {
+                /** @description Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, ranked by trust score within that language. Omit for the complete catalogue instead (search's source filter; audit §27) - alphabetical, unbounded. */
+                language?: string | null;
             };
             header?: never;
             path?: never;

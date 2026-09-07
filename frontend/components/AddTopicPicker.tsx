@@ -7,11 +7,14 @@ import type { Topic } from "@/lib/api";
 import { t, type LocaleCode } from "@/lib/i18n";
 
 /**
- * "+ Add Topic": reveals the full topic taxonomy as a chip picker.
+ * "+ Add Topic": reveals the topic catalogue as a picker.
  *
- * Every chip already knows whether the reader follows it - `FollowTopicChip`
- * is the same toggle the old topic-browse page used, so tapping one here and
- * tapping one there write the identical UserFollow row.
+ * `topics` arrives already carrying curated labels (see
+ * `lib/curatedTopics.ts`, applied once by the caller) - §24's "I care about
+ * AI", not the raw IPTC string underneath it. Every chip already knows
+ * whether the reader follows it - `FollowTopicChip` is the same toggle the
+ * old topic-browse page used, so tapping one here and tapping one there
+ * write the identical UserFollow row.
  */
 export function AddTopicPicker({
   topics,
@@ -32,7 +35,7 @@ export function AddTopicPicker({
         {t(locale, open ? "desk.addTopic.done" : "desk.addTopic")}
       </button>
       {open && (
-        <ul className="chip-list">
+        <ul className="chip-list topic-picker">
           {topics.map((topic) => (
             <li key={topic.id}>
               <FollowTopicChip
@@ -41,6 +44,7 @@ export function AddTopicPicker({
                 locale={locale}
                 following={followedIds.has(topic.id)}
                 revalidatePath={revalidatePath}
+                className="topic-chip"
               />
             </li>
           ))}

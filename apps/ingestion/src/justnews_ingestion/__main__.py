@@ -24,6 +24,7 @@ from justnews_ingestion import retention
 from justnews_ingestion.aquila import compose_issue, current_slot, repair_edition_times
 from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.content import repair_snippets
+from justnews_ingestion.dedup import repair_cluster_counts
 from justnews_ingestion.gnews import get_quota, search
 from justnews_ingestion.pipeline import run_ingestion
 from justnews_ingestion.seed import retire_unshipped_languages, seed_all
@@ -133,6 +134,12 @@ async def _cmd_repair_snippets(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _cmd_repair_cluster_counts(args: argparse.Namespace) -> int:
+    async with session_scope() as session:
+        _print(await repair_cluster_counts(session, dry_run=args.dry_run))
+    return 0
+
+
 async def _cmd_stats(_: argparse.Namespace) -> int:
     from justnews_api.repositories.content import corpus_stats
 
@@ -226,6 +233,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="report what would change, with samples, and write nothing",
     )
 
+    repair_clusters = sub.add_parser(
+        "repair-cluster-counts",
+        help="recompute story-cluster article/source/language/country counts",
+    )
+    repair_clusters.add_argument(
+        "--dry-run", action="store_true", help="report how many rows would change, write nothing"
+    )
+
     sub.add_parser("prune", help="apply the retention window and report database size")
     sub.add_parser("stats", help="corpus size, language spread and quota usage")
 
@@ -246,6 +261,7 @@ _COMMANDS = {
     "compose-aquila": _cmd_compose_aquila,
     "repair-edition-times": _cmd_repair_edition_times,
     "repair-snippets": _cmd_repair_snippets,
+    "repair-cluster-counts": _cmd_repair_cluster_counts,
     "stats": _cmd_stats,
     "gnews": _cmd_gnews,
 }

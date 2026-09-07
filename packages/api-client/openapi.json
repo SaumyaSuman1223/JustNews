@@ -171,6 +171,16 @@
       },
       "ArticleOut": {
         "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -504,6 +514,35 @@
           "active_users"
         ],
         "title": "CohortWeekOut",
+        "type": "object"
+      },
+      "CoverageOut": {
+        "description": "Third-pass audit \u00a721: \"7 sources / 4 countries / 2 languages\" - how\nwidely the story this article belongs to is being covered, as of the last\ntime the cluster changed. Real counts from `story_clusters`, never\ninferred: a cluster of one source is a real, honest `sources: 1`, not\nsomething the client has to guess from `story_cluster_id` alone.",
+        "properties": {
+          "articles": {
+            "title": "Articles",
+            "type": "integer"
+          },
+          "countries": {
+            "title": "Countries",
+            "type": "integer"
+          },
+          "languages": {
+            "title": "Languages",
+            "type": "integer"
+          },
+          "sources": {
+            "title": "Sources",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articles",
+          "sources",
+          "languages",
+          "countries"
+        ],
+        "title": "CoverageOut",
         "type": "object"
       },
       "DeckCardOut": {
@@ -1850,6 +1889,17 @@
               }
             ],
             "title": "Impression Id"
+          },
+          "page_ref": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Ref"
           },
           "position": {
             "title": "Position",
@@ -5654,6 +5704,24 @@
             }
           },
           {
+            "description": "Filter to one source's own id.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to one source's own id.",
+              "title": "Source"
+            }
+          },
+          {
             "in": "query",
             "name": "cursor",
             "required": false,
@@ -5769,16 +5837,24 @@
     },
     "/v1/sources": {
       "get": {
-        "description": "A discovery list for onboarding - the handful of sources publishing in\none language a new reader is most likely to already recognise. Not a\ndirectory: no pagination, no filtering beyond language, bounded to\nservice.SOURCE_DISCOVERY_LIMIT.",
         "operationId": "sources_v1_sources_get",
         "parameters": [
           {
+            "description": "Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, ranked by trust score within that language. Omit for the complete catalogue instead (search's source filter; audit \u00a727) - alphabetical, unbounded.",
             "in": "query",
             "name": "language",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "Language",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, ranked by trust score within that language. Omit for the complete catalogue instead (search's source filter; audit \u00a727) - alphabetical, unbounded.",
+              "title": "Language"
             }
           }
         ],

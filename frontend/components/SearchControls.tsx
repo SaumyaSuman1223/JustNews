@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
-import type { Topic } from "@/lib/api";
+import type { SourceOption, Topic } from "@/lib/api";
 import { locales, t, type LocaleCode } from "@/lib/i18n";
 
 const RECENT_KEY = "jn_recent_searches";
@@ -91,13 +91,17 @@ export function SearchControls({
   query,
   topic,
   language,
+  source,
   topics,
+  sources,
 }: {
   locale: LocaleCode;
   query: string;
   topic: string;
   language: string;
+  source: string;
   topics: Topic[];
+  sources: SourceOption[];
 }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
@@ -185,6 +189,22 @@ export function SearchControls({
               {locales.map((item) => (
                 <option key={item.code} value={item.code}>
                   {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="search-filter">
+            <span>{t(locale, "search.filter.source")}</span>
+            <select
+              name="source"
+              defaultValue={source}
+              onChange={() => form.current?.requestSubmit()}
+            >
+              <option value="">{t(locale, "search.filter.anySource")}</option>
+              {sources.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </select>

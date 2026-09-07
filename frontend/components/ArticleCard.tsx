@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { ArticleActions } from "@/components/ArticleActions";
 import type { Article } from "@/lib/api";
-import { formatRelativeTime, locales, type LocaleCode } from "@/lib/i18n";
+import { formatArticleCoverage, formatRelativeTime, locales, type LocaleCode } from "@/lib/i18n";
 import { formatRankReason, type RankReason } from "@/lib/rankReason";
 
 /**
@@ -16,15 +16,34 @@ import { formatRankReason, type RankReason } from "@/lib/rankReason";
  * order the ranker returns, and it can only do that if the slot shapes are
  * decided by the page rather than by the content. Principle 3 - "personalised
  * must not mean random" - is enforced here rather than hoped for.
+ *
+ * `cluster` is audit §16's fifth type - "one story connecting several
+ * sources" - and it earns that description structurally, not just by label:
+ * where every other variant leads with a picture or a headline, this one
+ * leads with the coverage itself (see `formatArticleCoverage`), because the
+ * fact that several newsrooms are reporting the same thing independently
+ * *is* the story this card is telling.
+ *
+ * `feature` is §16's "large image + large headline": a full-width, stacked
+ * treatment for a story a tier wants to give weight to without making it
+ * *the* lead - assigned by position at the call site (`FeedList`'s
+ * `features`), the same way `lead` and `secondary` are, because unlike
+ * `cluster` there is no independent data signal that says "this one is a
+ * feature" - only an editorial choice about where variety helps.
  */
-export type CardVariant = "lead" | "secondary" | "list" | "compact";
+export type CardVariant = "lead" | "feature" | "secondary" | "list" | "compact" | "cluster";
 
 /** Image geometry per variant. Fixed, so nothing shifts while a photo loads. */
 const MEDIA: Record<CardVariant, { width: number; height: number } | null> = {
   lead: { width: 1200, height: 675 },
+  feature: { width: 1200, height: 675 },
   secondary: { width: 640, height: 360 },
   list: { width: 240, height: 160 },
   compact: null,
+  // No picture, on purpose: a cluster card's identity is the coverage line,
+  // and a thumbnail here would just be one of the covering sources' photos
+  // standing in for all the others, which overstates that one source.
+  cluster: null,
 };
 
 export interface ArticleCardProps {
@@ -114,7 +133,18 @@ export function ArticleCard({
         });
   // The snippet is the first thing density costs you. A lead has room to
   // argue for itself; a list row has to survive on its headline.
-  const showSnippet = (variant === "lead" || variant === "secondary") && Boolean(article.snippet);
+  const showSnippet =
+    (variant === "lead" || variant === "feature" || variant === "secondary") &&
+    Boolean(article.snippet);
+  // Present whenever this card was actually promoted to `cluster` - see
+  // FeedList, which only does that when `article.coverage.sources > 1`.
+  // Guarded again here rather than trusted blindly: a `cluster`-variant card
+  // whose coverage turned out to be a single source (data changed under it)
+  // must still fall back to a normal byline instead of printing "1 sources".
+  const coverageLine =
+    variant === "cluster" && article.coverage && article.coverage.sources > 1
+      ? formatArticleCoverage(locale, article.coverage)
+      : null;
 
   return (
     <li className={`card card--${variant}${hidden ? " card--hidden" : ""}`}>
@@ -126,7 +156,11 @@ export function ArticleCard({
             alt=""
             width={media.width}
             height={media.height}
-            sizes={variant === "lead" ? "(max-width: 60rem) 100vw, 40rem" : "(max-width: 60rem) 50vw, 20rem"}
+            sizes={
+              variant === "lead" || variant === "feature"
+                ? "(max-width: 60rem) 100vw, 40rem"
+                : "(max-width: 60rem) 50vw, 20rem"
+            }
             unoptimized
             priority={priority}
           />
@@ -141,17 +175,26 @@ export function ArticleCard({
           </Link>
         </h2>
         {showSnippet && <p className="card__snippet">{article.snippet}</p>}
-        <p className="card__meta">
-          <span className="card__source">{article.source_name}</span>
-          <time dateTime={article.published_at}>
-            {formatRelativeTime(article.published_at, locale)}
-          </time>
-          {foreign && (
-            <span className="badge" lang={foreign.htmlLang}>
-              {foreign.label}
-            </span>
-          )}
-        </p>
+        {coverageLine ? (
+          // The coverage line replaces the byline entirely rather than
+          // sitting beside it: "reported by 7 sources across 4 countries"
+          // and "The Standard · 5h ago" are two different claims about the
+          // same story, and printing both invites a reader to wonder which
+          // one this card is actually about.
+          <p className="card__coverage">{coverageLine}</p>
+        ) : (
+          <p className="card__meta">
+            <span className="card__source">{article.source_name}</span>
+            <time dateTime={article.published_at}>
+              {formatRelativeTime(article.published_at, locale)}
+            </time>
+            {foreign && (
+              <span className="badge" lang={foreign.htmlLang}>
+                {foreign.label}
+              </span>
+            )}
+          </p>
+        )}
         {why && <p className="card__why">{formatRankReason(locale, why)}</p>}
         {footnote && <p className="card__footnote">{footnote}</p>}
         {signedIn && (

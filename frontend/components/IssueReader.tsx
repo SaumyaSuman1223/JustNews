@@ -1,11 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { IssuePaper } from "@/components/IssuePaper";
 import { ReaderUtility } from "@/components/ReaderUtility";
 import type { Issue, IssueEdition, IssuePageContent } from "@/lib/api";
 import { t, type LocaleCode } from "@/lib/i18n";
+
+/** A deliberate swipe, not a graze - a common mobile-gallery convention, and
+ * short enough to feel responsive without firing on an incidental touch. */
+const SWIPE_THRESHOLD_PX = 56;
 
 /**
  * Reading an issue: which page you are on, and how you turn to the next one.
@@ -61,6 +66,47 @@ export function IssueReader({
     [issue.id, locale, pageCount, pageNo],
   );
 
+  // §11/§40's "swipeable Aquila pages": a horizontal drag of the finger
+  // turns the page, the same way the arrow keys and buttons already do -
+  // there is no separate gesture-driven animation to build, because the
+  // page turn itself is already a crossfade rather than a physical page
+  // peel (see `.aquila__sheet[data-pending]`), and a drag that tried to
+  // fake paper physics is exactly what the direction document rules out.
+  // Scoped to `pointerType === "touch"` so mouse users - selecting text,
+  // clicking a headline - are entirely unaffected; nothing here listens to
+  // a mouse drag at all.
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+
+  const onSwipeStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "touch") return;
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+  }, []);
+
+  const onSwipeEnd = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const start = swipeStart.current;
+      swipeStart.current = null;
+      if (event.pointerType !== "touch" || !start) return;
+
+      const deltaX = event.clientX - start.x;
+      const deltaY = event.clientY - start.y;
+      // Must be a clearly horizontal gesture, well past an accidental
+      // twitch - mobile Aquila still scrolls vertically inside a page
+      // (§38), and a swipe recognised too eagerly would fight that scroll
+      // instead of living beside it.
+      if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) {
+        return;
+      }
+      // Same mirroring the keyboard arrows already do: swiping the content
+      // toward the start of the writing direction turns forward, whichever
+      // way that points under `dir`.
+      const swipedTowardStart = deltaX < 0;
+      const forward = dir === "rtl" ? !swipedTowardStart : swipedTowardStart;
+      goTo(forward ? pageNo + 1 : pageNo - 1);
+    },
+    [dir, goTo, pageNo],
+  );
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       // Ignore while someone is typing, so arrow keys in the search field do
@@ -103,8 +149,16 @@ export function IssueReader({
   return (
     <div className="aquila">
       <div className="aquila__stage">
-        <div className="aquila__sheet" data-pending={pending || undefined}>
-          <IssuePaper issue={issue} page={page} locale={locale} />
+        <div
+          className="aquila__sheet"
+          data-pending={pending || undefined}
+          onPointerDown={onSwipeStart}
+          onPointerUp={onSwipeEnd}
+          onPointerCancel={() => {
+            swipeStart.current = null;
+          }}
+        >
+          <IssuePaper issue={issue} page={page} locale={locale} onGoTo={goTo} />
         </div>
 
         {failed && (

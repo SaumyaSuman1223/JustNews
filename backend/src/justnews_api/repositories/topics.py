@@ -169,3 +169,23 @@ async def article_source_roles_for_topic(
         )
     )
     return list(result.tuples().all())
+
+
+async def primary_topics_for_articles(
+    session: AsyncSession, article_ids: list[int]
+) -> dict[int, str]:
+    """Each article's primary topic id, for the ones that have one.
+
+    Bulk rather than per-article: Aquila's front page cross-references a
+    slot's topic against the issue's section pages (`services.issues`), and
+    an eleven-slot front page doing that one query per slot would be eleven
+    round trips for what is really one `IN` clause.
+    """
+    if not article_ids:
+        return {}
+    result = await session.execute(
+        select(ArticleTopic.article_id, ArticleTopic.topic_id).where(
+            ArticleTopic.article_id.in_(article_ids), ArticleTopic.is_primary.is_(True)
+        )
+    )
+    return dict(result.tuples().all())

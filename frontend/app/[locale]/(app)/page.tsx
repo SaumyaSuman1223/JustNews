@@ -53,6 +53,7 @@ const TIER_ONE = 3;
 const TIER_ONE_LEADS = 1;
 /** §18's "approximately 5-10": six, split two picture-led and four text. */
 const TIER_TWO = 6;
+const TIER_TWO_FEATURES = 1;
 const TIER_TWO_PICTURES = 2;
 const TAB_PAGE_SIZE = 10;
 
@@ -227,12 +228,15 @@ async function FeedBody({
                 signedIn={hasBetaAccess}
                 revalidatePath={`/${active.code}`}
                 leads={0}
-                // §18: "use varied compositions, avoid repeated identical
-                // cards". Two of the six carry a picture; the other four are
-                // headline and source only, which gives the band an internal
-                // hierarchy instead of six equal rectangles.
+                // §16/§18: "use varied compositions, avoid repeated
+                // identical cards". One story opens the band at full-width
+                // `feature` weight, two more carry a picture at `secondary`
+                // size, and the rest are headline and source only - three
+                // distinct treatments instead of six equal rectangles.
+                features={TIER_TWO_FEATURES}
                 secondaries={TIER_TWO_PICTURES}
                 rest="compact"
+                allowClusterPromotion
               />
             </div>
           )}
@@ -303,6 +307,7 @@ async function TabPanel({
         signedIn={hasBetaAccess}
         revalidatePath={`/${active.code}`}
         layout="list"
+        allowClusterPromotion
       />
     );
   }
@@ -368,6 +373,7 @@ async function TabPanel({
         signedIn={hasBetaAccess}
         revalidatePath={`/${active.code}`}
         layout="list"
+        allowClusterPromotion
       />
       <Pagination
         locale={active.code}

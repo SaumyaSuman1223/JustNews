@@ -23,16 +23,34 @@ export function IssuePaper({
   issue,
   page,
   locale,
+  onGoTo,
 }: {
   issue: Issue;
   page: IssuePageContent;
   locale: LocaleCode;
+  /** Jumps the reader to another page without a navigation - the same
+   * client-side page change the contents panel uses. Undefined outside a
+   * reading session (there is none today, but nothing here should require
+   * one): a page reference then renders as plain text rather than a control
+   * with nothing to do. */
+  onGoTo?: (page: number) => void;
 }) {
   const lead = page.slots.find((slot) => slot.role === "lead");
   const focus = page.slots.find((slot) => slot.role === "focus");
   const secondaries = page.slots.filter((slot) => slot.role === "secondary");
   const briefs = page.slots.filter((slot) => slot.role === "brief");
   const isFront = page.page_no === 1;
+  // Audit §8: the right rail and a lower row of major stories are the same
+  // pool of secondaries, split by position - first refusal on the rail,
+  // which is also the picture-led one (see the composer's `prefer_image`
+  // ordering), the rest into the lower row as text.
+  const rail = secondaries.slice(0, 3);
+  const lower = secondaries.slice(3, 6);
+
+  const sectionTitle = (pageRef: number | null | undefined): string | null =>
+    pageRef == null
+      ? null
+      : (issue.sections.find((section) => section.page_no === pageRef)?.title ?? null);
 
   const published = new Date(issue.published_at);
   const dateLine = new Intl.DateTimeFormat(locale, {
@@ -128,14 +146,15 @@ export function IssuePaper({
       {page.slots.length === 0 ? (
         <p className="paper__empty">{t(locale, "aquila.pageEmpty")}</p>
       ) : (
-        // The front page is one row of three columns (audit §11): a left rail
-        // carrying the standing quote, IN FOCUS and TODAY'S HIGHLIGHTS; the
-        // dominant lead; and an editorial right rail of secondary stories.
-        // One row, because the page now has to *end* - §35's landscape sheet
-        // is 738px tall at 1440x900 and a lower band does not fit in it. The
-        // stories that used to sit there are not lost: the composer leaves
-        // them for the section pages, which is where a newspaper would run
-        // them anyway.
+        // The front page (audit §8): a left rail carrying the standing quote
+        // and IN FOCUS; the dominant lead; an editorial right rail of
+        // secondary stories; and, under all three, a lower row of further
+        // major stories followed by TODAY'S HIGHLIGHTS. The page still has to
+        // *end* - §35's landscape sheet is capped to the viewport height and
+        // clips rather than scrolls (`.aquila__sheet { overflow: hidden }`) -
+        // so the lower band is deliberately the plainest thing on the page:
+        // no images, clamped to one line, the same restraint that already
+        // applied to the right rail's second and third entries.
         //
         // A section page is a simpler thing and says so: one lead and its
         // columns, no rails to fill and nothing to pad them with.
@@ -172,10 +191,25 @@ export function IssuePaper({
                       {focus.article.title}
                     </Link>
                   </h3>
-                  <p className="paper__byline">{focus.article.source_name}</p>
+                  <p className="paper__byline">
+                    {focus.article.source_name}
+                    <PageRefTag
+                      pageRef={focus.page_ref}
+                      sectionTitle={sectionTitle(focus.page_ref)}
+                      locale={locale}
+                      onGoTo={onGoTo}
+                    />
+                  </p>
                 </>
               )}
 
+              {/* §8 draws TODAY'S HIGHLIGHTS as part of a lower row this page
+                  has no room for once a real lead is stretching the top row
+                  to its own full height (measured: the lead alone is 531px
+                  of a ~587px body budget at 1440x900, and the sheet clips
+                  rather than scrolls). It stays here, where it already fit
+                  before this chunk, and gains what §8 actually asked for
+                  underneath it - numbered stories with page references. */}
               {briefs.length > 0 && (
                 <>
                   <h2 className="paper__label">
@@ -189,9 +223,22 @@ export function IssuePaper({
                         <span className="paper__brief-number">
                           {String(index + 1).padStart(2, "0")}
                         </span>
-                        <Link href={`/${locale}/a/${slot.article.id}`}>
-                          {slot.article.title}
-                        </Link>
+                        {/* One wrapper, not two direct children after the
+                            numeral: the list item is a two-column grid
+                            (number, text), and a third direct child would
+                            wrap onto its own row instead of sitting beside
+                            the headline it belongs to. */}
+                        <span className="paper__brief-text">
+                          <Link href={`/${locale}/a/${slot.article.id}`}>
+                            {slot.article.title}
+                          </Link>
+                          <PageRefTag
+                            pageRef={slot.page_ref}
+                            sectionTitle={sectionTitle(slot.page_ref)}
+                            locale={locale}
+                            onGoTo={onGoTo}
+                          />
+                        </span>
                       </li>
                     ))}
                   </ol>
@@ -226,13 +273,13 @@ export function IssuePaper({
             </section>
           )}
 
-          {secondaries.length > 0 && (
+          {(isFront ? rail : secondaries).length > 0 && (
             <section className="paper__highlights">
               {isFront && (
                 <h2 className="paper__label">{t(locale, "aquila.moreNews")}</h2>
               )}
               <div className="paper__columns">
-                {secondaries.map((slot) => (
+                {(isFront ? rail : secondaries).map((slot) => (
                   <div className="paper__column" key={slot.position}>
                     {/* A second and third picture on the page, which is what
                         the composer's image-aware selection is for. Not
@@ -268,10 +315,86 @@ export function IssuePaper({
               </div>
             </section>
           )}
+
+          {isFront && lower.length > 0 && (
+            // §8's lower row of further major stories. Headline and a page
+            // reference only, no byline, no image, one line clamped: the
+            // budget for this row is whatever the lead - the page's real
+            // dominant story, and correctly the tallest thing on it - leaves
+            // over, and at 1440x900 that measured to roughly 50px. A row this
+            // constrained earns its place by staying exactly as plain as the
+            // remaining space demands, rather than by being cut altogether.
+            <section className="paper__lower">
+              <div className="paper__lower-stories">
+                {lower.map((slot) => (
+                  <p className="paper__lower-story" key={slot.position}>
+                    <Link href={`/${locale}/a/${slot.article.id}`}>
+                      {slot.article.title}
+                    </Link>
+                    <PageRefTag
+                      pageRef={slot.page_ref}
+                      sectionTitle={sectionTitle(slot.page_ref)}
+                      locale={locale}
+                      onGoTo={onGoTo}
+                    />
+                  </p>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 
       <footer className="paper__footer">{t(locale, "aquila.footer")}</footer>
     </article>
+  );
+}
+
+/**
+ * Third-pass audit §8/§46's "PAGE X" - a cross-reference from a front-page
+ * story to the section page its own topic occupies in this same issue, not a
+ * claim that the story itself continues. The product stores no body text, so
+ * nothing here continues anywhere; what is real is that the topic has fuller
+ * coverage a page away, the way a broadsheet's front page points a reader
+ * inside rather than printing the whole story where it teases it.
+ *
+ * A button when the reader can act on it (`onGoTo` turns the page without a
+ * navigation, the same call the contents panel makes), inert text otherwise -
+ * this component renders wherever `IssuePaper` is used, and nothing about a
+ * page reference requires a live reading session to be true.
+ */
+function PageRefTag({
+  pageRef,
+  sectionTitle,
+  locale,
+  onGoTo,
+}: {
+  pageRef: number | null | undefined;
+  sectionTitle: string | null;
+  locale: LocaleCode;
+  onGoTo?: (page: number) => void;
+}) {
+  if (pageRef == null) return null;
+  const label = sectionTitle
+    ? t(locale, "aquila.pageRef.label", { section: sectionTitle, page: pageRef })
+    : t(locale, "aquila.pageRef.labelPlain", { page: pageRef });
+  const text = t(locale, "aquila.pageRef", { page: pageRef });
+
+  if (!onGoTo) {
+    return (
+      <span className="paper__pageref" aria-label={label}>
+        {text}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="paper__pageref"
+      onClick={() => onGoTo(pageRef)}
+      aria-label={label}
+    >
+      {text}
+    </button>
   );
 }
