@@ -1570,6 +1570,46 @@ a.chip:active {
   background: var(--accent-soft);
 }
 
+/* My Desk's curated topic selector (§24): a word list, not a tag cloud - no
+   pill, no bubble fill. Following is a rule under the word, the way an
+   active section reads in a masthead nav, not a filled badge. */
+.topic-picker {
+  gap: var(--space-1) var(--space-5);
+}
+
+.topic-chip {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  padding-block: var(--space-1);
+  border: none;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.topic-chip:hover {
+  color: var(--text);
+  border-block-end-color: var(--border);
+}
+
+.topic-chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.topic-chip[aria-pressed="true"],
+.topic-chip[data-active="true"] {
+  color: var(--accent);
+  border-block-end-color: var(--accent);
+}
+
 .checkbox-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));

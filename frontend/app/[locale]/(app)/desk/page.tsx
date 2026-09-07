@@ -10,6 +10,7 @@ import Link from "next/link";
 import { WhatChanged, type TopicChange } from "@/components/WhatChanged";
 
 import { getFollows, getTopicOverview, getTopicStories, getTopics } from "@/lib/api";
+import { withCuratedLabels } from "@/lib/curatedTopics";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
@@ -102,10 +103,14 @@ async function DeskBody({
   // the real thing rather than a picture of it.
   if (!access.ok) return <DeskPreview locale={locale} gate={access.element} />;
 
-  const [follows, topics] = await Promise.all([
+  const [follows, topicsRaw] = await Promise.all([
     getFollows(access.auth),
     getTopics(locale),
   ]);
+  // §24's curated layer, applied once here so every reader below - tiles,
+  // the add-topic picker, "what changed" headings - sees the editorial
+  // label without repeating the lookup at each call site.
+  const topics = { ...topicsRaw, data: withCuratedLabels(topicsRaw.data, locale) };
   const byId = new Map(topics.data.map((topic) => [topic.id, topic]));
   const followedIds = new Set(follows.map((f) => f.topic_id));
 
@@ -191,10 +196,11 @@ async function DeskPreview({
   locale: ReturnType<typeof getLocale>["code"];
   gate: React.ReactNode;
 }) {
-  const topics = await getTopics(locale);
-  // Real topics, in the reader's interface language, linking to pages that
-  // work signed out. Nothing here is a mock-up of a desk someone else has.
-  const preview = topics.data.slice(0, 12);
+  const topicsRaw = await getTopics(locale);
+  // Real topics, in the reader's interface language and §24's curated
+  // labels, linking to pages that work signed out. Nothing here is a
+  // mock-up of a desk someone else has.
+  const preview = withCuratedLabels(topicsRaw.data, locale).slice(0, 12);
 
   // §23: "the current My Desk is essentially a sign-in gate. That is not
   // enough." A visitor who cannot sign in yet still gets the page's actual
@@ -222,11 +228,11 @@ async function DeskPreview({
         <section className="desk-preview">
           <h2 className="home-tier">{t(locale, "desk.preview.heading")}</h2>
           <p className="form-note">{t(locale, "desk.preview.body")}</p>
-          <ul className="desk-preview__list">
+          <ul className="desk-preview__list topic-picker">
             {preview.map((topic) => (
               <li key={topic.id}>
                 <Link
-                  className="chip"
+                  className="topic-chip"
                   href={`/${locale}/desk/${encodeURIComponent(topic.id)}`}
                 >
                   {topic.label}

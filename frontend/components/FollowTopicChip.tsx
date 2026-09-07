@@ -19,12 +19,17 @@ export function FollowTopicChip({
   locale,
   following,
   revalidatePath,
+  className = "chip",
 }: {
   topicId: string;
   label: string;
   locale: LocaleCode;
   following: boolean;
   revalidatePath: string;
+  /** My Desk's topic picker wants the editorial `topic-chip` look (§24: "not
+   * SaaS-tag heavy"); onboarding's topic deck keeps the default pill. Same
+   * toggle, same aria-pressed contract, different surface. */
+  className?: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [isFollowing, setIsFollowing] = useState(following);
@@ -34,7 +39,7 @@ export function FollowTopicChip({
     <>
       <button
         type="button"
-        className="chip"
+        className={className}
         aria-pressed={isFollowing}
         data-active={isFollowing || undefined}
         disabled={pending}

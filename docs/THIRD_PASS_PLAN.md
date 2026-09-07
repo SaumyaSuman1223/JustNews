@@ -443,6 +443,53 @@ carrying real content rather than a gate.
 **Accept:** no raw taxonomy label on screen; every curated topic resolves to
 real IPTC ids; signed out shows something worth reading.
 
+**Shipped, narrower than planned once measured.** Found live: add / remove /
+reorder / follow (§24's four required behaviours) and the signed-out desk
+with real "what changed" content were already fully built in the second
+pass (`98d67eb`, "My Desk as a workspace, not a sign-in gate"). The only
+open gap was the one the audit actually screenshots — `AddTopicPicker` and
+the signed-out preview rendering the raw IPTC label straight from the API
+("Arts, culture, entertainment and media", and, worse, a mechanically
+title-cased "Ai Policy" for any topic missing a translated label row).
+
+Also found live: the mockup's own example list (AI, Markets, India, Space,
+Climate, Energy, Semiconductors, Politics) doesn't match what's actually
+seeded. Only the 17 top-level IPTC Media Topics concepts are guaranteed to
+exist anywhere (`packages/core/src/justnews_core/taxonomy.py` - deeper
+levels have no loader yet), and most of the mockup's words are level-2+
+concepts. Building curated entries for ids that don't exist would be
+exactly the fabrication `CLAUDE.md` and this plan's own §24 note rule out.
+
+What shipped instead: `frontend/lib/curatedTopics.ts`, a presentation-only
+map from real topic id → short editorial label (en/es/hi), covering the 17
+top-level concepts (`Politics`, `Markets`, `Climate`, `Tech & Science`, …)
+plus the one deeper topic already live in this corpus (`ai-policy` → `AI`,
+literally the audit's first example). Applied once per page load
+(`withCuratedLabels`) so tiles, the add-topic picker, and "What changed"
+headings all pick it up from one place. A topic id with no curated entry
+still renders — its own API label, not a blank or a placeholder — so
+nothing an admin tags later disappears while waiting to be curated.
+
+`AddTopicPicker`'s chips and the signed-out preview's topic links both
+moved off the shared pill `.chip` onto a new `.topic-chip`: no border, no
+fill, an underline that appears on hover and on a followed topic — a word
+list, not a tag cloud, per §24's explicit "not SaaS-tag heavy." Onboarding's
+own topic deck keeps the original `.chip` unchanged (`FollowTopicChip`
+gained an optional `className`, defaulting to the old class, rather than a
+global restyle of a component two unrelated surfaces share).
+
+No backend changes, no migration. Verified against live data: `/en/desk`
+signed out now reads "AI" and "Politics" rather than raw labels; Hindi
+renders the curated Devanagari labels correctly; axe clean on `/en/desk`;
+full e2e suite green; typecheck/lint/build clean.
+
+**Noted, not fixed** (pre-existing, unrelated to the picker): `label_for`'s
+fallback for a topic with no translated label row does
+`slug.replace("-", " ").title()`, which mis-cases anything containing an
+acronym ("ai-policy" → "Ai Policy" rather than "AI Policy"). Only visible
+for a topic outside the curated map with no label rows at all - real, but a
+backend labelling bug, not this chunk's scope.
+
 ### Chunk 6 — Feature stories, the Brief, and Search *(§16, §20, §27)*
 The `feature` card variant. The Brief renumbered and de-carded. Search gains
 its editorial framing and a source filter.
