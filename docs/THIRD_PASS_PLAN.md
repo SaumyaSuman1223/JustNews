@@ -594,6 +594,82 @@ The full matrix plus long headlines, missing images, missing metadata,
 multilingual text, edition boundaries. Performance re-measured against the
 numbers recorded in the second-pass plan, so any regression is visible.
 
+**Shipped, and it found two real bugs.** This chunk was pure QA - no new
+surface - but the sweep across every route this whole pass touched, at every
+width, surfaced two defects neither chunk-by-chunk testing nor the matrix's
+own real-data runs had hit.
+
+*Aquila's sheet overflowed at 1024x900.* The landscape-page geometry
+(`block-size: min(87dvh, 56.25rem)`, `aspect-ratio: 3/2`, `inline-size: auto`)
+was height-driven with no regard for the viewport's actual width - correct at
+the two widths §35 was tuned against (1440x900, 1920x1080), where height is
+always the binding constraint, but a shorter-and-narrower combination
+(1024x900) asked for a 1174.5px sheet inside a 1024px viewport. Root cause
+traced two levels deep: `.aquila__sheet`'s own `max-inline-size: 100%` had
+nothing bounded to resolve against, because its parent `.aquila__stage` (a
+column flex box with no explicit width, sitting inside a `justify-items:
+center` grid) shrink-wraps to its child's *preferred* width rather than being
+stretched to its grid track - so the 100% was measuring against a number that
+was itself unbounded. Fixed in two parts: `.aquila__stage` gained its own
+`max-inline-size: 100%` (now resolving against the grid track's real, bounded
+width), and `.aquila__sheet`'s formula flipped to width-driven -
+`inline-size: min(calc(87dvh * 1.5), calc(56.25rem * 1.5))` capped separately
+by `max-inline-size: 100%`, with `block-size: auto` deriving the height from
+whichever won, so the sheet is always exactly 3:2 rather than being squashed
+by a competing fixed height. Verified at all four corners (1024x900 now
+872x581, still 3:2, no overflow; 1440x900 and 1920x1080 unchanged in the
+exact pixel bands §35 specifies; 1024x1400 also correctly width-bound).
+
+*One unbroken long token overflowed every card variant it landed in.* A
+synthetic ~150-character no-space title, inserted as a real temporary row
+(then deleted) so it exercised the actual ranking and rendering path rather
+than a mocked response, revealed that nothing in the stylesheet declared
+`overflow-wrap` anywhere - headline, snippet and source name all trusted
+publisher text to contain spaces. Fixed with one inherited property on
+`body`, so every text-bearing descendant in the product gets the protection
+at once rather than hunting down each card/heading selector individually.
+Long *breakable* headlines were already fine (`text-wrap: balance`, no
+line-clamp on the lead) - this was specifically the unbreakable-token case,
+which a normal editorial headline never produces but a URL-shaped or
+transliterated string can.
+
+*Why route-level network interception didn't work, and what did instead.*
+The first attempt at synthetic edge-case data used Playwright's
+`page.route()` to rewrite the API response - which silently no-ops for this
+app's Server Components, since their fetches run in the Next.js Node process
+during SSR, never through the browser's network stack Playwright intercepts.
+Switched to a real (temporary) database row instead, which is also why it
+caught the actual bug: a mocked response would have exercised the same
+component tree either way, but only a real row goes through the same
+ranking query that put it at the top of Home's feed, the same cache layer,
+and the same cold-cache-after-restart trap this session has hit before -
+confirmed live via a stale-cache false negative (first pass showed "no
+overflow" only because the dev server was still serving a cached response
+from before the row existed) before a clean restart surfaced the real
+result.
+
+**Full matrix, this pass's own routes:** 9 routes (`/en`, `/en/aquila`,
+`/en/desk`, `/en/desk/{topic}`, `/en/search`, `/en/story/{id}`, `/en/a/{id}`,
+`/en/saved`, `/en/login`) × 5 widths (360-1440px) - zero overflow, zero axe
+violations. Repeated for `hi`/`es` across `/`, `/aquila`, `/desk` - same,
+clean. Full e2e suite green with no flakes on this run. Backend: 500 tests,
+mypy, ruff, `alembic check` all clean (no backend files changed this chunk).
+
+**Performance, re-measured against the second-pass plan's own numbers**
+(local production build, Chromium):
+
+| Route | LCP then → now | CLS then → now | JS then → now | Fonts then → now | Total then → now |
+|---|---|---|---|---|---|
+| `/en` | 764-856ms → 700ms | 0 → 0.0000 | 200KB → 201KB | 259KB → 259KB | 475KB → 476KB |
+| `/en/aquila` | 784-948ms → 720ms | 0.004 → 0.0002 | 134KB → 135KB | 208KB → 208KB | 360KB → 362KB |
+| `/hi` | 148ms → 156ms | 0 → 0.0028 | 200KB → 201KB | 495KB → 495KB | 710KB → 712KB |
+
+No regression on any figure - seven chunks of new surface (Aquila's lower
+row and swipe, source diversity, the story page, curated topics, the feature
+card and search filters, both Moments gestures) added under 2KB anywhere,
+because every one of them reused the existing card/token system rather than
+its own CSS, and none added a new font or a render-blocking script.
+
 ---
 
 ## Risks
