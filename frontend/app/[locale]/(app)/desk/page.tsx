@@ -5,11 +5,18 @@ import { notFound } from "next/navigation";
 import { AddTopicPicker } from "@/components/AddTopicPicker";
 import { DeskTiles, type DeskTile } from "@/components/DeskTiles";
 import { EmptyState } from "@/components/EmptyState";
+import { Understand } from "@/components/Understand";
 import Link from "next/link";
 
 import { WhatChanged, type TopicChange } from "@/components/WhatChanged";
 
-import { getFollows, getTopicOverview, getTopicStories, getTopics } from "@/lib/api";
+import {
+  getFollows,
+  getTopicOverview,
+  getTopicPerspectives,
+  getTopicStories,
+  getTopics,
+} from "@/lib/api";
 import { withCuratedLabels } from "@/lib/curatedTopics";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
@@ -207,14 +214,60 @@ async function DeskPreview({
   // answer - what has moved in these topics - because story clusters are a
   // public read. This is the same section a signed-in reader gets, over
   // topics nobody has chosen yet rather than over theirs.
+  const changeTopics = preview.slice(0, WHAT_CHANGED_TOPICS);
   const storyLists = await Promise.all(
-    preview.slice(0, WHAT_CHANGED_TOPICS).map((topic) => getTopicStories(topic.id, 10)),
+    changeTopics.map((topic) => getTopicStories(topic.id, 10)),
   );
-  const changes = latestChanges(preview.slice(0, WHAT_CHANGED_TOPICS), storyLists);
+  const changes = latestChanges(changeTopics, storyLists);
+
+  // Fourth-pass §20: the page should demonstrate the value before it asks
+  // for an account, not describe it. One real topic, rendered with the same
+  // `Understand` module a signed-in reader's own topic page uses - not a
+  // screenshot of one, the thing itself, working signed out. Picked as the
+  // first of these topics that actually has coverage, reusing the stories
+  // already fetched above, so the demonstration is never an empty shell
+  // when a topic with real content is sitting right next to it.
+  const exampleIndex = storyLists.findIndex(
+    (stories) => !stories.degraded && stories.data.length > 0,
+  );
+  const example = exampleIndex >= 0 ? changeTopics[exampleIndex] : (preview[0] ?? null);
+  const exampleStoriesResult = exampleIndex >= 0 ? storyLists[exampleIndex] : null;
+  const [exampleStories, examplePerspectives] = example
+    ? await Promise.all([
+        exampleStoriesResult ? Promise.resolve(exampleStoriesResult) : getTopicStories(example.id),
+        getTopicPerspectives(example.id),
+      ])
+    : [null, null];
 
   return (
     <>
-      {gate}
+      <section className="desk-pitch">
+        <h2 className="home-tier">{t(locale, "desk.pitch.heading")}</h2>
+        <ul className="desk-pitch__list">
+          <li>{t(locale, "desk.pitch.follow")}</li>
+          <li>{t(locale, "desk.pitch.changed")}</li>
+          <li>{t(locale, "desk.pitch.perspectives")}</li>
+          <li>{t(locale, "desk.pitch.track")}</li>
+        </ul>
+      </section>
+
+      {example && exampleStories && examplePerspectives && (
+        <section className="desk-example">
+          <p className="desk-section__note">{t(locale, "desk.example.note")}</p>
+          <Understand
+            topicLabel={example.label}
+            stories={exampleStories.degraded ? [] : exampleStories.data}
+            perspectives={examplePerspectives.degraded ? [] : examplePerspectives.data}
+            locale={locale}
+            storyHref={(storyId) => `/${locale}/story/${storyId}`}
+          />
+        </section>
+      )}
+
+      <section className="desk-section desk-section--gate">
+        {gate}
+      </section>
+
       {changes.length > 0 && (
         <section className="desk-section">
           <h2 className="home-tier">{t(locale, "desk.whatChanged")}</h2>

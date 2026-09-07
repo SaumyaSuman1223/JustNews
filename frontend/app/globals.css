@@ -4207,9 +4207,23 @@ span.paper__pageref {
   padding-block-start: var(--space-2);
 }
 
+.brief__date {
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-1);
+}
+
 .brief__heading {
   font-family: var(--font-display);
   font-size: var(--type-section);
+  margin: 0;
+}
+
+.brief__tagline {
+  font-style: italic;
+  color: var(--text-muted);
   padding-block-end: var(--space-2);
   border-block-end: 1px solid var(--border);
   margin: 0 0 var(--space-3);
@@ -4334,6 +4348,44 @@ span.paper__pageref {
   margin: calc(var(--space-4) * -1) 0 var(--space-6);
   color: var(--text-muted);
   font-size: var(--type-body-s);
+}
+
+/* Fourth-pass §20: what a desk is for, before the page asks for anything.
+   No cards (§32) - a rule-per-line reads as furniture, not a pitch deck. */
+.desk-pitch {
+  max-inline-size: 58rem;
+  margin-block: var(--space-8) var(--space-6);
+}
+
+.desk-pitch__list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.desk-pitch__list li {
+  font-family: var(--font-display);
+  font-size: var(--type-body-l);
+  line-height: 1.4;
+  padding-inline-start: var(--space-4);
+  border-inline-start: 2px solid var(--accent);
+}
+
+/* The worked example: the same `Understand` module a real topic page
+   renders, over a topic nobody signed-out has chosen. Demonstration, not
+   description. */
+.desk-example {
+  max-inline-size: 58rem;
+  margin-block: var(--space-6) var(--space-10);
+}
+
+.desk-section--gate {
+  max-inline-size: 58rem;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: var(--space-6);
+  margin-block: 0 var(--space-10);
 }
 
 /* What changed: one development per followed topic. Rules and type, no cards

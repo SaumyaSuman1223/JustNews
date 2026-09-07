@@ -21,11 +21,23 @@ export function DailyBrief({
 }) {
   if (articles.length === 0) return null;
 
+  // A Server Component's local clock, not a per-reader claim - this labels
+  // the brief with today's date the way a paper's own dateline does, not a
+  // specific hour, so there is no "whose timezone" question the way there
+  // was for Aquila's edition time (fourth-pass §9).
+  const dateLine = new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date());
+
   return (
     <section className="brief" aria-labelledby="brief-heading">
+      <p className="brief__date">{dateLine}</p>
       <h2 id="brief-heading" className="brief__heading">
         {t(locale, "home.brief.heading")}
       </h2>
+      <p className="brief__tagline">{t(locale, "home.brief.tagline")}</p>
       <ol className="brief__list">
         {articles.map((article) => (
           <li key={article.id}>

@@ -62,7 +62,7 @@ export default async function AquilaPage({
         // real thing, and this is what it looks like.
         <div className="narrow">
           <div className="page-header">
-            <p className="eyebrow">{t(active.code, "aquila.standfirst")}</p>
+            <p className="eyebrow">{t(active.code, "aquila.strap")}</p>
             <h1>{t(active.code, "aquila.title")}</h1>
           </div>
           <EmptyState
