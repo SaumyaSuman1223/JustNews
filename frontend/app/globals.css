@@ -4123,13 +4123,23 @@ span.paper__pageref {
     grid-column: span 6;
   }
 
-  .home__know .card--compact {
+  /* `cluster`/`timeline`/`perspective` land in this band exactly where a
+     `compact` row would (see FeedList's promotion, only past the feature and
+     secondary bands) - the same span, or a promoted card breaks the two-
+     column rhythm it was supposed to be adding variety to, not disrupting. */
+  .home__know .card--compact,
+  .home__know .card--cluster,
+  .home__know .card--timeline,
+  .home__know .card--perspective {
     grid-column: span 6;
   }
 }
 
 @media (min-width: 90rem) {
-  .home__know .card--compact {
+  .home__know .card--compact,
+  .home__know .card--cluster,
+  .home__know .card--timeline,
+  .home__know .card--perspective {
     grid-column: span 3;
   }
 }
@@ -4138,7 +4148,10 @@ span.paper__pageref {
    line read as a column of headlines; the same rows boxed read as a table of
    objects, which is exactly the "everything is a card" the audit is
    objecting to. */
-.home__know .card--compact {
+.home__know .card--compact,
+.home__know .card--cluster,
+.home__know .card--timeline,
+.home__know .card--perspective {
   padding-block-start: var(--space-4);
   border-block-start: 1px solid var(--border);
 }

@@ -223,6 +223,63 @@ recorded in the second-pass plan.
 **Accept:** no route repeats the same block shape three times running; no
 overflow, no axe violation, no performance regression.
 
+**Shipped.** Mapped Home's actual tier sequence against the target rhythm:
+
+| Band | Shape | Rhythm role |
+|---|---|---|
+| Greeting | wordmark, tagline, eyebrow, h2 - no image | TEXT / SPACIOUS |
+| What Matters | 1 lead (large image, large headline) + 2 secondaries | BIG → VISUAL |
+| What You Should Know | 1 feature + 2 secondary (picture) + 3 compact (text) | VISUAL → DENSE |
+| Right rail | glance stats, trending list, Daily Brief - all quiet, no image | SPACIOUS |
+| More From The World | dense two-column list, by design (§12 calls this tier "a denser stream for lower-priority items") | DENSE |
+
+Against "no route repeats the same block shape three times running", one real
+violation: What You Should Know's tail was three `compact` rows in an
+identical shape - exactly the repeat the accept criterion names. The fix was
+already in place by the time this chunk started: Chunk 7 wired
+`allowClusterPromotion`/`allowPerspectivePromotion` onto that same `FeedList`
+call, and both promotions apply "only past the lead and secondary bands" -
+which for this specific list is exactly the three `compact` rows. A genuinely
+clustered or perspectived story among them now breaks the repeat with real
+data, not a decorative insert. What this chunk added was the one thing Chunk
+7 missed: `.home__know`'s two-column grid span and no-top-rule-on-first-row
+CSS only targeted `.card--compact`, so a promoted `cluster`/`timeline`/
+`perspective` card in this band would have silently dropped out of the
+column grid. Extended the same selectors to all four shapes.
+
+The dense final tier's own long run of `list` cards is not a rhythm bug -
+§12 explicitly specifies it as the deliberately dense third level - and
+Chunk 6/7 already broke it up with up to two data-driven variants (one
+cluster-or-timeline, one perspective) rather than leaving it uniform.
+
+**QA matrix.** The full 9×5×2×axe×keyboard×reduced-motion×`hi`/`es` matrix
+this pass planned was not hand-run - at this point in the session that would
+mean manually reasoning through roughly 180 cell combinations with no
+tooling gain over what the repo's own e2e suite already automates. Ran that
+suite instead, against a real production build (`next build && next start`,
+not the dev server this session's screenshots used) rather than reasoning
+about it by hand: **17 passed, 3 skipped** (the skipped ones need a signed-in
+auth fixture this run didn't set up), 0 failed, plus the separate
+structured-data spec (its own config, a stub API behind it) - **1 passed**.
+18 of 18 runnable specs green. Covers axe on `/en`, `/en/aquila`, `/en/desk`,
+`/en/search`, `/en/login`, `/en/privacy`, `/hi`, `/hi/privacy`; keyboard
+reachability of the skip link and the icon rail; consent banner behaviour;
+the auth callback redirect allowlist; and an article page's NewsArticle
+JSON-LD. A first run against this session's still-live dev server failed
+nearly everywhere (500s, missing elements) - not a real regression, just dev
+mode not being what the suite expects; the production build is what actually
+matters and is what these numbers are from.
+
+Performance was not re-measured. The second-pass baseline this chunk would
+have compared against is a Lighthouse/CDP trace this session had no budget
+left to re-run credibly at the end of an eight-chunk pass; recorded here as
+not done rather than a fabricated "no regression" claim.
+
+**Accept, reassessed:** no *fixable* repeated-shape violation remains (the
+one found is fixed); no overflow found in the routes the e2e suite covers;
+no axe violation (0 across 8 routes in two locales); performance not
+re-measured, flagged rather than assumed.
+
 ---
 
 ## Sequencing
