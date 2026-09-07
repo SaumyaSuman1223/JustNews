@@ -1771,6 +1771,11 @@ export interface components {
             items: components["schemas"]["ArticleOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
+            /**
+             * Total
+             * @description Total matches for this query. Present on the first page only - a later page would recount the same predicate for the same answer.
+             */
+            total?: number | null;
         };
         /** SectionOut */
         SectionOut: {

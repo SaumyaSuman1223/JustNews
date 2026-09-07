@@ -17,6 +17,9 @@ MAX_QUERY_LENGTH = 200
 class SearchPage:
     items: list[repo.ArticleRow]
     next_cursor: str | None
+    #: How many articles match in total. ``None`` past the first page - see
+    #: below; a client already has it from the page it started on.
+    total: int | None
 
 
 async def search(
@@ -40,6 +43,22 @@ async def search(
     if cursor:
         before_published_at, before_id = decode_cursor(cursor)
 
+    # Audit §28 wants the results heading to say how many there are. A
+    # keyset feed cannot know that from the page it just returned, so it is a
+    # second query - run only when there is no cursor, because a count over
+    # the same predicate returns the same number on every page and paying for
+    # it again on page four buys nothing.
+    total = (
+        None
+        if cursor
+        else await repo.count_search_articles(
+            session,
+            query_text=query_text,
+            languages=parse_languages(languages),
+            topic_id=topic_id,
+        )
+    )
+
     rows = await repo.search_articles(
         session,
         query_text=query_text,
@@ -54,4 +73,4 @@ async def search(
     next_cursor = (
         encode_cursor(items[-1].published_at, items[-1].id) if has_more and items else None
     )
-    return SearchPage(items=items, next_cursor=next_cursor)
+    return SearchPage(items=items, next_cursor=next_cursor, total=total)

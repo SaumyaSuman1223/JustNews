@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import type { Story } from "@/lib/api";
-import { formatRelativeTime, t, type LocaleCode } from "@/lib/i18n";
+import { formatCoverage, formatRelativeTime, t, type LocaleCode } from "@/lib/i18n";
 
 export interface TopicChange {
   topicId: string;
@@ -56,10 +56,7 @@ export function WhatChanged({
           </p>
           <p className="changed__meta">
             <span>
-              {t(locale, "desk.timeline.coverage", {
-                sources: change.story.source_count,
-                languages: change.story.language_count,
-              })}
+              {formatCoverage(locale, change.story.source_count, change.story.language_count)}
             </span>
             <time dateTime={change.story.last_seen_at}>
               {t(locale, "desk.whatChanged.updated", {

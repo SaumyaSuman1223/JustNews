@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import type { Story } from "@/lib/api";
-import { formatRelativeTime, type LocaleCode, t } from "@/lib/i18n";
+import { formatCoverage, formatRelativeTime, type LocaleCode, t } from "@/lib/i18n";
 
 /**
  * A topic's story clusters, plotted by when each one broke.
@@ -35,10 +35,7 @@ export function Timeline({
               <Link href={topicHref(story.id)}>{story.title}</Link>
             </p>
             <p className="timeline__meta">
-              {t(locale, "desk.timeline.coverage", {
-                sources: story.source_count,
-                languages: story.language_count,
-              })}
+              {formatCoverage(locale, story.source_count, story.language_count)}
             </p>
           </div>
         </li>

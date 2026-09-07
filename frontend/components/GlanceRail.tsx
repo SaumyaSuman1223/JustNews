@@ -1,5 +1,5 @@
 import type { CorpusStats } from "@/lib/api";
-import { t, type LocaleCode } from "@/lib/i18n";
+import { t, tPlural, type LocaleCode } from "@/lib/i18n";
 
 /**
  * "Today at a glance" - real corpus counts, not invented reader numbers.
@@ -12,10 +12,10 @@ import { t, type LocaleCode } from "@/lib/i18n";
  */
 export function GlanceRail({ stats, locale }: { stats: CorpusStats; locale: LocaleCode }) {
   const rows: [string, number][] = [
-    [t(locale, "stats.articles"), stats.articles],
-    [t(locale, "stats.sources"), stats.sources],
-    [t(locale, "stats.languages"), stats.languages],
-    [t(locale, "stats.stories"), stats.story_clusters],
+    [tPlural(locale, "stats.articles", stats.articles), stats.articles],
+    [tPlural(locale, "stats.sources", stats.sources), stats.sources],
+    [tPlural(locale, "stats.languages", stats.languages), stats.languages],
+    [tPlural(locale, "stats.stories", stats.story_clusters), stats.story_clusters],
   ];
 
   return (

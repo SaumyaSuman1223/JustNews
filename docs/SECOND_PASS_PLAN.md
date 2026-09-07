@@ -288,6 +288,54 @@ Quiet the glance card to editorial metadata. Search heading and result count.
 Then the full matrix again — five widths, both themes, keyboard, reduced
 motion, plus performance (§40) which I have not yet measured at all.
 
+**Shipped.**
+
+*§22.* "Today at a glance" was a bordered, filled card with 1.7rem display
+numerals — the "generic SaaS dashboard card" the audit names. It is now
+option B: a rule and a column of small caps (`29 ARTICLES / 9 SOURCES / 1
+LANGUAGE`), the way a newspaper prints its own circulation figures.
+
+*§28.* A `Results` heading and a real count. `SearchPageOut` gained `total`,
+counted with the same predicate the listing uses — extracted into
+`_search_predicates` so the heading and the list cannot drift apart — and only
+on the first page, because recounting the same predicate on page four returns
+the same number.
+
+*Pluralisation.* `1 languages` and `1 results` were about to appear in six
+places. The repo already had `tPlural`; the strings that needed it did not use
+it. `formatCoverage` and the `stats.*` labels are plural-aware now, in all
+three locales.
+
+**§40 — measured, not asserted.** Local production build, Chromium:
+
+| Route | LCP | CLS | JS | Fonts | Total |
+|---|---|---|---|---|---|
+| `/en` | 764–856 ms | **0** | 200 KB | 259 KB | 475 KB |
+| `/en/aquila` | 784–948 ms | 0.004 | 134 KB | 208 KB | 360 KB |
+| `/hi` | 148 ms | 0 | 200 KB | 495 KB | 710 KB |
+
+CLS is effectively zero everywhere — every image carries width and height, so
+nothing reflows on load. Lazy loading is correct: on Home, four of five images
+are `loading="lazy"` and the one eager image is the `priority` lead. Images are
+hotlinked and `unoptimized`; §40 says not to add server-side image
+infrastructure without demonstrating need, and 425 KB across five images with
+four of them lazy does not demonstrate it.
+
+**One optimisation tried and deliberately reverted.** The Devanagari UI webfont
+downloads on every English and Spanish page — 51 KB, a fifth of the page's font
+weight — to draw the six characters of `हिन्दी` in the language switcher.
+Dropping `--font-ui-deva` from that one control removed the download and cut
+`/en` from 259 KB to 208 KB of fonts. It also rendered the label as five empty
+boxes in the measuring browser, which has no Devanagari face installed. "Every
+script is a first-class script" does not survive tofu where a language name
+should be, so the 51 KB stays, and the reasoning is recorded in the CSS.
+
+**§45 matrix, all clean:** 9 routes × 5 widths (390/768/900/1440/1920) × 2
+themes — no horizontal overflow anywhere; axe clean at 390 and 1440 in both
+themes. Keyboard: twelve tab stops on Home, every one named, every one with a
+2px focus ring. Reduced motion: the paper settles at opacity 1 under both
+settings. Backend 476 tests, mypy, ruff check and format green.
+
 ---
 
 ## 5. Risks

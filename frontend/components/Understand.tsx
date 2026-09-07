@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Perspectives } from "@/components/Perspectives";
 import { Timeline } from "@/components/Timeline";
 import type { PerspectiveGroup, Story } from "@/lib/api";
-import { t, type LocaleCode } from "@/lib/i18n";
+import { formatCoverage, t, type LocaleCode } from "@/lib/i18n";
 
 /** §26's "5 important developments". Breadth of coverage, not recency. */
 const KEY_DEVELOPMENTS = 5;
@@ -70,10 +70,7 @@ export function Understand({
                     <Link href={storyHref(story.id)}>{story.title}</Link>
                   </p>
                   <p className="understand__meta">
-                    {t(locale, "desk.timeline.coverage", {
-                      sources: story.source_count,
-                      languages: story.language_count,
-                    })}
+                    {formatCoverage(locale, story.source_count, story.language_count)}
                   </p>
                 </div>
               </li>

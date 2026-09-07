@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import Select, delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -234,6 +235,35 @@ async def set_article_topics(
     await session.flush()
 
 
+def _search_predicates(
+    *, query_text: str, languages: list[str] | None, topic_id: str | None
+) -> list[Any]:
+    """What a search matches, in one place.
+
+    Extracted so the result list and the result *count* cannot drift apart -
+    a total that counts something different from what the page lists is worse
+    than no total at all.
+
+    The text-search configuration is a single language's: the reader's, when
+    exactly one was requested, so stemming matches how the matching articles
+    were indexed; ``simple`` (no stemming, literal tokens) otherwise, which
+    still matches exact words correctly across languages.
+    """
+    config = tsvector_config(languages[0]) if languages and len(languages) == 1 else "simple"
+    predicates: list[Any] = [
+        Article.search_vector.op("@@")(func.websearch_to_tsquery(config, query_text))
+    ]
+    if languages:
+        predicates.append(Article.language.in_(languages))
+    if topic_id:
+        # The same containment the topic feed uses, so "search within a topic"
+        # and "browse that topic" cannot disagree about what is in it.
+        predicates.append(
+            Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
+        )
+    return predicates
+
+
 async def search_articles(
     session: AsyncSession,
     *,
@@ -247,29 +277,13 @@ async def search_articles(
     """Full text search over ``search_vector``, ranked by recency rather than
     rank - simple enough to share the exact keyset pagination ``list_articles``
     already uses, and search results skew toward "what just happened" anyway.
-
-    The query is built with a single language's text-search configuration:
-    the reader's, when exactly one was requested, so stemming matches how the
-    matching articles were indexed; ``simple`` (no stemming, literal tokens)
-    otherwise, which still matches exact words correctly across languages.
     """
-    config = tsvector_config(languages[0]) if languages and len(languages) == 1 else "simple"
-    tsquery = func.websearch_to_tsquery(config, query_text)
-
     query = (
         _base_query()
-        .where(Article.search_vector.op("@@")(tsquery))
+        .where(*_search_predicates(query_text=query_text, languages=languages, topic_id=topic_id))
         .order_by(Article.published_at.desc(), Article.id.desc())
         .limit(limit)
     )
-    if languages:
-        query = query.where(Article.language.in_(languages))
-    if topic_id:
-        # The same containment the topic feed uses, so "search within a topic"
-        # and "browse that topic" cannot disagree about what is in it.
-        query = query.where(
-            Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
-        )
     if before_published_at is not None and before_id is not None:
         query = query.where(
             tuple_(Article.published_at, Article.id) < (before_published_at, before_id)
@@ -277,6 +291,34 @@ async def search_articles(
 
     result = await session.execute(query)
     return [ArticleRow.from_pair(article, source) for article, source in result.all()]
+
+
+async def count_search_articles(
+    session: AsyncSession, *, query_text: str, languages: list[str] | None, topic_id: str | None
+) -> int:
+    """How many articles the search matches in total.
+
+    Audit §28 asks the results heading to say "234 results". A keyset-paginated
+    feed cannot know that from the page it just returned, so this is a second
+    query - deliberately, and only on the first page (see the service).
+
+    The ``Source`` join and the ``removed_at`` filter are repeated from
+    ``_base_query`` rather than reused: that helper selects entities, and
+    wrapping it in a subquery would put the columns the predicates reference
+    out of scope. The join is kept even though a count needs no columns from
+    it, because ``source_id`` is a non-null foreign key and dropping the join
+    would be a silent assumption about that staying true.
+    """
+    result = await session.execute(
+        select(func.count())
+        .select_from(Article)
+        .join(Source, Article.source_id == Source.id)
+        .where(
+            Article.removed_at.is_(None),
+            *_search_predicates(query_text=query_text, languages=languages, topic_id=topic_id),
+        )
+    )
+    return int(result.scalar_one())
 
 
 async def list_story_clusters(

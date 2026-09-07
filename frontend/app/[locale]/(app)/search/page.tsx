@@ -9,7 +9,7 @@ import { Pagination } from "@/components/Pagination";
 import { SearchControls } from "@/components/SearchControls";
 import { getMe, getSaves, getTopics, searchArticles } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
+import { getLocale, isLocaleCode, readerLanguages, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 export async function generateMetadata({
@@ -119,7 +119,7 @@ async function SearchBody({
     query.length >= 2
       ? searchArticles({ query, languages, topic: topic || undefined, cursor })
       : Promise.resolve({
-          data: { items: [], next_cursor: null },
+          data: { items: [], next_cursor: null, total: null },
           degraded: false,
         }),
     auth
@@ -157,6 +157,22 @@ async function SearchBody({
             }}
           />
         )}
+
+      {results.data.items.length > 0 && (
+        <section className="search-results">
+          {/* §28: a results heading, and how many there are. The total comes
+              from the API on the first page only - a keyset feed cannot count
+              its own result set, and recounting the same predicate on page
+              four returns the same number. So a later page keeps the heading
+              and drops the count rather than showing a number for the page. */}
+          <h2 className="home-tier">{t(locale, "search.results")}</h2>
+          {typeof results.data.total === "number" && (
+            <p className="search-count">
+              {tPlural(locale, "search.resultCount", results.data.total)}
+            </p>
+          )}
+        </section>
+      )}
 
       {results.data.items.length > 0 && (
         <FeedList

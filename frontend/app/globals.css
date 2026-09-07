@@ -340,6 +340,18 @@ a {
   padding: 0;
 }
 
+/* Audit §40. Measured, tried, and deliberately not taken: the Devanagari UI
+   webfont downloads on every English and Spanish page - 51KB, a fifth of the
+   page's font weight - to draw the six characters of "हिन्दी" here. Dropping
+   `--font-ui-deva` from the stack removes that download, and the label then
+   renders from whatever Devanagari the operating system has.
+
+   It renders as five empty boxes when the operating system has none, which is
+   not rare: the headless browser these pages were measured in has no
+   Devanagari face at all. "Every script is a first-class script" is not a
+   rule that survives a reader seeing tofu where a language name should be, so
+   the 51KB stays. Recorded here so the next person to spot it does not spend
+   the afternoon rediscovering why. */
 .locale-switcher a {
   font-size: 0.82rem;
   padding: 0.15rem var(--space-2);
@@ -3799,48 +3811,66 @@ a.chip:active {
 
 /* --- today at a glance ----------------------------------------------------- */
 
+/* Audit §22: "can feel like generic SaaS dashboard cards", and option B -
+   render them as quiet editorial metadata instead.
+   Gone: the border, the fill, the card padding, and the 1.7rem display
+   numerals. What is left is a rule and a column of small caps, which is how a
+   newspaper prints its own circulation figures - present, checkable, and not
+   competing with an actual story. */
 .glance {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: var(--space-6);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--border);
 }
 
 .glance__heading {
   font-size: var(--type-micro);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-3);
 }
 
 .glance__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-1);
   margin: 0;
 }
 
 .glance__list > div {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
+  gap: 0.4rem;
 }
 
 .glance dd {
-  font-family: var(--font-display);
-  font-size: 1.7rem;
+  font-size: var(--type-label);
   font-weight: 600;
-  color: var(--text);
+  color: var(--text-mid);
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .glance dt {
   font-size: var(--type-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* --- search results ------------------------------------------------------ */
+
+.search-results {
+  margin-block-start: var(--space-8);
+}
+
+.search-count {
+  margin: calc(var(--space-4) * -1) 0 var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- trending, inside the rail ---------------------------------------------- */
