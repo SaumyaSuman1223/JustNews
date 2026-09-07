@@ -95,7 +95,11 @@ def _parse_articles(payload: Any, *, language: str, settings: Settings) -> list[
         except ValueError:
             continue
 
-        snippet = make_snippet(item.get("description"), settings.ingest_snippet_max_chars)
+        snippet = make_snippet(
+            item.get("description"),
+            settings.ingest_snippet_max_chars,
+            summary_max_chars=settings.ingest_summary_max_chars,
+        )
         published_raw = item.get("publishedAt")
         try:
             published_at = (

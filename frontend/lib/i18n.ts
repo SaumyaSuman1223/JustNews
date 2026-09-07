@@ -141,10 +141,14 @@ const en = {
     "We are still gathering today’s coverage. Explore is the same news without the personalisation, and it is worth a look in the meantime.",
   "feed.empty.action": "Go to Explore",
 
-  "stats.articles": "articles",
-  "stats.sources": "sources",
-  "stats.languages": "languages",
-  "stats.stories": "stories",
+  "stats.articles.one": "article",
+  "stats.articles.other": "articles",
+  "stats.sources.one": "source",
+  "stats.sources.other": "sources",
+  "stats.languages.one": "language",
+  "stats.languages.other": "languages",
+  "stats.stories.one": "story",
+  "stats.stories.other": "stories",
 
   "home.greeting.morning": "Good morning",
   "home.greeting.afternoon": "Good afternoon",
@@ -152,7 +156,7 @@ const en = {
   "home.greeting.subtitle": "Here’s what matters today.",
   "home.tier.matters": "What matters",
   "home.tier.shouldKnow": "What you should know",
-  "home.tier.else": "What else is happening",
+  "home.tier.world": "More from the world",
   "home.glance.heading": "Today at a glance",
   "home.brief.heading": "The Daily Brief",
   "home.brief.cta": "Read today’s issue",
@@ -323,6 +327,9 @@ const en = {
   "search.heading": "Search",
   "search.titleWithQuery": "Search: {query}",
   "search.intro": "Full text search over headlines and summaries in your languages.",
+  "search.results": "Results",
+  "search.resultCount.one": "{count} result",
+  "search.resultCount.other": "{count} results",
   "search.degraded": "Search is unavailable right now.",
   "search.browseInstead": "Browse by topic instead",
   "search.filter.topic": "Topic",
@@ -404,14 +411,15 @@ const en = {
   "desk.actionFailed": "That didn’t go through. Try again.",
   "desk.tabs.label": "Topic sections",
   "desk.tabs.latest": "Latest",
-  "desk.tabs.timeline": "Timeline",
-  "desk.tabs.keyDevelopments": "Key Developments",
   "desk.tabs.perspectives": "Perspectives",
   "desk.tabs.analysis": "Analysis",
   "desk.overview.heading": "Topic overview",
   "desk.related.heading": "Related topics",
   "desk.timeline.empty": "No story timeline yet for this topic.",
-  "desk.timeline.coverage": "{sources} sources · {languages} languages",
+  "desk.coverage.sources.one": "{count} source",
+  "desk.coverage.sources.other": "{count} sources",
+  "desk.coverage.languages.one": "{count} language",
+  "desk.coverage.languages.other": "{count} languages",
   "desk.keyDevelopments.empty": "No major developments yet.",
   "desk.perspectives.empty":
     "Not enough named-source coverage yet to show perspectives for this topic.",
@@ -424,6 +432,21 @@ const en = {
   "desk.perspectives.role.public": "Public sources",
   "desk.stub.analysis.title": "Analysis — coming soon",
   "desk.stub.analysis.body": "Deeper context and trend analysis for this topic.",
+  "desk.subtitle": "Your topics. Deeper understanding.",
+  "desk.yourTopics": "Your topics",
+  "desk.whatChanged": "What changed",
+  "desk.whatChanged.note": "The most recent development in each topic you follow.",
+  "desk.whatChanged.previewNote": "The most recent development in a few topics you could follow.",
+  "desk.whatChanged.empty": "Nothing has moved in your topics yet.",
+  "desk.whatChanged.updated": "Updated {time}",
+  "desk.tabs.understand": "Understand",
+  "desk.understand.heading": "Understand {topic}",
+  "desk.understand.happening": "What\u2019s happening",
+  "desk.understand.happening.note": "The developments the most publishers are covering.",
+  "desk.understand.saying": "Who is saying what",
+  "desk.understand.saying.note": "Which kinds of publisher are reporting this, and who they are.",
+  "desk.understand.changing": "What\u2019s changing",
+  "desk.understand.changing.note": "How the coverage developed, newest first.",
 
   "profile.languageMix.heading": "What you actually read",
   "profile.languageMix.body": "Based on your last {count} articles opened.",
@@ -492,10 +515,14 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "Todavía estamos reuniendo la cobertura de hoy. Explorar son las mismas noticias sin la personalización, y merece la pena echarle un vistazo mientras tanto.",
     "feed.empty.action": "Ir a Explorar",
 
-    "stats.articles": "artículos",
-    "stats.sources": "fuentes",
-    "stats.languages": "idiomas",
-    "stats.stories": "historias",
+    "stats.articles.one": "artículo",
+    "stats.articles.other": "artículos",
+    "stats.sources.one": "fuente",
+    "stats.sources.other": "fuentes",
+    "stats.languages.one": "idioma",
+    "stats.languages.other": "idiomas",
+    "stats.stories.one": "historia",
+    "stats.stories.other": "historias",
 
     "home.greeting.morning": "Buenos días",
     "home.greeting.afternoon": "Buenas tardes",
@@ -503,7 +530,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "home.greeting.subtitle": "Esto es lo que importa hoy.",
     "home.tier.matters": "Lo que importa",
     "home.tier.shouldKnow": "Lo que deberías saber",
-    "home.tier.else": "Qué más está pasando",
+    "home.tier.world": "Más del mundo",
     "home.glance.heading": "Hoy de un vistazo",
     "home.brief.heading": "El resumen diario",
     "home.brief.cta": "Leer la edición de hoy",
@@ -677,6 +704,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "search.heading": "Buscar",
     "search.titleWithQuery": "Buscar: {query}",
     "search.intro": "Búsqueda de texto completo en titulares y resúmenes en tus idiomas.",
+    "search.results": "Resultados",
+    "search.resultCount.one": "{count} resultado",
+    "search.resultCount.other": "{count} resultados",
     "search.degraded": "La búsqueda no está disponible ahora mismo.",
     "search.browseInstead": "Explorar por tema en su lugar",
     "search.filter.topic": "Tema",
@@ -760,14 +790,15 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.actionFailed": "Eso no funcionó. Inténtalo de nuevo.",
     "desk.tabs.label": "Secciones del tema",
     "desk.tabs.latest": "Lo último",
-    "desk.tabs.timeline": "Cronología",
-    "desk.tabs.keyDevelopments": "Desarrollos clave",
     "desk.tabs.perspectives": "Perspectivas",
     "desk.tabs.analysis": "Análisis",
     "desk.overview.heading": "Resumen del tema",
     "desk.related.heading": "Temas relacionados",
     "desk.timeline.empty": "Todavía no hay cronología para este tema.",
-    "desk.timeline.coverage": "{sources} fuentes · {languages} idiomas",
+    "desk.coverage.sources.one": "{count} fuente",
+    "desk.coverage.sources.other": "{count} fuentes",
+    "desk.coverage.languages.one": "{count} idioma",
+    "desk.coverage.languages.other": "{count} idiomas",
     "desk.keyDevelopments.empty": "Todavía no hay desarrollos importantes.",
     "desk.perspectives.empty":
       "Todavía no hay suficiente cobertura de fuentes identificadas para mostrar perspectivas de este tema.",
@@ -780,6 +811,21 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.perspectives.role.public": "Fuentes públicas",
     "desk.stub.analysis.title": "Análisis — próximamente",
     "desk.stub.analysis.body": "Contexto más profundo y análisis de tendencias para este tema.",
+    "desk.subtitle": "Tus temas. Mayor comprensión.",
+    "desk.yourTopics": "Tus temas",
+    "desk.whatChanged": "Qué ha cambiado",
+    "desk.whatChanged.note": "El desarrollo más reciente de cada tema que sigues.",
+    "desk.whatChanged.previewNote": "El desarrollo más reciente de algunos temas que podrías seguir.",
+    "desk.whatChanged.empty": "Todavía no se ha movido nada en tus temas.",
+    "desk.whatChanged.updated": "Actualizado {time}",
+    "desk.tabs.understand": "Entender",
+    "desk.understand.heading": "Entender {topic}",
+    "desk.understand.happening": "Qué está pasando",
+    "desk.understand.happening.note": "Los desarrollos que más medios están cubriendo.",
+    "desk.understand.saying": "Quién dice qué",
+    "desk.understand.saying.note": "Qué tipos de medio lo están cubriendo, y cuáles son.",
+    "desk.understand.changing": "Qué está cambiando",
+    "desk.understand.changing.note": "Cómo se ha desarrollado la cobertura, lo más nuevo primero.",
 
     "profile.languageMix.heading": "Lo que realmente lees",
     "profile.languageMix.body": "Según tus últimos {count} artículos abiertos.",
@@ -843,10 +889,14 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "हम आज की कवरेज अब भी जुटा रहे हैं। एक्सप्लोर पर वही ख़बरें बिना वैयक्तिकरण के मिलती हैं, और तब तक देखने लायक है।",
     "feed.empty.action": "एक्सप्लोर पर जाएँ",
 
-    "stats.articles": "लेख",
-    "stats.sources": "स्रोत",
-    "stats.languages": "भाषाएँ",
-    "stats.stories": "कहानियाँ",
+    "stats.articles.one": "लेख",
+    "stats.articles.other": "लेख",
+    "stats.sources.one": "स्रोत",
+    "stats.sources.other": "स्रोत",
+    "stats.languages.one": "भाषा",
+    "stats.languages.other": "भाषाएँ",
+    "stats.stories.one": "कहानी",
+    "stats.stories.other": "कहानियाँ",
 
     "home.greeting.morning": "सुप्रभात",
     "home.greeting.afternoon": "नमस्कार",
@@ -854,7 +904,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "home.greeting.subtitle": "आज जो मायने रखता है।",
     "home.tier.matters": "जो मायने रखता है",
     "home.tier.shouldKnow": "जो आपको जानना चाहिए",
-    "home.tier.else": "और क्या हो रहा है",
+    "home.tier.world": "दुनिया से और",
     "home.glance.heading": "आज एक नज़र में",
     "home.brief.heading": "दैनिक सार",
     "home.brief.cta": "आज का अंक पढ़ें",
@@ -1028,6 +1078,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "search.heading": "खोज",
     "search.titleWithQuery": "खोज: {query}",
     "search.intro": "आपकी भाषाओं में सुर्ख़ियों और सारांशों में पूरा-पाठ खोज।",
+    "search.results": "परिणाम",
+    "search.resultCount.one": "{count} परिणाम",
+    "search.resultCount.other": "{count} परिणाम",
     "search.degraded": "खोज अभी उपलब्ध नहीं है।",
     "search.browseInstead": "इसके बजाय विषय के हिसाब से देखें",
     "search.filter.topic": "विषय",
@@ -1109,14 +1162,15 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.actionFailed": "यह पूरा नहीं हुआ। फिर कोशिश करें।",
     "desk.tabs.label": "विषय अनुभाग",
     "desk.tabs.latest": "ताज़ा",
-    "desk.tabs.timeline": "समयरेखा",
-    "desk.tabs.keyDevelopments": "मुख्य घटनाक्रम",
     "desk.tabs.perspectives": "दृष्टिकोण",
     "desk.tabs.analysis": "विश्लेषण",
     "desk.overview.heading": "विषय अवलोकन",
     "desk.related.heading": "संबंधित विषय",
     "desk.timeline.empty": "इस विषय के लिए अभी कोई समयरेखा नहीं है।",
-    "desk.timeline.coverage": "{sources} स्रोत · {languages} भाषाएँ",
+    "desk.coverage.sources.one": "{count} स्रोत",
+    "desk.coverage.sources.other": "{count} स्रोत",
+    "desk.coverage.languages.one": "{count} भाषा",
+    "desk.coverage.languages.other": "{count} भाषाएँ",
     "desk.keyDevelopments.empty": "अभी कोई बड़ा घटनाक्रम नहीं है।",
     "desk.perspectives.empty":
       "इस विषय के लिए दृष्टिकोण दिखाने के लिए अभी पर्याप्त पहचाने गए स्रोतों की कवरेज नहीं है।",
@@ -1129,6 +1183,21 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.perspectives.role.public": "सार्वजनिक स्रोत",
     "desk.stub.analysis.title": "विश्लेषण — जल्द आ रहा है",
     "desk.stub.analysis.body": "इस विषय के लिए गहन संदर्भ और रुझान विश्लेषण।",
+    "desk.subtitle": "आपके विषय। गहरी समझ।",
+    "desk.yourTopics": "आपके विषय",
+    "desk.whatChanged": "क्या बदला",
+    "desk.whatChanged.note": "आप जिन विषयों को फ़ॉलो करते हैं, उनमें से हर एक का सबसे नया घटनाक्रम।",
+    "desk.whatChanged.previewNote": "कुछ ऐसे विषयों का सबसे नया घटनाक्रम जिन्हें आप फ़ॉलो कर सकते हैं।",
+    "desk.whatChanged.empty": "आपके विषयों में अभी कुछ नया नहीं है।",
+    "desk.whatChanged.updated": "{time} अपडेट हुआ",
+    "desk.tabs.understand": "समझें",
+    "desk.understand.heading": "{topic} को समझें",
+    "desk.understand.happening": "क्या हो रहा है",
+    "desk.understand.happening.note": "वे घटनाक्रम जिन्हें सबसे ज़्यादा प्रकाशक कवर कर रहे हैं।",
+    "desk.understand.saying": "कौन क्या कह रहा है",
+    "desk.understand.saying.note": "किस तरह के प्रकाशक इसे कवर कर रहे हैं, और वे कौन हैं।",
+    "desk.understand.changing": "क्या बदल रहा है",
+    "desk.understand.changing.note": "कवरेज कैसे आगे बढ़ा, सबसे नया पहले।",
 
     "profile.languageMix.heading": "आप असल में क्या पढ़ते हैं",
     "profile.languageMix.body": "आपके पिछले {count} खोले गए लेखों के आधार पर।",
@@ -1175,6 +1244,13 @@ export function t(
 type PluralBase =
   | "article.otherLanguages"
   | "article.otherSources"
+  | "desk.coverage.languages"
+  | "desk.coverage.sources"
+  | "search.resultCount"
+  | "stats.articles"
+  | "stats.languages"
+  | "stats.sources"
+  | "stats.stories"
   | "story.coveredBy"
   | "story.reports";
 
@@ -1207,6 +1283,26 @@ export function tPlural(
   const exact = table[`${base}.${category}` as MessageKey];
   const template = exact ?? table[`${base}.other` as MessageKey];
   return interpolate(template, { count, ...vars });
+}
+
+/**
+ * "5 sources · 2 languages", with both halves pluralised.
+ *
+ * It was one template with two numbers substituted into it, which produced
+ * "1 languages" wherever a story had only been reported in one - and it now
+ * appears in four places rather than one, so the seam shows. Two plural
+ * lookups joined here is the smallest honest fix: a single template cannot
+ * carry two independent plural categories in any language.
+ */
+export function formatCoverage(
+  locale: LocaleCode,
+  sources: number,
+  languages: number,
+): string {
+  return [
+    tPlural(locale, "desk.coverage.sources", sources),
+    tPlural(locale, "desk.coverage.languages", languages),
+  ].join(" · ");
 }
 
 /** Locale-aware relative time, e.g. "3 hours ago" / "منذ ٣ ساعات". */

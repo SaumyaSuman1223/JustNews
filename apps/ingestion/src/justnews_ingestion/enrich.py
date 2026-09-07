@@ -61,7 +61,11 @@ def parse_metadata(html: str, settings: Settings) -> Metadata:
         canonical_url=canonical,
         image_url=_meta(soup, "og:image", "twitter:image", "twitter:image:src"),
         author_name=_meta(soup, "article:author", "author"),
-        description=make_snippet(description, settings.ingest_snippet_max_chars),
+        description=make_snippet(
+            description,
+            settings.ingest_snippet_max_chars,
+            summary_max_chars=settings.ingest_summary_max_chars,
+        ),
     )
 
 

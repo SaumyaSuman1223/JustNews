@@ -36,6 +36,9 @@ const TIMEOUT_MS = 30000;
 
 export type Article = components["schemas"]["ArticleOut"];
 export type ArticlePage = components["schemas"]["ArticlePageOut"];
+/** Search's page carries a `total` the ordinary article page has no way to
+ * know - see the search router. */
+export type SearchPage = components["schemas"]["SearchPageOut"];
 export type CorpusStats = components["schemas"]["StatsOut"];
 export type Topic = components["schemas"]["TopicOut"];
 export type Story = components["schemas"]["StoryOut"];
@@ -211,14 +214,14 @@ export function searchArticles(params: {
   languages?: string;
   topic?: string;
   cursor?: string;
-}): Promise<Degradable<ArticlePage>> {
+}): Promise<Degradable<SearchPage>> {
   const query = new URLSearchParams({ q: params.query });
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
   if (params.cursor) query.set("cursor", params.cursor);
   // Search results are per-query already; a short cache just absorbs repeats
   // (back button, double submit) rather than serving stale results.
-  return get<ArticlePage>(`/v1/search?${query}`, { items: [], next_cursor: null }, 30);
+  return get<SearchPage>(`/v1/search?${query}`, { items: [], next_cursor: null, total: null }, 30);
 }
 
 // --- personalised, authenticated calls ----------------------------------

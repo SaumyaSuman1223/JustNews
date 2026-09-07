@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
@@ -7,11 +6,10 @@ import { DeskRail } from "@/components/DeskRail";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { Pagination } from "@/components/Pagination";
-import { Perspectives } from "@/components/Perspectives";
-import { Timeline } from "@/components/Timeline";
 import { TopicDetailSkeleton } from "@/components/TopicDetailSkeleton";
 import { TopicStub } from "@/components/TopicStub";
 import { TopicTabs, type TopicTab } from "@/components/TopicTabs";
+import { Understand } from "@/components/Understand";
 import {
   getArticles,
   getMe,
@@ -21,7 +19,6 @@ import {
   getTopicPerspectives,
   getTopics,
   getTopicStories,
-  type Story,
 } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
@@ -32,8 +29,8 @@ interface RouteParams {
   id: string;
 }
 
-function isTopicTab(value: string | undefined): value is Exclude<TopicTab, "latest"> {
-  return value === "timeline" || value === "keyDevelopments" || value === "perspectives" || value === "analysis";
+function isTopicTab(value: string | undefined): value is Exclude<TopicTab, "understand"> {
+  return value === "latest" || value === "analysis";
 }
 
 export async function generateMetadata({
@@ -65,7 +62,7 @@ export default async function TopicDetailPage({
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
   const { cursor, tab: tabParam } = await searchParams;
-  const tab: TopicTab = isTopicTab(tabParam) ? tabParam : "latest";
+  const tab: TopicTab = isTopicTab(tabParam) ? tabParam : "understand";
 
   return (
     <Suspense key={`${tab}:${cursor ?? "start"}`} fallback={<TopicDetailSkeleton />}>
@@ -160,48 +157,22 @@ async function TabBody({
   languages: string;
   signedIn: boolean;
 }) {
-  if (tab === "timeline" || tab === "keyDevelopments") {
-    const stories = await getTopicStories(topicId);
-    const items: Story[] = stories.degraded ? [] : stories.data;
-    if (tab === "keyDevelopments") {
-      // Same fetch as Timeline, re-sorted: breadth of coverage rather than
-      // when it broke - "key" as in widely reported, not as in newest.
-      const byBreadth = items
-        .slice()
-        .sort((a, b) => b.source_count - a.source_count || b.article_count - a.article_count)
-        .slice(0, 5);
-      return byBreadth.length === 0 ? (
-        <p className="notice">{t(locale, "desk.keyDevelopments.empty")}</p>
-      ) : (
-        <ol className="trending__list">
-          {byBreadth.map((story) => (
-            <li key={story.id} className="trending__item">
-              <Link className="trending__link" href={`/${locale}/story/${story.id}`}>
-                {story.title}
-              </Link>
-              <p className="trending__meta">
-                {t(locale, "desk.timeline.coverage", {
-                  sources: story.source_count,
-                  languages: story.language_count,
-                })}
-              </p>
-            </li>
-          ))}
-        </ol>
-      );
-    }
+  if (tab === "understand") {
+    // Both reads in parallel, and the story list serves two of the three
+    // modules - see Understand, which sorts the same array two ways.
+    const [stories, groups] = await Promise.all([
+      getTopicStories(topicId),
+      getTopicPerspectives(topicId),
+    ]);
     return (
-      <Timeline
-        stories={items}
+      <Understand
+        topicLabel={topicLabel}
+        stories={stories.degraded ? [] : stories.data}
+        perspectives={groups.degraded ? [] : groups.data}
         locale={locale}
-        topicHref={(storyId) => `/${locale}/story/${storyId}`}
+        storyHref={(storyId) => `/${locale}/story/${storyId}`}
       />
     );
-  }
-
-  if (tab === "perspectives") {
-    const groups = await getTopicPerspectives(topicId);
-    return <Perspectives groups={groups.degraded ? [] : groups.data} locale={locale} />;
   }
 
   if (tab === "analysis") {
@@ -213,7 +184,7 @@ async function TabBody({
     );
   }
 
-  // "latest" - the topic's own ranked feed of articles, same as before.
+  // "latest" - the topic's own ranked feed of articles, unchanged.
   const [articles, savedIds] = await Promise.all([
     getArticles({ languages, topic: topicId, cursor, pageSize: 24 }),
     auth

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { reorderFollowsAction, unfollowTopicAction } from "@/lib/actions";
-import { t, type LocaleCode } from "@/lib/i18n";
+import { t, tPlural, type LocaleCode } from "@/lib/i18n";
 
 export interface DeskTile {
   topicId: string;
@@ -72,7 +72,8 @@ export function DeskTiles({
             <Link className="desk-tile__link" href={`/${locale}/desk/${encodeURIComponent(tile.topicId)}`}>
               <span className="desk-tile__label">{tile.label}</span>
               <span className="desk-tile__count">
-                {tile.articleCount.toLocaleString(locale)} {t(locale, "stats.articles")}
+                {tile.articleCount.toLocaleString(locale)}{" "}
+                {tPlural(locale, "stats.articles", tile.articleCount)}
               </span>
             </Link>
             <div className="desk-tile__controls">

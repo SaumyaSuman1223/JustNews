@@ -29,10 +29,15 @@ const ICONS = {
  * active state costs no client JavaScript - the rail is the most-rendered
  * component in the product and has no reason to hydrate.
  *
- * Primary destinations carry their subtitle; secondary and tertiary do not.
- * That difference is the hierarchy - three things that are the product, and
- * four that support it - and it is why the groups are separated by a rule
- * rather than by a heading nobody would read twice.
+ * Audit §14 makes it icons only, in a 52-60px rail. The label is still in the
+ * DOM and still the link's accessible name - it is revealed on hover and on
+ * keyboard focus as a tooltip, and hidden with opacity rather than
+ * `display: none` or `visibility` so it never leaves the accessibility tree.
+ * A tooltip that is the *only* name is the usual way an icon rail fails; this
+ * one is a name that happens to be drawn as a tooltip.
+ *
+ * The subtitles are gone. They were the argument for a 320px column, and
+ * §14's "no large labels" is the argument against one.
  */
 export function PrimaryNav({
   locale,
@@ -71,12 +76,7 @@ export function PrimaryNav({
                   aria-current={active ? "page" : undefined}
                 >
                   <IconComponent className="rail-link__icon" />
-                  <span className="rail-link__text">
-                    <span className="rail-link__label">{t(locale, item.labelKey)}</span>
-                    {item.subtitleKey && (
-                      <span className="rail-link__subtitle">{t(locale, item.subtitleKey)}</span>
-                    )}
-                  </span>
+                  <span className="rail-link__label">{t(locale, item.labelKey)}</span>
                 </Link>
               </li>
             );

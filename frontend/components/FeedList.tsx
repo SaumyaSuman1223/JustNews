@@ -38,6 +38,15 @@ export interface FeedListProps {
    */
   leads?: number;
   secondaries?: number;
+  /**
+   * What everything past the lead and secondary bands takes.
+   *
+   * `list` is a headline with a thumbnail - the right shape for a stream that
+   * continues indefinitely. `compact` is a headline and its source with no
+   * image at all, which is what audit §18 and §32 are asking for: a band of
+   * text-dominant entries so a section is not six copies of the same card.
+   */
+  rest?: "list" | "compact";
   /** Set on the first screenful of the page, so the lead image preloads. */
   aboveFold?: boolean;
 }
@@ -51,6 +60,7 @@ function variantFor(
   layout: "edited" | "list",
   leads: number,
   secondaries: number,
+  rest: "list" | "compact",
 ): CardVariant {
   if (layout === "list") return "list";
   // A run too short to fill the secondary band would leave a lead card
@@ -59,7 +69,7 @@ function variantFor(
   if (total < leads + secondaries) return "secondary";
   if (index < leads) return "lead";
   if (index < leads + secondaries) return "secondary";
-  return "list";
+  return rest;
 }
 
 export function FeedList({
@@ -71,12 +81,13 @@ export function FeedList({
   layout = "edited",
   leads = LEAD_COUNT,
   secondaries = SECONDARY_COUNT,
+  rest = "list",
   aboveFold = false,
 }: FeedListProps) {
   return (
     <ul className={`feed feed--${layout}`}>
       {items.map((item, index) => {
-        const variant = variantFor(index, items.length, layout, leads, secondaries);
+        const variant = variantFor(index, items.length, layout, leads, secondaries, rest);
         return (
           <ArticleCard
             key={item.key ?? item.article.id}

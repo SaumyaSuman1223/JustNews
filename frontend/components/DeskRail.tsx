@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import type { RelatedTopic, TopicOverview } from "@/lib/api";
-import { t, type LocaleCode } from "@/lib/i18n";
+import { t, tPlural, type LocaleCode } from "@/lib/i18n";
 
 /** My Desk's topic-detail right rail: real counts, and topics that actually
  * co-occur with this one in the corpus - see the API's own note on why that
@@ -25,15 +25,15 @@ export function DeskRail({
           <dl className="glance__list">
             <div>
               <dd>{overview.articles.toLocaleString(locale)}</dd>
-              <dt>{t(locale, "stats.articles")}</dt>
+              <dt>{tPlural(locale, "stats.articles", overview.articles)}</dt>
             </div>
             <div>
               <dd>{overview.sources.toLocaleString(locale)}</dd>
-              <dt>{t(locale, "stats.sources")}</dt>
+              <dt>{tPlural(locale, "stats.sources", overview.sources)}</dt>
             </div>
             <div>
               <dd>{overview.stories.toLocaleString(locale)}</dd>
-              <dt>{t(locale, "stats.stories")}</dt>
+              <dt>{tPlural(locale, "stats.stories", overview.stories)}</dt>
             </div>
           </dl>
         </section>

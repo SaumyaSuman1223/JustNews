@@ -1736,6 +1736,18 @@
               }
             ],
             "title": "Next Cursor"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Total matches for this query. Present on the first page only - a later page would recount the same predicate for the same answer.",
+            "title": "Total"
           }
         },
         "required": [

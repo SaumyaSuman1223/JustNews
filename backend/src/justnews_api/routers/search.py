@@ -14,6 +14,13 @@ router = APIRouter(prefix="/v1", tags=["search"])
 class SearchPageOut(BaseModel):
     items: list[ArticleOut]
     next_cursor: str | None = Field(default=None)
+    total: int | None = Field(
+        default=None,
+        description=(
+            "Total matches for this query. Present on the first page only - a "
+            "later page would recount the same predicate for the same answer."
+        ),
+    )
 
 
 @router.get("/search", response_model=SearchPageOut)
@@ -37,5 +44,7 @@ async def search_articles(
         page_size=page_size,
     )
     return SearchPageOut(
-        items=[ArticleOut.from_row(row) for row in page.items], next_cursor=page.next_cursor
+        items=[ArticleOut.from_row(row) for row in page.items],
+        next_cursor=page.next_cursor,
+        total=page.total,
     )

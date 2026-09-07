@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { ProfileIcon } from "@/components/icons";
 import { t, type LocaleCode } from "@/lib/i18n";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
@@ -63,8 +64,13 @@ export function AccountMenu({
 
   if (!email) {
     return (
-      <Link href={`/${locale}/login`} className="button button--secondary">
-        {t(locale, "account.signIn")}
+      <Link
+        href={`/${locale}/login`}
+        className="account-menu__trigger account-menu__signin"
+        aria-label={t(locale, "account.signIn")}
+      >
+        <ProfileIcon className="account-menu__icon" />
+        <span className="account-menu__email">{t(locale, "account.signIn")}</span>
       </Link>
     );
   }
@@ -84,9 +90,14 @@ export function AccountMenu({
         type="button"
         className="account-menu__trigger"
         aria-expanded={open}
+        // The email is the accessible name at every width. In the icon rail
+        // it is only drawn on hover and focus, so without this the control
+        // would be an unnamed button for anyone not using a pointer.
+        aria-label={email}
         onClick={() => setOpen((value) => !value)}
       >
-        {email}
+        <ProfileIcon className="account-menu__icon" />
+        <span className="account-menu__email">{email}</span>
       </button>
       {open && (
         <ul className="account-menu__panel" aria-label={t(locale, "account.menu")}>

@@ -49,10 +49,22 @@ export default async function AppShellLayout({
         {t(active.code, "skip.toContent")}
       </a>
       <div className="shell">
+        {/* Audit §14/§29: on desktop this is a 56px icon rail, not a 320px
+            column of labelled links. The wordmark shrinks to a monogram, the
+            language control moves to the footer, and the search field is gone
+            because Search is a destination in the rail. What is left is the
+            product's seven places and the account - which is the whole point
+            of §29's complaint that the navigation was carrying too much. */}
         <header className="masthead">
-          <Link href={`/${active.code}`} className="wordmark">
-            Just<span>News</span>
-            <span className="wordmark__tagline">{t(active.code, "site.tagline")}</span>
+          <Link href={`/${active.code}`} className="wordmark" aria-label="JustNews">
+            <span className="wordmark__full">
+              Just<span className="wordmark__accent">News</span>
+            </span>
+            {/* aria-hidden: the link is named by aria-label, so the monogram
+                would otherwise be announced as a second, meaningless "JN". */}
+            <span className="wordmark__mark" aria-hidden="true">
+              JN
+            </span>
           </Link>
           <PrimaryNav locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
           <div className="masthead-tools">
@@ -63,8 +75,6 @@ export default async function AppShellLayout({
               hasBetaAccess={hasBetaAccess}
             />
           </div>
-          <LocaleSwitcher active={active} pathname={pathname} search={search} />
-          <p className="masthead-sign">{t(active.code, "site.sign")}</p>
         </header>
         {/* tabIndex={-1}: without it, activating the skip link scrolls the
             viewport but never actually moves keyboard focus here, which
@@ -73,9 +83,19 @@ export default async function AppShellLayout({
         <main id="main" tabIndex={-1}>
           {children}
         </main>
+        {/* Audit §30: one quiet line, not a second copy of the navigation.
+            The identity and the language control live here now - both were in
+            the rail, and neither survives a 56px column. */}
         <footer className="site-footer">
-          <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
-          <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
+          <p className="site-footer__identity">
+            <span className="site-footer__mark">JustNews</span>
+            <span className="site-footer__tagline">{t(active.code, "site.tagline")}</span>
+          </p>
+          <div className="site-footer__line">
+            <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
+            <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
+            <LocaleSwitcher active={active} pathname={pathname} search={search} />
+          </div>
         </footer>
       </div>
       <MobileTabBar locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
