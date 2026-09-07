@@ -206,6 +206,14 @@ body {
   color: var(--text);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
+  /* Inherited, so every headline, snippet and source name in the product
+     gets it at once - all three are publisher-supplied text this app does
+     not control, and none of the fixed card widths §16 depends on can
+     survive one unbroken token (a long compound word, a transliterated
+     name) wider than the card. Found via a synthetic 150-character
+     no-space title during Chunk 8's QA pass, which overflowed every card
+     variant it landed in until this was added. */
+  overflow-wrap: break-word;
 }
 
 a {
@@ -558,6 +566,57 @@ a {
   .card--lead .card__media {
     aspect-ratio: 4 / 3;
   }
+}
+
+/* Audit §35's Home gesture: "expand a story / move from headline to
+ * context." A plain text toggle, not an icon button - design-system.md's
+ * banned-pattern list names decorative icons specifically, and this app has
+ * no icon for "expand" anywhere else to reuse. The panel animates open with
+ * CSS grid-rows (0fr -> 1fr), the standard no-JS-measurement technique for
+ * animating to an unknown height; `inert` (see ArticleCard) keeps it out of
+ * the tab order while collapsed without blocking that transition the way
+ * `hidden` would. Standard tier (240ms) - a real state change the reader
+ * caused, not decoration - and the global prefers-reduced-motion rule zeroes
+ * it out like every other transition in the app.
+ */
+.card__context-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.card__context-toggle:hover {
+  color: var(--text);
+}
+
+.card__context {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-standard) var(--ease);
+}
+
+.card__context[data-expanded] {
+  grid-template-rows: 1fr;
+}
+
+.card__context-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.card__context-inner p {
+  margin: 0;
+  padding-block-start: var(--space-2);
+  color: var(--text-mid);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- feature (audit §16) ---------------------------------------------------
@@ -2546,6 +2605,14 @@ a.chip:active {
   align-items: center;
   gap: var(--space-6);
   min-inline-size: 0;
+  /* `.aquila`'s `justify-items: center` does not stretch a grid item to its
+     track, so without this the stage renders at its own preferred width -
+     driven by `.aquila__sheet`'s height-derived aspect-ratio box, which does
+     not know about the viewport at all - and overflows past the track
+     instead of the sheet's own `max-inline-size: 100%` ever having a real
+     container to resolve against. Found at 1024px width / 900px height,
+     where the sheet's preferred 1174.5px only fits a viewport past 1330px. */
+  max-inline-size: 100%;
 }
 
 /* The sheet. A warm surface with a stacked edge, never a photographic paper
@@ -3618,15 +3685,31 @@ span.paper__pageref {
   }
 
   .aquila__sheet {
-    /* 87dvh is 783px at a 900px viewport and 940 at 1080; the cap holds the
-       taller case to 900, which is the top of §35's range for it. Both land
-       in band, and the extra height over a first attempt at 82dvh also
-       widens every column - which is what stops the 157px left rail wrapping
-       its headline into five lines. */
-    block-size: min(87dvh, 56.25rem);
-    aspect-ratio: 3 / 2;
-    inline-size: auto;
+    /* Width-driven, not height-driven - the earlier height-first formula
+       (`block-size: min(87dvh, 56.25rem)`, `inline-size: auto`) let the
+       aspect-ratio box claim whatever width 3:2 implied with no regard for
+       the viewport's actual width, which overflowed at 1024x900 (measured:
+       a 1174.5px sheet in a 1024px viewport). The same two height caps,
+       converted to their width equivalents (dvh * 1.5, since the ratio is
+       3:2) and joined with `100%` of the stage's own now-bounded width (see
+       `.aquila__stage`'s `max-inline-size: 100%`), give the same sizing on
+       every viewport this was tuned for - 87dvh is 783px at 900px height,
+       ×1.5 is the 1174.5px inline-size below - while never exceeding what
+       the viewport actually has. `block-size: auto` lets aspect-ratio derive
+       the height from whichever cap won, so the sheet is always exactly 3:2
+       rather than being squashed by a competing fixed block-size. */
+    inline-size: min(calc(87dvh * 1.5), calc(56.25rem * 1.5));
+    /* A *separate* hard cap, not folded into the `min()` above: that value
+       is this box's preferred size, computed purely from viewport height
+       and used by `.aquila__stage` to decide how wide it wants to be too -
+       folding a `100%` (of the stage) into it would make each depend on the
+       other's not-yet-resolved width. `max-inline-size` applies after the
+       stage has already resolved its own width (via its own, unrelated
+       `max-inline-size: 100%` of `.aquila`), so there is nothing circular
+       left to resolve. */
     max-inline-size: 100%;
+    aspect-ratio: 3 / 2;
+    block-size: auto;
     /* The page ends. Anything the composer put beyond it is the next page's
        problem, not a scrollbar's - see FRONT_PAGE_* in the composer, which
        is sized to fit this. */
@@ -4481,6 +4564,20 @@ span.paper__pageref {
 
 .desk-add .chip-list {
   margin-block-start: var(--space-4);
+}
+
+/* §35's My Desk gesture: the tab body dims while the next tab streams in
+   (see TopicTabs), rather than a hard navigation flash. Standard tier
+   (240ms) - "navigation, panels, menus" per design-system.md - not the
+   editorial tier reserved for Aquila's page turn. `prefers-reduced-motion`
+   is handled by the global rule that zeroes every transition duration. */
+.topic-unfold {
+  transition: opacity var(--dur-standard) var(--ease);
+}
+
+.topic-unfold[data-pending] {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .desk-layout {

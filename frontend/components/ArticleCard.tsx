@@ -6,7 +6,14 @@ import { useState } from "react";
 
 import { ArticleActions } from "@/components/ArticleActions";
 import type { Article } from "@/lib/api";
-import { formatArticleCoverage, formatRelativeTime, locales, type LocaleCode } from "@/lib/i18n";
+import {
+  formatAbsoluteTime,
+  formatArticleCoverage,
+  formatRelativeTime,
+  locales,
+  t,
+  type LocaleCode,
+} from "@/lib/i18n";
 import { formatRankReason, type RankReason } from "@/lib/rankReason";
 
 /**
@@ -78,6 +85,16 @@ export interface ArticleCardProps {
   variant?: CardVariant;
   /** Only the one card above the fold should preload its image. */
   priority?: boolean;
+  /**
+   * Audit §35's Home gesture: "expand a story / move from headline to
+   * context." Only meaningful on `lead` (Home's own hero sets it; nothing
+   * else does), and only rendered when there is real context to reveal - the
+   * exact publish instant always qualifies, the cluster's own coverage line
+   * only when the story actually has one. No "why this matters" text: that
+   * would be either an editorial voice this product doesn't have or a model
+   * call in the request path, which ADR 0004 forbids.
+   */
+  expandable?: boolean;
 }
 
 export function ArticleCard({
@@ -94,6 +111,7 @@ export function ArticleCard({
   why,
   variant = "secondary",
   priority = false,
+  expandable = false,
 }: ArticleCardProps) {
   // Owned here, not in ArticleActions: dimming is the card stepping its own
   // content back, and the confirmation text that explains why has to stay at
@@ -101,6 +119,7 @@ export function ArticleCard({
   // out in place) without losing the accessible status line this app's own
   // earlier pass added.
   const [hidden, setHidden] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   function handleClick() {
     // Fire-and-forget: never block or delay the navigation this accompanies.
@@ -145,6 +164,8 @@ export function ArticleCard({
     variant === "cluster" && article.coverage && article.coverage.sources > 1
       ? formatArticleCoverage(locale, article.coverage)
       : null;
+  const showContextToggle = variant === "lead" && expandable;
+  const contextId = `lead-context-${article.id}`;
 
   return (
     <li className={`card card--${variant}${hidden ? " card--hidden" : ""}`}>
@@ -194,6 +215,51 @@ export function ArticleCard({
               </span>
             )}
           </p>
+        )}
+        {showContextToggle && (
+          <>
+            <button
+              type="button"
+              className="card__context-toggle"
+              aria-expanded={expanded}
+              aria-controls={contextId}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {t(locale, expanded ? "home.lead.context.hide" : "home.lead.context.show")}
+            </button>
+            <div
+              className="card__context"
+              id={contextId}
+              data-expanded={expanded || undefined}
+              // Collapsed content stays in the DOM (so the height transition
+              // has something to animate) but must not be reachable - `hidden`
+              // would also block the transition, so `inert` is what keeps a
+              // keyboard or screen reader user from landing on the link
+              // inside while it is visually collapsed to nothing.
+              inert={!expanded}
+            >
+              <div className="card__context-inner">
+                <p>
+                  {t(locale, "home.lead.context.published", {
+                    time: formatAbsoluteTime(article.published_at, locale),
+                  })}
+                </p>
+                {article.coverage && article.coverage.sources > 1 && (
+                  <p>
+                    {formatArticleCoverage(locale, article.coverage)}
+                    {article.story_cluster_id && (
+                      <>
+                        {" · "}
+                        <Link href={`/${locale}/story/${article.story_cluster_id}`}>
+                          {t(locale, "home.lead.context.coverage")}
+                        </Link>
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
         )}
         {why && <p className="card__why">{formatRankReason(locale, why)}</p>}
         {footnote && <p className="card__footnote">{footnote}</p>}

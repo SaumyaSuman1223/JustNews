@@ -211,6 +211,7 @@ async function FeedBody({
               leads={TIER_ONE_LEADS}
               secondaries={TIER_ONE - TIER_ONE_LEADS}
               aboveFold
+              expandableLead
             />
           </div>
 
