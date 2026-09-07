@@ -37,6 +37,14 @@ export interface FeedListProps {
    * call site rather than inferred from how many happen to be in the list.
    */
   leads?: number;
+  /**
+   * How many items right after the lead band take §16's `feature` weight -
+   * large image, large headline, full-width - before the run drops into
+   * `secondaries`. Zero by default: most lists have no reason to interrupt
+   * their own rhythm, so a call site states this explicitly the same way it
+   * states `leads`, rather than the page guessing where variety would help.
+   */
+  features?: number;
   secondaries?: number;
   /**
    * What everything past the lead and secondary bands takes.
@@ -71,16 +79,18 @@ function variantFor(
   total: number,
   layout: "edited" | "list",
   leads: number,
+  features: number,
   secondaries: number,
   rest: "list" | "compact",
 ): CardVariant {
   if (layout === "list") return "list";
-  // A run too short to fill the secondary band would leave a lead card
+  // A run too short to fill every band would leave a lead or feature card
   // stranded above one lonely row, so below that threshold everything stays
   // the same weight and the page just reads as a short list.
-  if (total < leads + secondaries) return "secondary";
+  if (total < leads + features + secondaries) return "secondary";
   if (index < leads) return "lead";
-  if (index < leads + secondaries) return "secondary";
+  if (index < leads + features) return "feature";
+  if (index < leads + features + secondaries) return "secondary";
   return rest;
 }
 
@@ -121,16 +131,21 @@ export function FeedList({
   revalidatePath,
   layout = "edited",
   leads = LEAD_COUNT,
+  features = 0,
   secondaries = SECONDARY_COUNT,
   rest = "list",
   aboveFold = false,
   allowClusterPromotion = false,
 }: FeedListProps) {
   const baseVariants = items.map((_, index) =>
-    variantFor(index, items.length, layout, leads, secondaries, rest),
+    variantFor(index, items.length, layout, leads, features, secondaries, rest),
   );
   const variants = allowClusterPromotion
-    ? promoteOneCluster(items, baseVariants, layout === "edited" ? leads + secondaries : 0)
+    ? promoteOneCluster(
+        items,
+        baseVariants,
+        layout === "edited" ? leads + features + secondaries : 0,
+      )
     : baseVariants;
 
   return (

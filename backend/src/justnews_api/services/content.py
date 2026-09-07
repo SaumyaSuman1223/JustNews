@@ -187,3 +187,7 @@ async def list_sources_for_language(session: AsyncSession, *, language: str) -> 
     return await repo.list_sources_for_language(
         session, language=code, limit=SOURCE_DISCOVERY_LIMIT
     )
+
+
+async def list_all_sources(session: AsyncSession) -> list[Source]:
+    return await repo.list_all_sources(session)

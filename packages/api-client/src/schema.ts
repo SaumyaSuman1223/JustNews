@@ -919,13 +919,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Sources
-         * @description A discovery list for onboarding - the handful of sources publishing in
-         *     one language a new reader is most likely to already recognise. Not a
-         *     directory: no pagination, no filtering beyond language, bounded to
-         *     service.SOURCE_DISCOVERY_LIMIT.
-         */
+        /** Sources */
         get: operations["sources_v1_sources_get"];
         put?: never;
         post?: never;
@@ -3783,6 +3777,8 @@ export interface operations {
                 q: string;
                 languages?: string | null;
                 topic?: string | null;
+                /** @description Filter to one source's own id. */
+                source?: number | null;
                 cursor?: string | null;
                 page_size?: number;
             };
@@ -3847,8 +3843,9 @@ export interface operations {
     };
     sources_v1_sources_get: {
         parameters: {
-            query: {
-                language: string;
+            query?: {
+                /** @description Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, ranked by trust score within that language. Omit for the complete catalogue instead (search's source filter; audit §27) - alphabetical, unbounded. */
+                language?: string | null;
             };
             header?: never;
             path?: never;

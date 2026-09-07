@@ -23,12 +23,20 @@ import { formatRankReason, type RankReason } from "@/lib/rankReason";
  * leads with the coverage itself (see `formatArticleCoverage`), because the
  * fact that several newsrooms are reporting the same thing independently
  * *is* the story this card is telling.
+ *
+ * `feature` is §16's "large image + large headline": a full-width, stacked
+ * treatment for a story a tier wants to give weight to without making it
+ * *the* lead - assigned by position at the call site (`FeedList`'s
+ * `features`), the same way `lead` and `secondary` are, because unlike
+ * `cluster` there is no independent data signal that says "this one is a
+ * feature" - only an editorial choice about where variety helps.
  */
-export type CardVariant = "lead" | "secondary" | "list" | "compact" | "cluster";
+export type CardVariant = "lead" | "feature" | "secondary" | "list" | "compact" | "cluster";
 
 /** Image geometry per variant. Fixed, so nothing shifts while a photo loads. */
 const MEDIA: Record<CardVariant, { width: number; height: number } | null> = {
   lead: { width: 1200, height: 675 },
+  feature: { width: 1200, height: 675 },
   secondary: { width: 640, height: 360 },
   list: { width: 240, height: 160 },
   compact: null,
@@ -125,7 +133,9 @@ export function ArticleCard({
         });
   // The snippet is the first thing density costs you. A lead has room to
   // argue for itself; a list row has to survive on its headline.
-  const showSnippet = (variant === "lead" || variant === "secondary") && Boolean(article.snippet);
+  const showSnippet =
+    (variant === "lead" || variant === "feature" || variant === "secondary") &&
+    Boolean(article.snippet);
   // Present whenever this card was actually promoted to `cluster` - see
   // FeedList, which only does that when `article.coverage.sources > 1`.
   // Guarded again here rather than trusted blindly: a `cluster`-variant card
@@ -146,7 +156,11 @@ export function ArticleCard({
             alt=""
             width={media.width}
             height={media.height}
-            sizes={variant === "lead" ? "(max-width: 60rem) 100vw, 40rem" : "(max-width: 60rem) 50vw, 20rem"}
+            sizes={
+              variant === "lead" || variant === "feature"
+                ? "(max-width: 60rem) 100vw, 40rem"
+                : "(max-width: 60rem) 50vw, 20rem"
+            }
             unoptimized
             priority={priority}
           />

@@ -142,6 +142,12 @@ export function getSources(language: string): Promise<Degradable<SourceOption[]>
   return get<SourceOption[]>(`/v1/sources?language=${encodeURIComponent(language)}`, [], 3600);
 }
 
+/** The complete, alphabetical source catalogue - search's source filter
+ * (audit §27), as opposed to `getSources`' bounded onboarding sample. */
+export function getAllSources(): Promise<Degradable<SourceOption[]>> {
+  return get<SourceOption[]>("/v1/sources", [], 3600);
+}
+
 export function getStory(id: number, language: string): Promise<Degradable<StoryDetail | null>> {
   const query = new URLSearchParams({ language });
   return get<StoryDetail | null>(`/v1/stories/${id}?${query}`, null, 60);
@@ -213,11 +219,13 @@ export function searchArticles(params: {
   query: string;
   languages?: string;
   topic?: string;
+  source?: string;
   cursor?: string;
 }): Promise<Degradable<SearchPage>> {
   const query = new URLSearchParams({ q: params.query });
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
+  if (params.source) query.set("source", params.source);
   if (params.cursor) query.set("cursor", params.cursor);
   // Search results are per-query already; a short cache just absorbs repeats
   // (back button, double submit) rather than serving stale results.

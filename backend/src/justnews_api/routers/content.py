@@ -342,13 +342,21 @@ class SourceOut(BaseModel):
 @router.get("/sources", response_model=list[SourceOut])
 async def sources(
     session: AsyncSession = Depends(get_session),
-    language: str = Query(...),
+    language: str | None = Query(
+        default=None,
+        description=(
+            "Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, "
+            "ranked by trust score within that language. Omit for the complete "
+            "catalogue instead (search's source filter; audit §27) - alphabetical, "
+            "unbounded."
+        ),
+    ),
 ) -> list[SourceOut]:
-    """A discovery list for onboarding - the handful of sources publishing in
-    one language a new reader is most likely to already recognise. Not a
-    directory: no pagination, no filtering beyond language, bounded to
-    service.SOURCE_DISCOVERY_LIMIT."""
-    rows = await service.list_sources_for_language(session, language=language)
+    rows = (
+        await service.list_sources_for_language(session, language=language)
+        if language is not None
+        else await service.list_all_sources(session)
+    )
     return [
         SourceOut(id=row.id, name=row.name, slug=row.slug, homepage_url=row.homepage_url)
         for row in rows

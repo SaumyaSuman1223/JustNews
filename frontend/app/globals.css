@@ -560,6 +560,34 @@ a {
   }
 }
 
+/* --- feature (audit §16) ---------------------------------------------------
+ *
+ * "Large image + large headline": stacked, full-width, image on top - the
+ * inverse emphasis of `.card--lead`'s side-by-side split, so a reader can
+ * tell the two apart at a glance rather than by position alone. Used to
+ * break up an otherwise uniform run of `secondary`/`compact` cards (see
+ * `FeedList`'s `features`) - full-width like `.card`'s own default, so no
+ * span override is needed here.
+ */
+.card--feature {
+  padding-block-end: var(--space-6);
+  border-block-end: 1px solid var(--border);
+}
+
+.card--feature .card__media {
+  aspect-ratio: 16 / 9;
+}
+
+.card--feature .card__title {
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.022em;
+}
+
+.card--feature .card__snippet {
+  font-size: 1.05rem;
+}
+
 /* --- secondary -----------------------------------------------------------
  *
  * Spec §23/§45: 1 per row on mobile (the unqualified base rule), 2 through
@@ -4084,38 +4112,51 @@ span.paper__pageref {
   margin-block: 0;
 }
 
-/* --- the daily brief -------------------------------------------------------- */
-
+/* --- the daily brief --------------------------------------------------------
+ *
+ * §20/§33: numbered lines, not a bordered box - the same "structure through
+ * typography, not a container" the cluster card and coverage groups already
+ * use elsewhere. The numbers are a real CSS counter, not typed digits, so a
+ * reordered list never drifts out of sequence and a screen reader still
+ * announces a plain ordered list.
+ */
 .brief {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: var(--space-6);
+  padding-block-start: var(--space-2);
 }
 
 .brief__heading {
   font-family: var(--font-display);
   font-size: var(--type-section);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--border);
   margin: 0 0 var(--space-3);
 }
 
 .brief__list {
+  counter-reset: brief;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
   list-style: none;
   margin: 0 0 var(--space-4);
   padding: 0;
 }
 
 .brief__list li {
+  counter-increment: brief;
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  column-gap: var(--space-2);
+  align-items: baseline;
   padding-block: var(--space-2);
-  border-block-start: 1px solid var(--border);
 }
 
-.brief__list li:first-child {
-  border-block-start: none;
-  padding-block-start: 0;
+.brief__list li::before {
+  content: counter(brief, decimal-leading-zero);
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .brief__list a {

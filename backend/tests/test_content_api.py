@@ -411,13 +411,31 @@ class TestSources:
         body = (await client.get("/v1/sources", params={"language": "en"})).json()
         assert [row["name"] for row in body] == ["High", "Low"]
 
-    async def test_requires_a_language(self, client: AsyncClient) -> None:
-        response = await client.get("/v1/sources")
-        assert response.status_code == 422
-
     async def test_rejects_an_invalid_language_code(self, client: AsyncClient) -> None:
         response = await client.get("/v1/sources", params={"language": "zzzz9"})
         assert response.status_code == 422
+
+    async def test_omitting_language_returns_the_complete_catalogue(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        """Search's source filter (audit §27) needs every source, not one
+        language's bounded discovery sample - omitting `language` is how it
+        asks for that, alphabetical rather than trust-ranked."""
+        await make_source(session, slug="hindi-source", language="hi", name="Hindi Source")
+        await make_source(session, slug="english-source", language="en", name="English Source")
+        await session.commit()
+
+        body = (await client.get("/v1/sources")).json()
+        assert [row["name"] for row in body] == ["English Source", "Hindi Source"]
+
+    async def test_omitting_language_still_excludes_inactive_sources(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        await make_source(session, slug="retired", active=False)
+        await session.commit()
+
+        body = (await client.get("/v1/sources")).json()
+        assert body == []
 
 
 class TestStats:

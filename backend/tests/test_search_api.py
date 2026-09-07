@@ -70,6 +70,30 @@ class TestSearch:
         body = (await client.get("/v1/search?q=election&languages=en&topic=medtop:00000000")).json()
         assert body["items"] == []
 
+    async def test_source_filter_applies(self, client: AsyncClient, session: AsyncSession) -> None:
+        """Audit §27's source filter: narrows to one publisher's own results."""
+        wanted = await make_source(session, slug="wanted-wire", name="Wanted Wire")
+        other = await make_source(session, slug="other-wire", name="Other Wire")
+        await make_article(session, wanted, title="Election in the capital")
+        await make_article(session, other, title="Election of a club captain")
+        await session.commit()
+
+        unfiltered = (await client.get("/v1/search?q=election&languages=en")).json()
+        assert len(unfiltered["items"]) == 2
+
+        body = (await client.get(f"/v1/search?q=election&languages=en&source={wanted.id}")).json()
+        assert [item["title"] for item in body["items"]] == ["Election in the capital"]
+
+    async def test_an_unknown_source_matches_nothing_rather_than_everything(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        await make_article(session, source, title="Election in the capital")
+        await session.commit()
+
+        body = (await client.get("/v1/search?q=election&languages=en&source=999999")).json()
+        assert body["items"] == []
+
 
 class TestSearchTotal:
     """Audit §28's results count.

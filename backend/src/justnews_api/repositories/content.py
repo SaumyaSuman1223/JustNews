@@ -297,7 +297,11 @@ async def set_article_topics(
 
 
 def _search_predicates(
-    *, query_text: str, languages: list[str] | None, topic_id: str | None
+    *,
+    query_text: str,
+    languages: list[str] | None,
+    topic_id: str | None,
+    source_id: int | None,
 ) -> list[Any]:
     """What a search matches, in one place.
 
@@ -322,6 +326,8 @@ def _search_predicates(
         predicates.append(
             Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
         )
+    if source_id is not None:
+        predicates.append(Article.source_id == source_id)
     return predicates
 
 
@@ -331,6 +337,7 @@ async def search_articles(
     query_text: str,
     languages: list[str] | None,
     topic_id: str | None,
+    source_id: int | None,
     limit: int,
     before_published_at: datetime | None,
     before_id: int | None,
@@ -341,7 +348,11 @@ async def search_articles(
     """
     query = (
         _base_query()
-        .where(*_search_predicates(query_text=query_text, languages=languages, topic_id=topic_id))
+        .where(
+            *_search_predicates(
+                query_text=query_text, languages=languages, topic_id=topic_id, source_id=source_id
+            )
+        )
         .order_by(Article.published_at.desc(), Article.id.desc())
         .limit(limit)
     )
@@ -357,7 +368,12 @@ async def search_articles(
 
 
 async def count_search_articles(
-    session: AsyncSession, *, query_text: str, languages: list[str] | None, topic_id: str | None
+    session: AsyncSession,
+    *,
+    query_text: str,
+    languages: list[str] | None,
+    topic_id: str | None,
+    source_id: int | None,
 ) -> int:
     """How many articles the search matches in total.
 
@@ -378,7 +394,9 @@ async def count_search_articles(
         .join(Source, Article.source_id == Source.id)
         .where(
             Article.removed_at.is_(None),
-            *_search_predicates(query_text=query_text, languages=languages, topic_id=topic_id),
+            *_search_predicates(
+                query_text=query_text, languages=languages, topic_id=topic_id, source_id=source_id
+            ),
         )
     )
     return int(result.scalar_one())
@@ -619,5 +637,17 @@ async def list_sources_for_language(
         .where(Source.active.is_(True), Source.language == language)
         .order_by(Source.trust_score.desc(), Source.name)
         .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def list_all_sources(session: AsyncSession) -> list[Source]:
+    """Every active source, alphabetical - the complete catalogue a filter
+    needs (search's source picker; audit §27), as opposed to
+    ``list_sources_for_language``'s bounded, ranked discovery sample for
+    onboarding. No trust-score ordering here for the same reason: a filter
+    list is alphabetical or it isn't scannable."""
+    result = await session.execute(
+        select(Source).where(Source.active.is_(True)).order_by(Source.name)
     )
     return list(result.scalars().all())

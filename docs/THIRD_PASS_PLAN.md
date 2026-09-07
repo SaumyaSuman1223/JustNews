@@ -496,6 +496,47 @@ its editorial framing and a source filter.
 **Accept:** Home uses at least four distinct story compositions; the Brief is
 not a card; search filters still return exactly what the count claims.
 
+**Shipped.** Found live: search's topic and language filters, and recent
+searches, were already fully built in the second pass - only source and
+editorial framing were open. §16's `lead`/`secondary`/`list`/`compact` and
+Chunk 3's `cluster` were already four compositions on their own, but
+`feature` ("large image + large headline") had no data-driven trigger the
+way `cluster` does, so it's assigned by position instead, the same way
+`lead` and `secondary` already are - `FeedList` gained a `features` count
+alongside `leads`/`secondaries`, and Home's "What You Should Know" tier now
+opens with one full-width `feature` card before its two pictured
+`secondary` cards and three text-only `compact` rows (five items on that
+tier alone, six counting the hero's own `lead`).
+
+The Brief (`.brief`) lost its border/background/padding box and gained a
+real CSS-counter numbering (`counter-reset`/`counter-increment`, same
+mechanism `.trending__item` already used for its own rank digits) rendering
+as `01`/`02` - `<ul>` became `<ol>` so a screen reader announces it as the
+ordered list it now visibly is.
+
+Search: the intro line changed from a technical description ("Full text
+search over headlines and summaries...") to §27's own hook, "What are you
+trying to understand?" - h1 stays "Search", matching how every other page
+titles itself. A source filter joins topic and language, backed by a small,
+real backend addition: `GET /v1/search` gained `source_id` (threaded through
+the same `_search_predicates` choke point topic filtering already uses), and
+`GET /v1/sources` gained an unbounded, alphabetical mode for when `language`
+is omitted - the existing bounded, trust-ranked mode (`SOURCE_DISCOVERY_LIMIT
+= 12`) stays exactly as onboarding needs it, since a filter needs the
+complete catalogue and a discovery sample needs to stay small. No migration;
+`make generate-client` re-run. New backend tests for both the source filter
+and the unbounded sources mode; full backend suite (500 tests), mypy, ruff,
+`alembic check` all clean.
+
+Verified live: source-filtered search narrows correctly (`&source=6` returns
+only that publisher's matches, confirmed against real seeded articles); the
+Brief renders unboxed with real `01`/`02` digits; Home's tier two shows
+feature → secondary → compact as three visually distinct bands. axe clean
+on `/en` and `/en/search` (0 violations each); full e2e suite green (two
+confirmed flakes on rerun, both on routes this chunk didn't touch);
+typecheck/lint/build clean; QA screenshots across 390/768/1440 × light/dark
+show no regressions.
+
 ### Chunk 7 — Moments *(§34, §35)*
 Story expansion on Home's lead; topic unfolding on My Desk. Two gestures,
 built from composition, no new animation library, both reduced-motion aware.

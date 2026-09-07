@@ -5704,6 +5704,24 @@
             }
           },
           {
+            "description": "Filter to one source's own id.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to one source's own id.",
+              "title": "Source"
+            }
+          },
+          {
             "in": "query",
             "name": "cursor",
             "required": false,
@@ -5819,16 +5837,24 @@
     },
     "/v1/sources": {
       "get": {
-        "description": "A discovery list for onboarding - the handful of sources publishing in\none language a new reader is most likely to already recognise. Not a\ndirectory: no pagination, no filtering beyond language, bounded to\nservice.SOURCE_DISCOVERY_LIMIT.",
         "operationId": "sources_v1_sources_get",
         "parameters": [
           {
+            "description": "Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, ranked by trust score within that language. Omit for the complete catalogue instead (search's source filter; audit \u00a727) - alphabetical, unbounded.",
             "in": "query",
             "name": "language",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "Language",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Onboarding's discovery mode: bounded to service.SOURCE_DISCOVERY_LIMIT, ranked by trust score within that language. Omit for the complete catalogue instead (search's source filter; audit \u00a727) - alphabetical, unbounded.",
+              "title": "Language"
             }
           }
         ],
