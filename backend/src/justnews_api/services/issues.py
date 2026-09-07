@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from justnews_api.repositories import flags as flags_repo
 from justnews_api.repositories import interactions as interactions_repo
 from justnews_api.repositories import issues as issues_repo
+from justnews_api.repositories import topics as topics_repo
 from justnews_api.repositories.content import ArticleRow
 from justnews_api.repositories.interactions import ImpressionToLog
 from justnews_api.services.topics import label_for
@@ -56,6 +57,13 @@ class SlotView:
     role: str
     article: ArticleRow
     impression_id: int | None
+    #: The section page this slot's own topic runs on in this same issue, if
+    #: any. Not "this article continues" - the product stores no body text,
+    #: so nothing here continues anywhere. It is a real cross-reference: the
+    #: topic this front-page story is filed under has its own page in this
+    #: issue, the way a paper's front page points a reader to fuller
+    #: coverage inside. Null whenever that section did not make the issue.
+    page_ref: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +173,19 @@ async def get_page(
         )
         impression_ids = list(logged)
 
+    # Cross-references are a front-page-only concept: a section page is
+    # already the fuller coverage a reference would point to, so a slot on
+    # one pointing at another page would be a paper referencing itself.
+    page_refs: dict[int, int] = {}
+    if content.topic_id is None and content.slots:
+        article_ids = [slot.article.id for slot in content.slots]
+        primary_topics = await topics_repo.primary_topics_for_articles(session, article_ids)
+        section_pages = await issues_repo.section_page_numbers(session, issue_id=issue_id)
+        for slot in content.slots:
+            topic_id = primary_topics.get(slot.article.id)
+            if topic_id is not None and topic_id in section_pages:
+                page_refs[slot.article.id] = section_pages[topic_id]
+
     return PageView(
         page_no=content.page_no,
         topic_id=content.topic_id,
@@ -175,6 +196,7 @@ async def get_page(
                 role=slot.role,
                 article=slot.article,
                 impression_id=impression_id,
+                page_ref=page_refs.get(slot.article.id),
             )
             for slot, impression_id in zip(content.slots, impression_ids, strict=True)
         ],

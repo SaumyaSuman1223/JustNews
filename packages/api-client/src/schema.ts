@@ -1805,6 +1805,8 @@ export interface components {
             article: components["schemas"]["ArticleOut"];
             /** Impression Id */
             impression_id: number | null;
+            /** Page Ref */
+            page_ref?: number | null;
             /** Position */
             position: number;
             /** Role */

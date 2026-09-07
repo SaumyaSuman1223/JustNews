@@ -77,6 +77,7 @@ class SlotOut(BaseModel):
     role: str
     article: ArticleOut
     impression_id: int | None
+    page_ref: int | None = None
 
 
 class PageOut(BaseModel):
@@ -184,6 +185,7 @@ async def get_issue_page(
                 role=slot.role,
                 article=ArticleOut.from_row(slot.article),
                 impression_id=slot.impression_id,
+                page_ref=slot.page_ref,
             )
             for slot in view.slots
         ],

@@ -2686,21 +2686,27 @@ a.chip:active {
     padding-block-start: 0;
   }
 
-  /* The front page is not three equal-weight columns. It is a rail, a
-     dominant lead and a brief across the top, with a band of highlights
-     under all three - audit §14. Named areas rather than line numbers
-     because the shape is the point and it should be readable as one. */
-  /* §11's proportions: left rail 15-17%, lead 58-62%, right rail 23-27%.
-     One row, not two - the page has to end inside §35's 738px. */
+  /* The front page's top row is a rail, a dominant lead and a right rail -
+     audit §8. Named areas rather than line numbers because the shape is the
+     point and it should be readable as one. §8 also wants a lower row of
+     further stories under all three, and TODAY'S HIGHLIGHTS under that -
+     `.paper__lower` spans the full width as a second grid row, named "lower"
+     in every variant of the top row so the areas stay one rectangular block
+     (an unnamed row is allowed to vary in column count from the rows above
+     it; a named one is not, and this row does not vary). */
   /* §11's proportions - left rail 15-17%, lead 58-62%, right rail 23-27% -
      expressed in fr, not percent. Percentages resolve against the container
      and ignore the gaps, so 16+60+24 plus two 16px gutters overflowed; the
      flexible track then absorbed the whole overrun and the lead column
      collapsed from 607px to 217. fr distributes what is left after gutters,
-     which is what these proportions actually mean. */
+     which is what these proportions actually mean. Measured against the
+     rendered page: 15.5 / 58.2 / 23.3, inside every band. */
   .paper__body--front {
     grid-template-columns: 16fr 60fr 24fr;
-    grid-template-areas: "focus lead highlights";
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "focus lead highlights"
+      "lower lower lower";
     align-items: stretch;
   }
 
@@ -2712,7 +2718,13 @@ a.chip:active {
      actually has, not the ones it expected. */
   .paper__body--front:not(:has(.paper__focus)) {
     grid-template-columns: 70fr 30fr;
-    grid-template-areas: "lead highlights";
+    grid-template-areas:
+      "lead highlights"
+      "lower lower";
+  }
+
+  .paper__body--front .paper__lower {
+    grid-area: lower;
   }
 
   .paper__body--front .paper__focus {
@@ -2770,12 +2782,16 @@ a.chip:active {
   /* The last 35px, taken from the three places the page can spare them
      rather than from another story. */
   .paper__body--front {
-    padding-block-start: var(--space-3);
+    padding-block-start: var(--space-2);
   }
 
+  /* Two lines, not three: the lower row this chunk adds took the space a
+     third line was spending. The deck still reads as a real deck at two
+     lines - it is the headline that carries the story, this is its "why it
+     matters" - and the alternative was clipping the page's own footer. */
   .paper__body--front .paper__deck {
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .paper__masthead {
@@ -2796,12 +2812,25 @@ a.chip:active {
     overflow: hidden;
   }
 
-  .paper__body--front .paper__focus-headline,
-  .paper__body--front .paper__column-headline {
+  .paper__body--front .paper__focus-headline {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* Two lines, not three: the right rail was the tallest column on the page
+     once the lower row this chunk adds took its slice of the budget, and
+     three clamped headlines stacked in a 251px column were spending 492px on
+     their own - more than the lead's own content. Two brings the rail back
+     under the lead, which is where the tallest column on a front page whose
+     "first story should be unmistakably dominant" (§14) belongs. */
+  .paper__body--front .paper__column-headline {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
   }
 
@@ -2837,6 +2866,51 @@ a.chip:active {
      vary rather than repeat one card three times. */
   .paper__body--front .paper__column:not(:first-child) .halftone {
     display: none;
+  }
+
+  /* §8's lower row: further major stories, then TODAY'S HIGHLIGHTS. The
+     sheet clips rather than scrolls (`.aquila__sheet { overflow: hidden }`),
+     and the top row already spends most of the page's fixed height budget -
+     see the measured comment above - so this band is deliberately the
+     plainest thing on the page: a rule to separate it from the row above,
+     three text-only stories across, no images anywhere. That restraint is
+     also what the right rail already does past its first entry, so the page
+     is not inventing a fourth visual language, just extending the one it has.
+   */
+  .paper__body--front .paper__lower {
+    /* The row gap above already separates this from the top row - its own
+       padding would be a second gap doing the first one's job. */
+    padding-block-start: var(--space-1);
+    border-block-start: 1px solid var(--paper-hair);
+  }
+
+  .paper__body--front .paper__lower-stories {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 var(--space-4);
+  }
+
+  /* One line, small, no byline - the whole row measured to roughly 50px of
+     slack at 1440x900 once the lead (the page's real dominant story, and
+     correctly the tallest thing on it) took its share. A story here is a
+     pointer, not a column, which a single clamped line already says without
+     needing a rule or an image to say it again. */
+  .paper__body--front .paper__lower-story {
+    margin: 0;
+    padding-inline-start: var(--space-4);
+    border-inline-start: 1px solid var(--paper-hair);
+    font-family: var(--font-display);
+    font-size: var(--type-body-s);
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .paper__body--front .paper__lower-story:first-child {
+    padding-inline-start: 0;
+    border-inline-start: none;
   }
 }
 
@@ -3065,6 +3139,35 @@ a.chip:active {
   margin: 0;
 }
 
+/* Audit §8/§46's "PAGE X" - a cross-reference, not a claim this story
+   continues (see the component's own comment for why that distinction is
+   real). Small caps in the paper's accent, the same weight the numerals in
+   the brief list already carry, so it reads as the paper's own apparatus
+   rather than as a UI control bolted onto the page. Reset from `<button>`
+   where PageRefTag renders one: same visual result whether or not the reader
+   has a live session to jump pages in. */
+.paper__pageref {
+  display: inline-flex;
+  align-items: baseline;
+  margin-inline-start: var(--space-2);
+  font: inherit;
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  color: var(--paper-accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+span.paper__pageref {
+  cursor: auto;
+}
+
+.paper__pageref:hover {
+  opacity: 0.7;
+}
+
 .paper__brief {
   padding-block-start: var(--space-4);
   border-block-start: 2px solid var(--paper-ink);
@@ -3089,6 +3192,14 @@ a.chip:active {
   gap: var(--space-2);
   font-size: var(--type-body-s);
   line-height: 1.35;
+}
+
+/* The headline and its page reference, bundled into the list item's one
+   text column - see the component comment on why this wrapper exists: an
+   unwrapped third child would fall into the grid's next implicit row
+   instead of sitting beside the headline. */
+.paper__brief-text {
+  display: block;
 }
 
 .paper__brief-number {

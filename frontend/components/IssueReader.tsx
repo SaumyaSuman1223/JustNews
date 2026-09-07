@@ -104,7 +104,7 @@ export function IssueReader({
     <div className="aquila">
       <div className="aquila__stage">
         <div className="aquila__sheet" data-pending={pending || undefined}>
-          <IssuePaper issue={issue} page={page} locale={locale} />
+          <IssuePaper issue={issue} page={page} locale={locale} onGoTo={goTo} />
         </div>
 
         {failed && (

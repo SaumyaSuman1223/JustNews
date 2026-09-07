@@ -165,6 +165,87 @@ class TestIssuePage:
         assert still_slotted is not None, "the issue itself is immutable"
 
 
+class TestPageReferences:
+    """Third-pass audit §8/§46's "PAGE X": a front-page story whose own topic
+    has a section page elsewhere in the same issue.
+
+    Deliberately not "this article continues on page X" - the product stores
+    no body text, so nothing continues anywhere, and CLAUDE.md forbids a
+    fabricated "2-3 paragraphs of context" as much as it forbids storing the
+    full article. What this points at instead is real: the front-page story's
+    topic has its own page, and that page is genuinely fuller coverage of the
+    same subject, the way a broadsheet's front-page teaser sends a reader to
+    the section inside.
+    """
+
+    async def test_a_front_page_story_whose_topic_has_a_section_gets_a_page_ref(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        issue_id = await _published_issue(session)
+
+        sections = (await client.get(f"/v1/issues/{issue_id}", params={"locale": "en"})).json()[
+            "sections"
+        ]
+        politics_page = next((s["page_no"] for s in sections if s["topic_id"] == POLITICS), None)
+        assert politics_page is not None, "the fixture tags enough articles for its own page"
+
+        front = (await client.get(f"/v1/issues/{issue_id}/pages/1", params={"locale": "en"})).json()
+        politics_article_ids = set(
+            (
+                await session.scalars(
+                    select(ArticleTopic.article_id).where(
+                        ArticleTopic.topic_id == POLITICS, ArticleTopic.is_primary.is_(True)
+                    )
+                )
+            ).all()
+        )
+        politics_slots_on_front = [
+            slot for slot in front["slots"] if slot["article"]["id"] in politics_article_ids
+        ]
+        assert politics_slots_on_front, "at least one Politics story should have led the front page"
+        for slot in politics_slots_on_front:
+            assert slot["page_ref"] == politics_page
+
+    async def test_a_topic_with_no_section_page_gets_no_reference(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        # A single-source, single-topic corpus: the topic prints nowhere, so
+        # nothing on the front page should claim a page it does not have.
+        source = await make_source(session, slug="no-section")
+        for i in range(20):
+            await make_article(session, source, title=f"Untagged {i}", minutes_ago=i)
+        await session.commit()
+
+        result = await compose_issue(session, locale="en", edition_slot="morning")
+        await session.commit()
+        assert result.issue_id is not None
+
+        front = (
+            await client.get(f"/v1/issues/{result.issue_id}/pages/1", params={"locale": "en"})
+        ).json()
+        assert front["slots"], "the front page should not be empty"
+        assert all(slot["page_ref"] is None for slot in front["slots"])
+
+    async def test_section_page_slots_never_carry_a_page_ref(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        # A cross-reference points *from* the front page *to* a section - a
+        # section page referencing another page would be the paper pointing
+        # at itself, which is not what this feature is for.
+        issue_id = await _published_issue(session)
+        sections = (await client.get(f"/v1/issues/{issue_id}", params={"locale": "en"})).json()[
+            "sections"
+        ]
+        section_pages = [s["page_no"] for s in sections if s["page_no"] != 1]
+        assert section_pages, "the fixture composes at least one section page"
+
+        for page_no in section_pages:
+            body = (
+                await client.get(f"/v1/issues/{issue_id}/pages/{page_no}", params={"locale": "en"})
+            ).json()
+            assert all(slot["page_ref"] is None for slot in body["slots"])
+
+
 class TestEditions:
     async def test_lists_the_days_editions(
         self, client: AsyncClient, session: AsyncSession

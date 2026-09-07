@@ -241,6 +241,51 @@ counts and the role vocabulary move together.
 **Accept:** measured 15–17 / 58–62 / 23–27; a lower row present; every page
 reference resolves to a page that exists.
 
+**Shipped, with two corrections found by measuring rather than assuming.**
+
+*Column proportions were never actually broken.* §0's 14/53/21 figure was
+measured against the sheet's own padding, not the grid's content box. Against
+the right denominator: 15.5 / 58.2 / 23.3 — already inside every band. No CSS
+changed here; the composer's `grid-template-columns: 16fr 60fr 24fr` from the
+second pass was correct all along.
+
+*Page references are a real cross-reference, not a fabricated continuation.*
+`SlotOut` gained `page_ref: int | None` — the section page a front-page
+story's own primary topic occupies in the same issue, computed at read time
+from two small bulk queries (`primary_topics_for_articles`,
+`section_page_numbers`), no schema change. Deliberately not "this story
+continues on page X" — the product stores no body text, so nothing
+continues anywhere; what's real is that the topic has fuller coverage a page
+away, the way a broadsheet's front page points a reader inside. Clickable
+where a reading session exists (`onGoTo` turns the page without a
+navigation), inert text otherwise. Three integration tests: a topic with a
+section gets its reference, a topic without one gets none, and a section
+page's own slots never carry a reference back out.
+
+*The lower row exists, but not as first planned.* The composer's
+`FRONT_PAGE_SECONDARIES` went from 3 to 6 — one count, split by position in
+the frontend (first 3 to the right rail, rest to a new row), not two composer
+roles. The first attempt also moved TODAY'S HIGHLIGHTS out of the left rail
+to sit under the new row, per §8's literal layout. Measured: the lead alone
+is 531px of a ~587px body budget at 1440×900, and the sheet clips rather than
+scrolls (`overflow: hidden`, deliberate, from the second pass) — moving
+highlights added ~150px of content the page did not have. Reverted that one
+piece: highlights stays in the left rail, where it already fit, and gained
+page references there instead. The lower row itself is three single-line,
+byline-less headlines — the plainest thing on the page, sized to whatever
+the lead's own height leaves over. Also trimmed to make room: the lead's
+deck from 3 lines to 2, the right rail's headlines from 3 lines to 2 (it had
+become taller than the lead), and two small paddings.
+
+Measured after: 8px of residual overflow at 1440×900 (rounding-level; the
+footer renders fully) versus 144px on the first attempt. At 768px height the
+page still clips — but production already clipped 27px there before this
+chunk touched anything, and this chunk added 22px more to an already
+pre-existing gap. That gap is Chunk 2's stated scope (scale the paper with
+the viewport), not something to paper over here by cutting content further.
+Full QA matrix (5 widths × 2 themes, axe at the extremes) clean on both the
+front page and a section page.
+
 ### Chunk 2 — Aquila as the dominant object *(§5, §11, §40)*
 Scale the paper with the viewport so 1920 gets 1300–1450px. Remove the 94px
 of scroll at 1440×900. Add pointer drag and touch swipe to page turning, both

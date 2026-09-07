@@ -104,6 +104,21 @@ async def issues_on(session: AsyncSession, *, locale: str, on: date) -> list[Iss
     )
 
 
+async def section_page_numbers(session: AsyncSession, *, issue_id: int) -> dict[str, int]:
+    """This issue's topic id -> page number, for its section pages.
+
+    The front page has no topic and is excluded by construction - `topic_id`
+    is null there, and the `is_not(None)` filter drops it along with any
+    other page a takedown or a future change left topic-less.
+    """
+    result = await session.execute(
+        select(IssuePage.topic_id, IssuePage.page_no).where(
+            IssuePage.issue_id == issue_id, IssuePage.topic_id.is_not(None)
+        )
+    )
+    return {topic_id: page_no for topic_id, page_no in result.all() if topic_id is not None}
+
+
 async def page_content(session: AsyncSession, *, issue_id: int, page_no: int) -> PageContent | None:
     page_row = (
         await session.execute(

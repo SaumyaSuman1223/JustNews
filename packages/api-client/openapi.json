@@ -1851,6 +1851,17 @@
             ],
             "title": "Impression Id"
           },
+          "page_ref": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Ref"
+          },
           "position": {
             "title": "Position",
             "type": "integer"

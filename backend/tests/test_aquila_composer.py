@@ -64,7 +64,12 @@ async def _corpus(
 
 class TestComposeIssue:
     async def test_publishes_a_front_page(self, session: AsyncSession) -> None:
-        await _corpus(session)
+        # Six sources, not the helper's default four: the front page now
+        # wants up to eleven slots (1 lead + 1 focus + 6 secondary + 3 brief),
+        # and the per-source cap of 2 means four sources can supply at most
+        # eight - enough for a real corpus, not enough for this test to see
+        # every role filled.
+        await _corpus(session, sources=6)
         await session.commit()
 
         result = await compose_issue(session, locale="en", edition_slot="morning")
@@ -91,6 +96,34 @@ class TestComposeIssue:
         assert roles.count("lead") == 1, "exactly one lead on the front page"
         assert roles.count("focus") == 1, "exactly one IN FOCUS piece in the left rail"
         assert "secondary" in roles and "brief" in roles
+
+    async def test_front_page_secondaries_fill_the_right_rail_and_lower_row(
+        self, session: AsyncSession
+    ) -> None:
+        """Third-pass audit §8: the front page needs enough secondaries for
+        both the editorial right rail and a lower row of major stories - one
+        `secondary` count the frontend splits by position, not two composer
+        roles. Six sources so the per-source cap (2 each) does not itself
+        become the bottleneck below the six secondaries wanted.
+        """
+        await _corpus(session, count=30, sources=6)
+        await session.commit()
+
+        result = await compose_issue(session, locale="en", edition_slot="morning")
+        await session.commit()
+
+        front_page_id = await session.scalar(
+            select(IssuePage.id).where(
+                IssuePage.issue_id == result.issue_id, IssuePage.page_no == 1
+            )
+        )
+        roles = (
+            await session.scalars(select(IssueSlot.role).where(IssueSlot.page_id == front_page_id))
+        ).all()
+        assert roles.count("secondary") == 6, (
+            "a corpus this wide should fill both the right rail and the lower "
+            "row rather than stopping at the old right-rail-only count of 3"
+        )
 
     async def test_masthead_numbering_increments(self, session: AsyncSession) -> None:
         await _corpus(session)
