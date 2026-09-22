@@ -2977,7 +2977,25 @@ a.chip:active {
      dominant without spending the page on it, and it is what a broadsheet
      does with a front-page photograph for the same reason. */
   .paper__body--front .paper__lead-image {
-    aspect-ratio: 8 / 3;
+    aspect-ratio: 3 / 1;
+  }
+
+  /* Fifth pass §2.2: a real three-line headline plus a four-line deck ran
+     past the sheet's fixed height and the deck was cut mid-sentence by the
+     clip. On the front page the deck gets two lines - an ellipsis is an
+     honest shortening, a sentence sliced by the page edge is not - and the
+     headline is held to three. */
+  .paper__body--front .paper__deck {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .paper__body--front .paper__lead-headline {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   /* The rail's one picture is a column-width thumbnail, not a second lead. */
@@ -3728,7 +3746,15 @@ span.paper__pageref {
     padding-inline-start: calc(var(--space-8) + var(--reader-edge));
     padding-inline-end: calc(var(--space-8) + var(--reader-edge));
   }
+}
 
+/* Fifth pass §2.2: the fixed landscape sheet starts at 80rem, not 64rem. At
+   1024x900 the 3:2 box resolved to 872x581, and a real front page - masthead,
+   a three-line lead, the rails, the lower row - needs roughly 800px, so the
+   clip cut the lead's own byline off. Between 64rem and 80rem the page reads
+   the way a tablet does: one sheet, full height, scrolling, with the page
+   turns intact. */
+@media (min-width: 80rem) {
   .aquila__sheet {
     /* Width-driven, not height-driven - the earlier height-first formula
        (`block-size: min(87dvh, 56.25rem)`, `inline-size: auto`) let the

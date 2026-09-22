@@ -2,7 +2,13 @@ import Link from "next/link";
 
 import { HalftoneImage } from "@/components/Halftone";
 import type { Issue, IssuePageContent } from "@/lib/api";
-import { datelineCity, t, type LocaleCode } from "@/lib/i18n";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { datelineCity, t, tPlural, type LocaleCode } from "@/lib/i18n";
+
+/** How many section names the masthead prints before "+ N more". Three fit
+ * the side track beside the edition line; a nine-page issue listing all
+ * eight stacked ~220px of standing type above the lead (fifth pass §2.2). */
+const MASTHEAD_SECTIONS = 3;
 
 /**
  * One page of The Aquila Tribune, rendered as a sheet of paper.
@@ -52,18 +58,29 @@ export function IssuePaper({
   // real IPTC labels already resolved for section pages by `_sections`
   // (title is null only for the front page itself), so the line is always
   // true of the paper in the reader's hands rather than a generic promise.
+  //
+  // Named with the same curated labels as the rest of the product ("Conflict",
+  // not "Conflict, war and peace") - the section is keyed by its IPTC id
+  // either way (ADR 0006); only the words printed for it change.
+  const labelFor = (section: { title: string | null; topic_id: string | null }) =>
+    section.title == null
+      ? null
+      : section.topic_id
+        ? curatedTopicLabel(section.topic_id, section.title, locale)
+        : section.title;
   const coveredSections = Array.from(
     new Set(
-      issue.sections
-        .map((section) => section.title)
-        .filter((title): title is string => title != null),
+      issue.sections.map(labelFor).filter((title): title is string => title != null),
     ),
   );
+  const mastheadSections = coveredSections.slice(0, MASTHEAD_SECTIONS);
+  const moreSections = coveredSections.length - mastheadSections.length;
 
-  const sectionTitle = (pageRef: number | null | undefined): string | null =>
-    pageRef == null
-      ? null
-      : (issue.sections.find((section) => section.page_no === pageRef)?.title ?? null);
+  const sectionTitle = (pageRef: number | null | undefined): string | null => {
+    if (pageRef == null) return null;
+    const section = issue.sections.find((candidate) => candidate.page_no === pageRef);
+    return section ? labelFor(section) : null;
+  };
 
   const published = new Date(issue.published_at);
   // `IssuePaper` only ever renders inside `IssueReader` ("use client"), so
@@ -124,17 +141,20 @@ export function IssuePaper({
               the generic standfirst - only rendered when this issue actually
               has section pages to name. An issue with only a front page
               prints no third column rather than inventing one. */}
-          {coveredSections.length > 0 && (
+          {mastheadSections.length > 0 && (
             <p className="paper__masthead-side paper__masthead-side--end">
-              {coveredSections.map((title) => (
+              {mastheadSections.map((title) => (
                 <span key={title}>{title}</span>
               ))}
+              {moreSections > 0 && (
+                <span>{tPlural(locale, "aquila.moreSections", moreSections)}</span>
+              )}
             </p>
           )}
         </header>
       ) : (
         <header className="paper__sectionhead">
-          <h2>{page.title}</h2>
+          <h2>{labelFor(page)}</h2>
           <span className="paper__folio">{page.page_no}</span>
         </header>
       )}

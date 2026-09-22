@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import type { Issue, IssueEdition } from "@/lib/api";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { t, type LocaleCode } from "@/lib/i18n";
 
 /**
@@ -130,7 +131,11 @@ export function ReaderUtility({
                 <span className="reader-utility__no">
                   {String(section.page_no).padStart(2, "0")}
                 </span>
-                {section.title ?? t(locale, "aquila.frontPage")}
+                {section.title == null
+                  ? t(locale, "aquila.frontPage")
+                  : section.topic_id
+                    ? curatedTopicLabel(section.topic_id, section.title, locale)
+                    : section.title}
               </button>
             </li>
           ))}

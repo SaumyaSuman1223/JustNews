@@ -179,6 +179,8 @@ const en = {
   "aquila.edition.morning": "Morning Edition",
   "aquila.edition.midday": "Midday Edition",
   "aquila.edition.evening": "Evening Edition",
+  "aquila.moreSections.one": "+ {count} more section",
+  "aquila.moreSections.other": "+ {count} more sections",
   "aquila.editions": "Today’s editions",
   "aquila.pages": "Pages",
   "aquila.frontPage": "Front page",
@@ -593,6 +595,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.edition.morning": "Edición de la mañana",
     "aquila.edition.midday": "Edición del mediodía",
     "aquila.edition.evening": "Edición de la noche",
+    "aquila.moreSections.one": "+ {count} sección más",
+    "aquila.moreSections.other": "+ {count} secciones más",
     "aquila.editions": "Ediciones de hoy",
     "aquila.pages": "Páginas",
     "aquila.frontPage": "Portada",
@@ -1002,6 +1006,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.edition.morning": "प्रातः संस्करण",
     "aquila.edition.midday": "मध्याह्न संस्करण",
     "aquila.edition.evening": "सायं संस्करण",
+    "aquila.moreSections.one": "+ {count} और खंड",
+    "aquila.moreSections.other": "+ {count} और खंड",
     "aquila.editions": "आज के संस्करण",
     "aquila.pages": "पृष्ठ",
     "aquila.frontPage": "मुखपृष्ठ",
@@ -1352,6 +1358,7 @@ export function t(
  * MessageKeys, which is what forces every other locale to translate them.
  */
 type PluralBase =
+  | "aquila.moreSections"
   | "article.otherLanguages"
   | "article.otherSources"
   | "coverage.countries"
