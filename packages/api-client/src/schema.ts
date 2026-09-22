@@ -1507,6 +1507,7 @@ export interface components {
             article: components["schemas"]["ArticleOut"];
             /** Impression Id */
             impression_id: number | null;
+            reason?: components["schemas"]["RankReasonOut"] | null;
         };
         /** FeedPageOut */
         FeedPageOut: {
@@ -1837,6 +1838,20 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /**
+         * RankReasonOut
+         * @description Why this card is on the feed - only a factor the ranker actually
+         *     applied (see services.feed.RankReason).
+         */
+        RankReasonOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "followed_topic" | "trending" | "exploration";
+            /** Topic Id */
+            topic_id?: string | null;
         };
         /** RankingPolicyCtrOut */
         RankingPolicyCtrOut: {

@@ -20,11 +20,14 @@ import {
   getSaves,
   getStats,
   getTopArticles,
+  getTopics,
   getTrending,
   type Article,
 } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
+import type { RankReason } from "@/lib/rankReason";
 import { getSession } from "@/lib/session";
 
 // The layout's description would otherwise also be emitted, deferred, as a
@@ -85,9 +88,23 @@ async function anonymousFeed(languages: string, cursor: string | undefined) {
     degraded: page.degraded,
     // Uniform shape either way - an anonymous read has no impression to
     // report a click against, so there is nothing to attribute.
-    items: articles.map((article) => ({ article, impression_id: null })),
+    items: articles.map((article) => ({ article, impression_id: null, reason: null })),
     nextCursor: page.data.next_cursor,
   };
+}
+
+type ApiReason = { kind: "followed_topic" | "trending" | "exploration"; topic_id?: string | null };
+
+function whyFor(
+  reason: ApiReason | null | undefined,
+  topicLabels: Map<string, string>,
+): RankReason | undefined {
+  if (!reason) return undefined;
+  if (reason.kind === "followed_topic") {
+    const topic = reason.topic_id ? topicLabels.get(reason.topic_id) : undefined;
+    return topic ? { kind: "followed_topic", topic } : undefined;
+  }
+  return { kind: reason.kind };
 }
 
 function isHomeTab(value: string | undefined): value is HomeTab {
@@ -163,7 +180,7 @@ async function FeedBody({
   // honour them.
   const languages = readerLanguages(profile?.preferred_languages, active.code);
 
-  const [feed, stats, trending, savedIds] = await Promise.all([
+  const [feedRaw, stats, trending, savedIds, topics] = await Promise.all([
     auth && hasBetaAccess
       ? getFeed(auth, { locale: active.code, cursor, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
@@ -176,7 +193,23 @@ async function FeedBody({
     auth && hasBetaAccess
       ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
+    // Only to label "Because you follow {topic}" - the reason carries the id.
+    auth && hasBetaAccess ? getTopics(active.code) : Promise.resolve(null),
   ]);
+
+  // Fifth pass F7: the ranker's own reason for each card, with the topic id
+  // resolved to the label the reader knows it by. A reason for a topic this
+  // page cannot name is dropped rather than shown as a raw concept id.
+  const topicLabels = new Map(
+    (topics?.data ?? []).map((topic) => [
+      topic.id,
+      curatedTopicLabel(topic.id, topic.label, active.code),
+    ]),
+  );
+  const feed = {
+    ...feedRaw,
+    items: feedRaw.items.map((item) => ({ ...item, why: whyFor(item.reason, topicLabels) })),
+  };
 
   // The two editorial tiers always lead with the same top stories, whichever
   // tab is selected below them - the tabs switch the dense stream, not the
@@ -240,6 +273,7 @@ async function FeedBody({
               items={tierOne.map((item) => ({
                 article: item.article,
                 impressionId: item.impression_id,
+                why: item.why,
                 saved: savedIds.has(item.article.id),
               }))}
               locale={active.code}
@@ -261,6 +295,7 @@ async function FeedBody({
                 items={tierTwo.map((item) => ({
                   article: item.article,
                   impressionId: item.impression_id,
+                  why: item.why,
                   saved: savedIds.has(item.article.id),
                 }))}
                 locale={active.code}
@@ -334,7 +369,7 @@ async function TabPanel({
   active: ReturnType<typeof getLocale>;
   auth: { accessToken: string; sessionId: string | null } | null;
   hasBetaAccess: boolean;
-  feedRest: { article: Article; impression_id: number | null }[];
+  feedRest: { article: Article; impression_id: number | null; why: RankReason | undefined }[];
   trending: Article[];
   savedIds: Set<number>;
   cursor?: string;
@@ -410,6 +445,7 @@ async function TabPanel({
         items={feedRest.map((item) => ({
           article: item.article,
           impressionId: item.impression_id,
+          why: item.why,
           saved: savedIds.has(item.article.id),
         }))}
         locale={active.code}

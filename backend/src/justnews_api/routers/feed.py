@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Header, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +19,14 @@ from justnews_core.language import normalise_language_code
 router = APIRouter(prefix="/v1", tags=["feed"])
 
 
+class RankReasonOut(BaseModel):
+    """Why this card is on the feed - only a factor the ranker actually
+    applied (see services.feed.RankReason)."""
+
+    kind: Literal["followed_topic", "trending", "exploration"]
+    topic_id: str | None = None
+
+
 class FeedItemOut(BaseModel):
     article: ArticleOut
     # The exact impression this article was served under - hand it back on
@@ -26,6 +36,7 @@ class FeedItemOut(BaseModel):
     # analytics consent - no impression was logged, so there is nothing to
     # hand back.
     impression_id: int | None
+    reason: RankReasonOut | None = None
 
 
 class FeedPageOut(BaseModel):
@@ -66,7 +77,18 @@ async def get_feed(
     )
     return FeedPageOut(
         items=[
-            FeedItemOut(article=ArticleOut.from_row(item.article), impression_id=item.impression_id)
+            FeedItemOut(
+                article=ArticleOut.from_row(item.article),
+                impression_id=item.impression_id,
+                reason=(
+                    RankReasonOut(
+                        kind=item.reason.kind,
+                        topic_id=item.reason.topic_id,
+                    )
+                    if item.reason is not None
+                    else None
+                ),
+            )
             for item in page.items
         ],
         next_cursor=page.next_cursor,

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import * as api from "@/lib/api";
 import { BROWSING_SESSION_COOKIE, getBrowsingSessionId } from "@/lib/browsingSession";
 import { CONSENT_COOKIE, type ConsentState } from "@/lib/consent";
+import { TEXT_SIZE_COOKIE, THEME_COOKIE } from "@/lib/preferences";
 import { getSession } from "@/lib/session";
 
 async function authOrNull() {
@@ -187,6 +188,26 @@ export async function unfollowStoryAction(storyId: number, path: string): Promis
   const ok = await api.unfollowStory(auth, storyId);
   if (ok) revalidatePath(path);
   return ok;
+}
+
+/** The Display page's form (fifth pass F8). A plain form action, so it
+ * works without JavaScript; an invalid value falls back to the default
+ * rather than being stored. One year, first-party, readable only by the
+ * server - these are display settings, not identifiers. */
+export async function setDisplayPreferencesAction(formData: FormData): Promise<void> {
+  const theme = formData.get("theme");
+  const textSize = formData.get("textSize");
+  const store = await cookies();
+  const options = {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax" as const,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  };
+  store.set(THEME_COOKIE, theme === "light" || theme === "dark" ? theme : "system", options);
+  store.set(TEXT_SIZE_COOKIE, textSize === "large" ? "large" : "standard", options);
+  revalidatePath("/", "layout");
 }
 
 export async function updateLanguagesAction(languages: string[]): Promise<void> {

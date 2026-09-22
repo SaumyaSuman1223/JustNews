@@ -768,6 +768,16 @@
               }
             ],
             "title": "Impression Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankReasonOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1585,6 +1595,36 @@
           "homepage_url"
         ],
         "title": "PerspectiveSourceOut",
+        "type": "object"
+      },
+      "RankReasonOut": {
+        "description": "Why this card is on the feed - only a factor the ranker actually\napplied (see services.feed.RankReason).",
+        "properties": {
+          "kind": {
+            "enum": [
+              "followed_topic",
+              "trending",
+              "exploration"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "RankReasonOut",
         "type": "object"
       },
       "RankingPolicyCtrOut": {

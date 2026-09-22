@@ -154,8 +154,11 @@
    produce. The brass brightens here - the light theme's interactive brass is
    dark enough to disappear on charcoal, so dark gets the brighter tone for
    both roles. */
+/* An explicit choice on the Display page (fifth pass F8) wins over the
+   system: `data-theme` on <html>, set server-side from the reader's cookie so
+   the first paint is already right. No attribute means "follow the system". */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ground: #1a1b19;
     --surface: #20211f;
     --surface-sub: #2a2b28;
@@ -171,6 +174,26 @@
   }
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #1a1b19;
+  --surface: #20211f;
+  --surface-sub: #2a2b28;
+  --text: #ede9e0;
+  --text-mid: #c6c1b6;
+  --text-muted: #96918a;
+  --border: #34352f;
+  --border-strong: #55564e;
+  --brass: #c9ae83;
+  --accent: #c9ae83;
+  --accent-soft: #33301f;
+  --danger: #e39385;
+}
+
 *,
 *::before,
 *::after {
@@ -180,6 +203,12 @@
 html {
   /* Arabic and Hebrew need slightly looser leading than the Latin default. */
   line-height: 1.6;
+}
+
+/* Display page's larger text: every size in the system is in rem, so one
+   root step scales type, spacing and measure together. */
+html[data-text-size="large"] {
+  font-size: 112.5%;
 }
 
 html[dir="rtl"] {
@@ -653,6 +682,119 @@ a.card__source:focus-visible {
 .followed-stories__count--new {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* --- keyboard shortcuts dialog (fifth pass F8) ----------------------------- */
+
+.shortcuts {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: var(--space-6);
+  inline-size: min(26rem, calc(100vw - 2rem));
+}
+
+.shortcuts::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.shortcuts h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin: 0 0 var(--space-4);
+}
+
+.shortcuts__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-6);
+}
+
+.shortcuts__list div {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  align-items: baseline;
+}
+
+.shortcuts__list dt,
+.shortcuts__list dd {
+  margin: 0;
+}
+
+.shortcuts kbd {
+  font-family: var(--font-ui, inherit);
+  font-size: var(--type-meta);
+  border: 1px solid var(--border-strong);
+  border-block-end-width: 2px;
+  border-radius: 4px;
+  padding: 0.1em 0.45em;
+  background: var(--ground);
+}
+
+/* --- how it works (fifth pass F9) ------------------------------------------- */
+
+.how__section {
+  margin-block: var(--space-8);
+}
+
+.how__section h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin: 0 0 var(--space-2);
+}
+
+.how__section p {
+  margin: 0;
+  max-inline-size: var(--measure);
+  line-height: 1.7;
+}
+
+.how__more {
+  margin-block-start: var(--space-12);
+  color: var(--text-muted);
+}
+
+.auth-card__forgot {
+  justify-self: end;
+  margin-block-start: var(--space-2);
+  font-size: var(--type-meta);
+}
+
+/* --- display page (fifth pass F8) ------------------------------------------ */
+
+.display-form {
+  display: grid;
+  gap: var(--space-6);
+  justify-items: start;
+}
+
+.display-form__group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.display-form__group legend {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin-block-end: var(--space-2);
+}
+
+.display-form__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 2.75rem;
+  cursor: pointer;
+}
+
+.display-form__option input {
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  accent-color: var(--accent);
 }
 
 /* --- publisher page -------------------------------------------------------- */

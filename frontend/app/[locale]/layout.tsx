@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { getConsentState } from "@/lib/consent";
+import { getReaderPreferences } from "@/lib/preferences";
 import { fontVariables } from "@/lib/fonts";
 import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
 
@@ -57,12 +58,18 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
-  const consent = await getConsentState();
+  const [consent, preferences] = await Promise.all([getConsentState(), getReaderPreferences()]);
 
   return (
     // dir here is what makes every logical CSS property mirror. It is the only
     // thing standing between us and a stylesheet fork for Arabic.
-    <html lang={active.htmlLang} dir={active.dir} className={fontVariables}>
+    <html
+      lang={active.htmlLang}
+      dir={active.dir}
+      className={fontVariables}
+      data-theme={preferences.theme === "system" ? undefined : preferences.theme}
+      data-text-size={preferences.textSize === "large" ? "large" : undefined}
+    >
       <body>
         <Suspense fallback={null}>
           <NavigationProgress />

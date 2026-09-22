@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/AccountMenu";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { MobileTabBar } from "@/components/MobileTabBar";
+import { ReaderShortcuts } from "@/components/ReaderShortcuts";
 import { PrimaryNav } from "@/components/PrimaryNav";
 import { SearchBox } from "@/components/SearchBox";
 import { getMe } from "@/lib/api";
@@ -92,13 +93,16 @@ export default async function AppShellLayout({
             <span className="site-footer__tagline">{t(active.code, "site.tagline")}</span>
           </p>
           <div className="site-footer__line">
+            <Link href={`/${active.code}/how-it-works`}>{t(active.code, "nav.howItWorks")}</Link>
             <Link href={`/${active.code}/privacy`}>{t(active.code, "nav.privacy")}</Link>
             <Link href={`/${active.code}/feedback`}>{t(active.code, "nav.feedback")}</Link>
+            <Link href={`/${active.code}/display`}>{t(active.code, "nav.display")}</Link>
             <LocaleSwitcher active={active} pathname={pathname} search={search} />
           </div>
         </footer>
       </div>
       <MobileTabBar locale={active.code} pathname={pathname} signedIn={Boolean(session)} />
+      <ReaderShortcuts locale={active.code} />
     </>
   );
 }
