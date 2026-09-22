@@ -27,6 +27,9 @@ FOLLOWED_TOPIC_BOOST = 1.6
 POPULARITY_WEIGHT = 0.35
 SOURCE_TRUST_FLOOR = 0.5  # a low-trust source is deprioritised, never zeroed out
 MMR_LAMBDA = 0.7  # relevance vs diversity trade-off
+# How much a story gains per doubling of the outlets carrying it, in the
+# signed-out importance order (`score_for_everyone`).
+BREADTH_WEIGHT = 0.5
 
 # How far back "recent" reaches for the popularity signal (recent_click_counts).
 # Lives here, not in feed.py, so services.exploration_deck can share it
@@ -89,6 +92,32 @@ def score_candidates(
             score *= SEEN_PENALTY
 
         scored.append(ScoredCandidate(article=article, score=score, topic_ids=topic_ids))
+    return scored
+
+
+def score_for_everyone(
+    candidates: list[ArticleRow], *, now: datetime | None = None
+) -> list[ScoredCandidate]:
+    """Importance with no reader to personalise for - signed-out Home's "What
+    matters" (fifth pass §2.3), which was plain newest-first and so led with
+    whatever landed last.
+
+    recency x breadth x source trust: the same recency decay and trust term
+    the personal ranker uses, times how widely the story is being carried -
+    ``1 + BREADTH_WEIGHT * log2(outlets)``, so a story five outlets are
+    running outranks a comparable one only one is. Arithmetic over columns
+    already on the row (ADR 0004); nothing here knows or guesses what a story
+    is about. ``topic_ids`` stay empty, so `diversify` spreads the result
+    across sources rather than topics.
+    """
+    now = now or datetime.now(UTC)
+    scored: list[ScoredCandidate] = []
+    for article in candidates:
+        outlets = article.coverage.sources if article.coverage is not None else 1
+        breadth = 1.0 + BREADTH_WEIGHT * math.log2(max(outlets, 1))
+        trust = SOURCE_TRUST_FLOOR + (1 - SOURCE_TRUST_FLOOR) * article.source_trust_score
+        score = _recency_score(article.published_at, now=now) * breadth * trust
+        scored.append(ScoredCandidate(article=article, score=score, topic_ids=frozenset()))
     return scored
 
 

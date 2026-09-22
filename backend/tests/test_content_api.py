@@ -503,3 +503,64 @@ class TestDatabaseOutage:
         # /health must never touch the database, or an outage makes the
         # orchestrator kill healthy containers.
         assert (await client.get("/health")).status_code == 200
+
+
+class TestTopArticles:
+    """Signed-out Home's "What matters" (fifth pass §2.3): importance by
+    recency x breadth of coverage x source trust, not newest-first."""
+
+    async def _cluster(self, session: AsyncSession, articles: list, sources: int) -> StoryCluster:
+        cluster = StoryCluster(
+            title=articles[0].title,
+            first_seen_at=articles[0].published_at,
+            last_seen_at=articles[-1].published_at,
+            article_count=len(articles),
+            source_count=sources,
+            language_count=1,
+            country_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        for article in articles:
+            article.story_cluster_id = cluster.id
+        return cluster
+
+    async def test_a_widely_carried_story_outranks_a_newer_single_outlet_one(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        wires = [await make_source(session, slug=f"wire-{i}") for i in range(4)]
+        broad = [
+            await make_article(
+                session, wire, title=f"Summit agrees climate fund {i}", minutes_ago=90
+            )
+            for i, wire in enumerate(wires)
+        ]
+        await self._cluster(session, broad, sources=4)
+        lone = await make_article(
+            session, wires[0], title="Celebrity feud escalates", minutes_ago=5
+        )
+        await session.commit()
+
+        body = (await client.get("/v1/articles/top?languages=en&limit=5")).json()
+        ids = [item["id"] for item in body]
+        # The broad story leads, represented once, and the newer lone piece
+        # still makes the list - just below it.
+        assert ids[0] in {article.id for article in broad}
+        assert lone.id in ids[1:]
+
+    async def test_one_article_per_story(self, client: AsyncClient, session: AsyncSession) -> None:
+        wires = [await make_source(session, slug=f"desk-{i}") for i in range(3)]
+        members = [
+            await make_article(session, wire, title=f"Election result {i}")
+            for i, wire in enumerate(wires)
+        ]
+        cluster = await self._cluster(session, members, sources=3)
+        await session.commit()
+
+        body = (await client.get("/v1/articles/top?languages=en&limit=10")).json()
+        assert sum(1 for item in body if item["story_cluster_id"] == cluster.id) == 1
+
+    async def test_top_is_not_read_as_an_article_id(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/articles/top")
+        assert response.status_code == 200
+        assert response.json() == []

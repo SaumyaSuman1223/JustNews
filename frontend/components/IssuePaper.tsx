@@ -4,6 +4,7 @@ import { HalftoneImage } from "@/components/Halftone";
 import type { Issue, IssuePageContent } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { datelineCity, t, tPlural, type LocaleCode } from "@/lib/i18n";
+import { useHydrated } from "@/lib/useHydrated";
 
 /** How many section names the masthead prints before "+ N more". Three fit
  * the side track beside the edition line; a nine-page issue listing all
@@ -82,6 +83,9 @@ export function IssuePaper({
     return section ? labelFor(section) : null;
   };
 
+  // The dateline and edition time below are in the reader's own timezone,
+  // which the server cannot know: re-rendered once after hydration.
+  useHydrated();
   const published = new Date(issue.published_at);
   // `IssuePaper` only ever renders inside `IssueReader` ("use client"), so
   // this runs in the reader's own browser - `Intl` with no `timeZone`
@@ -171,12 +175,14 @@ export function IssuePaper({
             })}
           </span>
         )}
-        <span>
+        <span suppressHydrationWarning>
           {city
             ? t(locale, "aquila.dateline", { city, date: dateLine })
             : dateLine}
         </span>
-        <span>{t(locale, "aquila.editionTime", { time: editionTime })}</span>
+        <span suppressHydrationWarning>
+          {t(locale, "aquila.editionTime", { time: editionTime })}
+        </span>
       </div>
 
       {page.slots.length === 0 ? (

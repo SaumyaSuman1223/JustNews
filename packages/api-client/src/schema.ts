@@ -398,6 +398,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/articles/top": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Top Articles
+         * @description What matters now, for a reader with no history to personalise from:
+         *     recency x breadth of coverage x source trust, one article per story.
+         *
+         *     Declared before ``/articles/{article_id}`` so "top" is never parsed as an
+         *     id. Cache: the same 60s the web tier applies to the article list.
+         */
+        get: operations["top_articles_v1_articles_top_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/articles/{article_id}": {
         parameters: {
             query?: never;
@@ -2845,6 +2869,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticlePageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    top_articles_v1_articles_top_get: {
+        parameters: {
+            query?: {
+                languages?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleOut"][];
                 };
             };
             /** @description Validation Error */

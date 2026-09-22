@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import content as repo
+from justnews_api.services import ranking
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_api.services.perspectives import PerspectiveGroup, group_by_role
 from justnews_core.errors import NotFoundError, ValidationError
@@ -169,6 +170,36 @@ async def get_trending(
         since=datetime.now(UTC) - TRENDING_WINDOW,
         limit=limit,
     )
+
+
+#: How many recent articles the signed-out importance order considers.
+TOP_CANDIDATE_POOL = 300
+MAX_TOP_ARTICLES = 30
+
+
+async def get_top_articles(
+    session: AsyncSession, *, languages: list[str] | None, limit: int, now: datetime | None = None
+) -> list[repo.ArticleRow]:
+    """The signed-out importance order: recent articles scored by recency,
+    breadth of coverage and source trust, one per story, spread across
+    sources - see ``ranking.score_for_everyone``.
+
+    A bounded list, not a feed: Home takes its editorial tiers from it and
+    continues with the ordinary cursor-paginated stream, so this has no
+    cursor of its own.
+    """
+    if not 1 <= limit <= MAX_TOP_ARTICLES:
+        raise ValidationError(f"limit must be between 1 and {MAX_TOP_ARTICLES}.")
+    now = now or datetime.now(UTC)
+    pool = await repo.list_articles_window(
+        session,
+        languages=languages,
+        upper_bound=now,
+        exclude_article_ids=None,
+        limit=TOP_CANDIDATE_POOL,
+    )
+    scored = ranking.dedupe_story_clusters(ranking.score_for_everyone(pool, now=now))
+    return ranking.diversify(scored)[:limit]
 
 
 async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:

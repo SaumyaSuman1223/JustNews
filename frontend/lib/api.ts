@@ -203,6 +203,13 @@ export function getBlindspots(languages: string, limit = 4): Promise<Degradable<
   return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
 }
 
+/** Signed-out "What matters": recency x breadth of coverage x source trust,
+ * one article per story (see the API's `/v1/articles/top`). */
+export function getTopArticles(languages: string, limit = 14): Promise<Degradable<Article[]>> {
+  const query = new URLSearchParams({ languages, limit: String(limit) });
+  return get<Article[]>(`/v1/articles/top?${query}`, [], 60);
+}
+
 /** What readers are actually clicking. Behaviour, not recency. */
 export function getTrending(languages: string, limit = 5): Promise<Degradable<Article[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });

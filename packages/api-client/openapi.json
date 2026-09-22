@@ -3994,6 +3994,75 @@
         ]
       }
     },
+    "/v1/articles/top": {
+      "get": {
+        "description": "What matters now, for a reader with no history to personalise from:\nrecency x breadth of coverage x source trust, one article per story.\n\nDeclared before ``/articles/{article_id}`` so \"top\" is never parsed as an\nid. Cache: the same 60s the web tier applies to the article list.",
+        "operationId": "top_articles_v1_articles_top_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "en,es"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 14,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleOut"
+                  },
+                  "title": "Response Top Articles V1 Articles Top Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Top Articles",
+        "tags": [
+          "content"
+        ]
+      }
+    },
     "/v1/articles/{article_id}": {
       "get": {
         "operationId": "get_article_v1_articles__article_id__get",

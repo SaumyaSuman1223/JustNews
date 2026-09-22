@@ -15,6 +15,7 @@ import {
   type LocaleCode,
 } from "@/lib/i18n";
 import { formatRankReason, type RankReason } from "@/lib/rankReason";
+import { useHydrated } from "@/lib/useHydrated";
 
 /** ADR 0013's roles, in the same order and under the same labels
  * `Perspectives.tsx` uses - "wire" is deliberately absent from both: a wire
@@ -155,6 +156,9 @@ export function ArticleCard({
   // earlier pass added.
   const [hidden, setHidden] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Relative times and the reader's local clock: re-rendered once after
+  // hydration with the browser's own values (see useHydrated).
+  useHydrated();
 
   function handleClick() {
     // Fire-and-forget: never block or delay the navigation this accompanies.
@@ -254,7 +258,7 @@ export function ArticleCard({
           // A timeline card leads with when the story developed, not who
           // filed the article this card happens to link - the coverage line
           // right below it (same markup `cluster` uses) still says how widely.
-          <p className="card__developing">
+          <p className="card__developing" suppressHydrationWarning>
             {t(locale, "card.timeline.developing", { time: developingSince })}
           </p>
         )}
@@ -273,14 +277,14 @@ export function ArticleCard({
           <p className="card__meta card__meta--role">
             <span className="card__role">{t(locale, roleLabelKey)}</span>
             <span className="card__source">{article.source_name}</span>
-            <time dateTime={article.published_at}>
+            <time dateTime={article.published_at} suppressHydrationWarning>
               {formatRelativeTime(article.published_at, locale)}
             </time>
           </p>
         ) : (
           <p className="card__meta">
             <span className="card__source">{article.source_name}</span>
-            <time dateTime={article.published_at}>
+            <time dateTime={article.published_at} suppressHydrationWarning>
               {formatRelativeTime(article.published_at, locale)}
             </time>
             {foreign && (
@@ -313,7 +317,7 @@ export function ArticleCard({
               inert={!expanded}
             >
               <div className="card__context-inner">
-                <p>
+                <p suppressHydrationWarning>
                   {t(locale, "home.lead.context.published", {
                     time: formatAbsoluteTime(article.published_at, locale),
                   })}

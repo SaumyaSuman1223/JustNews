@@ -19,6 +19,7 @@ import {
   getMe,
   getSaves,
   getStats,
+  getTopArticles,
   getTrending,
   type Article,
 } from "@/lib/api";
@@ -56,6 +57,38 @@ const TIER_TWO = 6;
 const TIER_TWO_FEATURES = 1;
 const TIER_TWO_PICTURES = 2;
 const TAB_PAGE_SIZE = 10;
+/** The Daily Brief's five, drawn from right after the two editorial tiers. */
+const BRIEF = 5;
+
+/**
+ * Home for a reader with no personal ranking (signed out, or signed in
+ * without beta access).
+ *
+ * Fifth pass §2.3: this used to be the plain newest-first list, so "What
+ * matters" was whatever landed last - on the day it was reviewed, a
+ * celebrity spat. The first page now opens with the importance order
+ * (recency x breadth of coverage x source trust, one per story - see
+ * `getTopArticles`) and continues with the chronological stream, minus
+ * anything the top order already placed. Later pages are the chronological
+ * stream alone: the cursor belongs to it, and the importance order has no
+ * pages of its own.
+ */
+async function anonymousFeed(languages: string, cursor: string | undefined) {
+  const [page, top] = await Promise.all([
+    getArticles({ languages, cursor, pageSize: 24 }),
+    cursor ? Promise.resolve(null) : getTopArticles(languages, TIER_ONE + TIER_TWO + BRIEF),
+  ]);
+  const lead = top && !top.degraded ? top.data : [];
+  const placed = new Set(lead.map((article) => article.id));
+  const articles = [...lead, ...page.data.items.filter((article) => !placed.has(article.id))];
+  return {
+    degraded: page.degraded,
+    // Uniform shape either way - an anonymous read has no impression to
+    // report a click against, so there is nothing to attribute.
+    items: articles.map((article) => ({ article, impression_id: null })),
+    nextCursor: page.data.next_cursor,
+  };
+}
 
 function isHomeTab(value: string | undefined): value is HomeTab {
   return value === "trending" || value === "history" || value === "saved";
@@ -137,13 +170,7 @@ async function FeedBody({
           items: page.data.items,
           nextCursor: page.data.next_cursor,
         }))
-      : getArticles({ languages, cursor, pageSize: 24 }).then((page) => ({
-          degraded: page.degraded,
-          // Uniform shape either way - an anonymous read has no impression
-          // to report a click against, so there is nothing to attribute.
-          items: page.data.items.map((article) => ({ article, impression_id: null })),
-          nextCursor: page.data.next_cursor,
-        })),
+      : anonymousFeed(languages, cursor),
     getStats(),
     getTrending(languages, 20),
     auth && hasBetaAccess
@@ -161,8 +188,12 @@ async function FeedBody({
   // pixels above in the hero itself. The Brief draws from what neither
   // editorial tier above it shows, so it is additional reading rather than
   // the same page condensed.
+  //
+  // Fifth pass §2.3: the dense stream under the tabs also started at
+  // position 9, so its first five rows were the Brief reprinted. The Brief
+  // now owns positions 9-13 and the stream starts after it.
   const briefArticles = feed.items
-    .slice(TIER_ONE + TIER_TWO, TIER_ONE + TIER_TWO + 5)
+    .slice(TIER_ONE + TIER_TWO, TIER_ONE + TIER_TWO + BRIEF)
     .map((item) => item.article);
 
   return (
@@ -273,7 +304,7 @@ async function FeedBody({
               active={active}
               auth={auth}
               hasBetaAccess={hasBetaAccess}
-              feedRest={feed.items.slice(TIER_ONE + TIER_TWO)}
+              feedRest={feed.items.slice(TIER_ONE + TIER_TWO + BRIEF)}
               trending={trending.data}
               savedIds={savedIds}
               cursor={cursor}

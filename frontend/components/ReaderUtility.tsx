@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import type { Issue, IssueEdition } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { useHydrated } from "@/lib/useHydrated";
 import { t, type LocaleCode } from "@/lib/i18n";
 
 /**
@@ -47,6 +48,8 @@ export function ReaderUtility({
   // it. Held in a ref rather than state: it is a timer, not something the
   // render depends on.
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Edition times are in the reader's timezone: re-rendered after hydration.
+  useHydrated();
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
@@ -161,13 +164,15 @@ export function ReaderUtility({
                     `aquila.edition.${edition.edition_slot}` as "aquila.edition.morning",
                   )}
                 </span>
-                <span className="reader-utility__time">
+                {/* The reader's own timezone, like the masthead's edition time -
+                    a fixed UTC here printed a UTC hour with no label saying
+                    so once "UTC" left the copy (fifth pass). */}
+                <span className="reader-utility__time" suppressHydrationWarning>
                   {t(locale, "aquila.editionTime", {
                     time: new Intl.DateTimeFormat(locale, {
                       hour: "2-digit",
                       minute: "2-digit",
                       hour12: false,
-                      timeZone: "UTC",
                     }).format(new Date(edition.published_at)),
                   })}
                 </span>

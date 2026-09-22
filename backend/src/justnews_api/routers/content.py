@@ -216,6 +216,24 @@ async def list_articles(
     )
 
 
+@router.get("/articles/top", response_model=list[ArticleOut])
+async def top_articles(
+    session: AsyncSession = Depends(get_session),
+    languages: str | None = Query(default=None, examples=["en,es"]),
+    limit: int = Query(default=14, ge=1, le=30),
+) -> list[ArticleOut]:
+    """What matters now, for a reader with no history to personalise from:
+    recency x breadth of coverage x source trust, one article per story.
+
+    Declared before ``/articles/{article_id}`` so "top" is never parsed as an
+    id. Cache: the same 60s the web tier applies to the article list.
+    """
+    rows = await service.get_top_articles(
+        session, languages=service.parse_languages(languages), limit=limit
+    )
+    return [ArticleOut.from_row(row) for row in rows]
+
+
 @router.get("/articles/{article_id}", response_model=ArticleOut)
 async def get_article(article_id: int, session: AsyncSession = Depends(get_session)) -> ArticleOut:
     return ArticleOut.from_row(await service.get_article(session, article_id))

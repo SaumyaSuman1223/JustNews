@@ -1696,7 +1696,7 @@ a.chip:active {
    pill, no bubble fill. Following is a rule under the word, the way an
    active section reads in a masthead nav, not a filled badge. */
 .topic-picker {
-  gap: var(--space-1) var(--space-5);
+  gap: var(--space-1) var(--space-4);
 }
 
 .topic-chip {
@@ -3912,6 +3912,15 @@ span.paper__pageref {
   border-block-end: 1px solid var(--border);
 }
 
+/* Only beside the icon rail, which carries a monogram and nothing else.
+   Below 56.25rem the top bar already prints the wordmark, and repeating it
+   one line lower read as a stutter (fifth pass §2.3). */
+@media (max-width: 56.1875rem) {
+  .home-greeting__standing {
+    display: none;
+  }
+}
+
 .home-greeting__mark {
   font-family: var(--font-ui);
   font-size: var(--type-micro);
@@ -4197,6 +4206,14 @@ span.paper__pageref {
    and because a third full-width single column after two other full-width
    single columns is the flat rhythm §31 is complaining about. */
 @media (min-width: 64rem) {
+  /* Fifth pass §2.3: at the base 16px column gap the left row's thumbnail sat
+     flush against the right row's headline, and read as belonging to it. A
+     gutter wider than the gap inside a row keeps each thumbnail with its own
+     headline. */
+  .home__feed .feed--list {
+    column-gap: var(--space-12);
+  }
+
   .home__feed .feed--list .card--list {
     grid-column: span 6;
   }
@@ -4282,7 +4299,7 @@ span.paper__pageref {
 .search-group__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-5);
+  gap: var(--space-1) var(--space-4);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -4488,14 +4505,14 @@ span.paper__pageref {
    description. */
 .desk-example {
   max-inline-size: 58rem;
-  margin-block: var(--space-6) var(--space-10);
+  margin-block: var(--space-6) var(--space-12);
 }
 
 .desk-section--gate {
   max-inline-size: 58rem;
   border-block-start: 1px solid var(--border);
   padding-block-start: var(--space-6);
-  margin-block: 0 var(--space-10);
+  margin-block: 0 var(--space-12);
 }
 
 /* What changed: one development per followed topic. Rules and type, no cards
