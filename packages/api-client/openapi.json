@@ -304,6 +304,29 @@
         "title": "ArticlePageOut",
         "type": "object"
       },
+      "ArticleTopicLinkOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_primary": {
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "is_primary"
+        ],
+        "title": "ArticleTopicLinkOut",
+        "type": "object"
+      },
       "ArticleTopicOut": {
         "properties": {
           "id": {
@@ -2011,6 +2034,68 @@
           "impression_id"
         ],
         "title": "SlotOut",
+        "type": "object"
+      },
+      "SourceDetailOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "homepage_url": {
+            "title": "Homepage Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "source_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Role"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "homepage_url",
+          "country",
+          "language",
+          "source_role",
+          "article_count"
+        ],
+        "title": "SourceDetailOut",
         "type": "object"
       },
       "SourceFollowIn": {
@@ -3938,6 +4023,24 @@
             }
           },
           {
+            "description": "Filter to one publisher's own id.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to one publisher's own id.",
+              "title": "Source"
+            }
+          },
+          {
             "in": "query",
             "name": "cursor",
             "required": false,
@@ -4100,6 +4203,65 @@
           }
         },
         "summary": "Get Article",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/articles/{article_id}/topics": {
+      "get": {
+        "description": "What an article is filed under, primary first - the article page's\ntopic links and its \"more in this topic\" (fifth pass F4). Cache: 120s.",
+        "operationId": "article_topics_v1_articles__article_id__topics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Interface language, for the labels.",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "Interface language, for the labels.",
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleTopicLinkOut"
+                  },
+                  "title": "Response Article Topics V1 Articles  Article Id  Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Article Topics",
         "tags": [
           "content"
         ]
@@ -6078,6 +6240,49 @@
           }
         },
         "summary": "Sources",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/sources/{slug}": {
+      "get": {
+        "description": "One publisher. Cache: the web tier's usual 120s for public metadata.",
+        "operationId": "source_detail_v1_sources__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Detail",
         "tags": [
           "content"
         ]

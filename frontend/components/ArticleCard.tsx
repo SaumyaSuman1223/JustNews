@@ -276,14 +276,24 @@ export function ArticleCard({
           // groups by.
           <p className="card__meta card__meta--role">
             <span className="card__role">{t(locale, roleLabelKey)}</span>
-            <span className="card__source">{article.source_name}</span>
+            <Link
+              className="card__source"
+              href={`/${locale}/source/${encodeURIComponent(article.source_slug)}`}
+            >
+              {article.source_name}
+            </Link>
             <time dateTime={article.published_at} suppressHydrationWarning>
               {formatRelativeTime(article.published_at, locale)}
             </time>
           </p>
         ) : (
           <p className="card__meta">
-            <span className="card__source">{article.source_name}</span>
+            <Link
+              className="card__source"
+              href={`/${locale}/source/${encodeURIComponent(article.source_slug)}`}
+            >
+              {article.source_name}
+            </Link>
             <time dateTime={article.published_at} suppressHydrationWarning>
               {formatRelativeTime(article.published_at, locale)}
             </time>

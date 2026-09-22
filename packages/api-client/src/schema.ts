@@ -439,6 +439,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/articles/{article_id}/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Article Topics
+         * @description What an article is filed under, primary first - the article page's
+         *     topic links and its "more in this topic" (fifth pass F4). Cache: 120s.
+         */
+        get: operations["article_topics_v1_articles__article_id__topics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/blindspots": {
         parameters: {
             query?: never;
@@ -953,6 +974,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sources/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source Detail
+         * @description One publisher. Cache: the web tier's usual 120s for public metadata.
+         */
+        get: operations["source_detail_v1_sources__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/stats": {
         parameters: {
             query?: never;
@@ -1232,6 +1273,15 @@ export interface components {
              * @description Opaque keyset cursor. Pass back as ?cursor=. Never an offset.
              */
             next_cursor?: string | null;
+        };
+        /** ArticleTopicLinkOut */
+        ArticleTopicLinkOut: {
+            /** Id */
+            id: string;
+            /** Is Primary */
+            is_primary: boolean;
+            /** Label */
+            label: string;
         };
         /** ArticleTopicOut */
         ArticleTopicOut: {
@@ -1886,6 +1936,25 @@ export interface components {
             position: number;
             /** Role */
             role: string;
+        };
+        /** SourceDetailOut */
+        SourceDetailOut: {
+            /** Article Count */
+            article_count: number;
+            /** Country */
+            country: string | null;
+            /** Homepage Url */
+            homepage_url: string;
+            /** Id */
+            id: number;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Source Role */
+            source_role: string | null;
         };
         /** SourceFollowIn */
         SourceFollowIn: {
@@ -2853,6 +2922,8 @@ export interface operations {
                 topic?: string | null;
                 /** @description Publisher country - what makes an edition regional, not just a language. */
                 country?: string | null;
+                /** @description Filter to one publisher's own id. */
+                source?: number | null;
                 cursor?: string | null;
                 page_size?: number;
             };
@@ -2932,6 +3003,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    article_topics_v1_articles__article_id__topics_get: {
+        parameters: {
+            query?: {
+                /** @description Interface language, for the labels. */
+                language?: string;
+            };
+            header?: never;
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTopicLinkOut"][];
                 };
             };
             /** @description Validation Error */
@@ -3958,6 +4063,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    source_detail_v1_sources__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDetailOut"];
                 };
             };
             /** @description Validation Error */

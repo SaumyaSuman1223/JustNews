@@ -530,6 +530,74 @@ a {
   font-weight: 600;
 }
 
+/* Every byline links to its publisher's page (fifth pass F3). Underlined only
+   on hover, like the headline beside it - a permanently underlined byline on
+   every card would out-shout the headline it sits under. */
+a.card__source {
+  text-decoration: none;
+}
+
+a.card__source:hover,
+a.card__source:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* --- article page: filed under, read next --------------------------------- */
+
+.article-topics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-6) 0 0;
+}
+
+.article-topics__label {
+  font-size: var(--type-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* The same centred column as the article above it, so the page reads as
+   one piece that continues rather than a second page stuck underneath. */
+.read-next {
+  max-inline-size: var(--measure);
+  margin-inline: auto;
+  margin-block: var(--space-12) 0;
+}
+
+.read-next .home-tier a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.read-next .home-tier a:hover {
+  text-decoration: underline;
+}
+
+/* --- publisher page -------------------------------------------------------- */
+
+.source-header__facts {
+  margin: var(--space-2) 0 0;
+  color: var(--text-mid);
+}
+
+.source-header__count {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.source-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
 /* --- lead ---------------------------------------------------------------- */
 
 .card--lead {

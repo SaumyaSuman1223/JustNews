@@ -235,6 +235,17 @@ const en = {
   "article.otherSources.other": "Also reported by {count} other sources",
   "article.seeFullCoverage": "See full coverage",
   "article.backToFront": "Back to the front page",
+  "article.filedUnder": "Filed under",
+  "article.moreIn": "More in {topic}",
+  "article.moreFrom": "More from {source}",
+  "source.eyebrow": "Publisher",
+  "source.notFound": "Publisher not found",
+  "source.visit": "Visit {source}",
+  "source.latest": "Latest reporting",
+  "source.empty.title": "Nothing from {source} yet",
+  "source.empty.body": "Their reporting appears here as soon as it is published.",
+  "source.articleCount.one": "{count} article on JustNews",
+  "source.articleCount.other": "{count} articles on JustNews",
 
   "story.coveredBy.one": "Covered by {count} source.",
   "story.coveredBy.other": "Covered by {count} sources.",
@@ -652,6 +663,17 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "article.otherSources.other": "También informado por otras {count} fuentes",
     "article.seeFullCoverage": "Ver la cobertura completa",
     "article.backToFront": "Volver a la portada",
+    "article.filedUnder": "Archivado en",
+    "article.moreIn": "Más en {topic}",
+    "article.moreFrom": "Más de {source}",
+    "source.eyebrow": "Medio",
+    "source.notFound": "Medio no encontrado",
+    "source.visit": "Visitar {source}",
+    "source.latest": "Lo más reciente",
+    "source.empty.title": "Todavía nada de {source}",
+    "source.empty.body": "Sus informaciones aparecen aquí en cuanto se publican.",
+    "source.articleCount.one": "{count} artículo en JustNews",
+    "source.articleCount.other": "{count} artículos en JustNews",
 
     "story.coveredBy.one": "Cubierto por {count} fuente.",
     "story.coveredBy.other": "Cubierto por {count} fuentes.",
@@ -1063,6 +1085,17 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "article.otherSources.other": "{count} और स्रोतों ने भी यह ख़बर दी",
     "article.seeFullCoverage": "पूरी कवरेज देखें",
     "article.backToFront": "मुख्य पृष्ठ पर लौटें",
+    "article.filedUnder": "इस विषय में",
+    "article.moreIn": "{topic} में और",
+    "article.moreFrom": "{source} से और",
+    "source.eyebrow": "प्रकाशक",
+    "source.notFound": "प्रकाशक नहीं मिला",
+    "source.visit": "{source} पर जाएँ",
+    "source.latest": "ताज़ा रिपोर्टिंग",
+    "source.empty.title": "{source} से अभी कुछ नहीं",
+    "source.empty.body": "इनकी रिपोर्टिंग प्रकाशित होते ही यहाँ दिखेगी।",
+    "source.articleCount.one": "JustNews पर {count} लेख",
+    "source.articleCount.other": "JustNews पर {count} लेख",
 
     "story.coveredBy.one": "{count} स्रोत ने कवर किया।",
     "story.coveredBy.other": "{count} स्रोतों ने कवर किया।",
@@ -1367,6 +1400,7 @@ type PluralBase =
   | "desk.coverage.languages"
   | "desk.coverage.sources"
   | "search.resultCount"
+  | "source.articleCount"
   | "stats.articles"
   | "stats.languages"
   | "stats.sources"

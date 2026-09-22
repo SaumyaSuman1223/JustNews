@@ -199,6 +199,7 @@ async def list_articles(
         examples=["IN"],
         description="Publisher country - what makes an edition regional, not just a language.",
     ),
+    source: int | None = Query(default=None, description="Filter to one publisher's own id."),
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=service.DEFAULT_PAGE_SIZE, ge=1, le=service.MAX_PAGE_SIZE),
 ) -> ArticlePageOut:
@@ -209,6 +210,7 @@ async def list_articles(
         page_size=page_size,
         topic=topic,
         country=country,
+        source=source,
     )
     return ArticlePageOut(
         items=[ArticleOut.from_row(row) for row in page.items],
@@ -237,6 +239,32 @@ async def top_articles(
 @router.get("/articles/{article_id}", response_model=ArticleOut)
 async def get_article(article_id: int, session: AsyncSession = Depends(get_session)) -> ArticleOut:
     return ArticleOut.from_row(await service.get_article(session, article_id))
+
+
+class ArticleTopicLinkOut(BaseModel):
+    id: str
+    label: str
+    is_primary: bool
+
+
+@router.get("/articles/{article_id}/topics", response_model=list[ArticleTopicLinkOut])
+async def article_topics(
+    article_id: int,
+    session: AsyncSession = Depends(get_session),
+    language: str = Query(default="en", description="Interface language, for the labels."),
+) -> list[ArticleTopicLinkOut]:
+    """What an article is filed under, primary first - the article page's
+    topic links and its "more in this topic" (fifth pass F4). Cache: 120s."""
+    code = normalise_language_code(language)
+    if code is None:
+        raise ValidationError(f"Not a language code: {language!r}")
+    rows = await service.get_article_topics(session, article_id)
+    return [
+        ArticleTopicLinkOut(
+            id=topic.id, label=topics_service.label_for(topic, code), is_primary=is_primary
+        )
+        for topic, is_primary in rows
+    ]
 
 
 @router.get("/stories", response_model=list[StoryOut])
@@ -392,6 +420,35 @@ async def sources(
         SourceOut(id=row.id, name=row.name, slug=row.slug, homepage_url=row.homepage_url)
         for row in rows
     ]
+
+
+class SourceDetailOut(BaseModel):
+    id: int
+    name: str
+    slug: str
+    homepage_url: str
+    country: str | None
+    language: str
+    # ADR 0013's editorial role, public on the Perspectives endpoint already.
+    source_role: str | None
+    article_count: int
+
+
+@router.get("/sources/{slug}", response_model=SourceDetailOut)
+async def source_detail(slug: str, session: AsyncSession = Depends(get_session)) -> SourceDetailOut:
+    """One publisher. Cache: the web tier's usual 120s for public metadata."""
+    detail = await service.get_source(session, slug)
+    source = detail.source
+    return SourceDetailOut(
+        id=source.id,
+        name=source.name,
+        slug=source.slug,
+        homepage_url=source.homepage_url,
+        country=source.country,
+        language=source.language,
+        source_role=source.source_role,
+        article_count=detail.article_count,
+    )
 
 
 @router.get("/stats", response_model=StatsOut)

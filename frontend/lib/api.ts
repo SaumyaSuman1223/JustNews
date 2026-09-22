@@ -74,6 +74,8 @@ export type DeckCard = components["schemas"]["DeckCardOut"];
 export type TopicOverview = components["schemas"]["TopicOverviewOut"];
 export type RelatedTopic = components["schemas"]["RelatedTopicOut"];
 export type PerspectiveGroup = components["schemas"]["PerspectiveGroupOut"];
+export type SourceDetail = components["schemas"]["SourceDetailOut"];
+export type ArticleTopicLink = components["schemas"]["ArticleTopicLinkOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -103,6 +105,7 @@ export function getArticles(params: {
   languages?: string;
   topic?: string;
   country?: string;
+  source?: number;
   cursor?: string;
   pageSize?: number;
 }): Promise<Degradable<ArticlePage>> {
@@ -110,6 +113,7 @@ export function getArticles(params: {
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
   if (params.country) query.set("country", params.country);
+  if (params.source !== undefined) query.set("source", String(params.source));
   if (params.cursor) query.set("cursor", params.cursor);
   query.set("page_size", String(params.pageSize ?? 20));
   // 60s: a news feed may be a minute stale; it may not be a minute slow.
@@ -146,6 +150,20 @@ export function getSources(language: string): Promise<Degradable<SourceOption[]>
  * (audit §27), as opposed to `getSources`' bounded onboarding sample. */
 export function getAllSources(): Promise<Degradable<SourceOption[]>> {
   return get<SourceOption[]>("/v1/sources", [], 3600);
+}
+
+/** One publisher's page (fifth pass F3). */
+export function getSource(slug: string): Promise<Degradable<SourceDetail | null>> {
+  return get<SourceDetail | null>(`/v1/sources/${encodeURIComponent(slug)}`, null, 120);
+}
+
+/** What an article is filed under, primary first, labelled in `language`. */
+export function getArticleTopicLinks(
+  id: number,
+  language: string,
+): Promise<Degradable<ArticleTopicLink[]>> {
+  const query = new URLSearchParams({ language });
+  return get<ArticleTopicLink[]>(`/v1/articles/${id}/topics?${query}`, [], 120);
 }
 
 export function getStory(id: number, language: string): Promise<Degradable<StoryDetail | null>> {

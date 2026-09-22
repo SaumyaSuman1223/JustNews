@@ -564,3 +564,66 @@ class TestTopArticles:
         response = await client.get("/v1/articles/top")
         assert response.status_code == 200
         assert response.json() == []
+
+
+class TestSourcePages:
+    """Fifth pass F3: a publisher page to land on from any byline."""
+
+    async def test_returns_the_publisher_and_its_live_article_count(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session, slug="meridian-press", name="Meridian Press")
+        await make_article(session, source, title="One")
+        removed = await make_article(session, source, title="Taken down")
+        removed.removed_at = datetime.now(UTC)
+        await session.commit()
+
+        body = (await client.get("/v1/sources/meridian-press")).json()
+        assert body["name"] == "Meridian Press"
+        assert body["article_count"] == 1
+
+    async def test_unknown_slug_is_a_404(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/sources/nobody")
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "not_found"
+
+    async def test_articles_can_be_filtered_to_one_source(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        wanted = await make_source(session, slug="wanted")
+        other = await make_source(session, slug="other")
+        await make_article(session, wanted, title="Wanted")
+        await make_article(session, other, title="Other")
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles?source={wanted.id}")).json()
+        assert [item["title"] for item in body["items"]] == ["Wanted"]
+
+
+class TestArticleTopicsEndpoint:
+    async def test_primary_topic_comes_first(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        politics = await make_topic(session, topic_id="medtop:11000000", slug="politics")
+        economy = await make_topic(session, topic_id="medtop:04000000", slug="economy")
+        source = await make_source(session)
+        article = await make_article(session, source, title="Budget vote")
+        session.add(ArticleTopic(article_id=article.id, topic_id=economy.id, is_primary=False))
+        session.add(ArticleTopic(article_id=article.id, topic_id=politics.id, is_primary=True))
+        await session.commit()
+
+        body = (await client.get(f"/v1/articles/{article.id}/topics")).json()
+        assert [(item["id"], item["is_primary"]) for item in body] == [
+            (politics.id, True),
+            (economy.id, False),
+        ]
+
+    async def test_a_taken_down_article_has_no_topics_to_show(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        article = await make_article(session, source, title="Gone")
+        article.removed_at = datetime.now(UTC)
+        await session.commit()
+
+        assert (await client.get(f"/v1/articles/{article.id}/topics")).status_code == 404
