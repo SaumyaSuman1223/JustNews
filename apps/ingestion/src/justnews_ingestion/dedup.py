@@ -19,9 +19,9 @@ and a steady-state pass sees several hundred of them, so each layer has to stay
 cheap:
 
 * layer 1 is a unique-index lookup;
-* layer 2 reads ``(id, simhash, cluster)`` for the window **once per run** and
-  keeps it in memory - three integers a row, and Hamming distance needs the bits
-  rather than the article;
+* layer 2 reads ``(id, simhash, cluster, published_at)`` for the window **once
+  per run** and keeps it in memory - four scalars a row, and Hamming distance
+  needs the bits rather than the article;
 * layer 3 is a single pgvector nearest-neighbour query against the HNSW index.
 
 The first implementation instead loaded every article in the window - full rows,
@@ -35,7 +35,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.logging import get_logger
@@ -88,29 +88,42 @@ async def filter_known_urls(session: AsyncSession, urls: list[str]) -> set[str]:
 class RecentIndex:
     """SimHashes of everything inside the dedup window, held in memory.
 
-    Loaded once per run rather than once per candidate. Three integers a row,
+    Loaded once per run rather than once per candidate. Four scalars a row,
     so the whole window costs a few tens of kilobytes - and articles stored
     during the run are added as they land, so two entries about the same event
     in one pass still collapse.
+
+    Each row keeps its publish time so the window can be applied *between the
+    two articles being compared*, not just between an article and the run's
+    clock: a feed that republishes a three-week-old episode must not match
+    this week's episode of the same programme just because both are in the
+    same pass.
     """
 
-    rows: list[tuple[int, int, int | None]] = field(default_factory=list)
+    rows: list[tuple[int, int, int | None, datetime]] = field(default_factory=list)
 
     @classmethod
     async def load(cls, session: AsyncSession, *, since: datetime) -> RecentIndex:
         result = await session.execute(
-            select(Article.id, Article.simhash, Article.story_cluster_id)
+            select(Article.id, Article.simhash, Article.story_cluster_id, Article.published_at)
             .where(Article.published_at >= since)
             .order_by(Article.published_at.desc())
         )
-        return cls(rows=[(int(a), int(b), c) for a, b, c in result.all()])
+        return cls(rows=[(int(a), int(b), c, d) for a, b, c, d in result.all()])
 
-    def add(self, article_id: int, simhash: int, cluster_id: int | None) -> None:
-        self.rows.append((article_id, simhash, cluster_id))
+    def add(
+        self, article_id: int, simhash: int, cluster_id: int | None, published_at: datetime
+    ) -> None:
+        self.rows.append((article_id, simhash, cluster_id, published_at))
 
-    def nearest(self, simhash: int, max_distance: int) -> tuple[int, int | None, int] | None:
-        """First row within ``max_distance``, as (article_id, cluster_id, distance)."""
-        for article_id, other, cluster_id in self.rows:
+    def nearest(
+        self, simhash: int, max_distance: int, *, around: datetime, window: timedelta
+    ) -> tuple[int, int | None, int] | None:
+        """First row within ``max_distance`` published within ``window`` of
+        ``around``, as (article_id, cluster_id, distance)."""
+        for article_id, other, cluster_id, published_at in self.rows:
+            if abs(published_at - around) > window:
+                continue
             distance = hamming_distance(simhash, other)
             if distance <= max_distance:
                 return article_id, cluster_id, distance
@@ -121,17 +134,23 @@ class RecentIndex:
 
 
 async def _nearest_by_embedding(
-    session: AsyncSession, *, embedding: list[float], since: datetime
+    session: AsyncSession, *, embedding: list[float], since: datetime, until: datetime
 ) -> tuple[Article, float] | None:
     """Closest article in the window by cosine distance.
 
     One query, ordered by pgvector's ``<=>`` operator so the HNSW index can
-    serve it, rather than pulling the window into Python.
+    serve it, rather than pulling the window into Python. Bounded on both
+    sides: an old article arriving late must not join a story from days after
+    it was published.
     """
     distance = Article.embedding.cosine_distance(embedding).label("distance")
     result = await session.execute(
         select(Article, distance)
-        .where(Article.published_at >= since, Article.embedding.is_not(None))
+        .where(
+            Article.published_at >= since,
+            Article.published_at <= until,
+            Article.embedding.is_not(None),
+        )
         .order_by(distance)
         .limit(1)
     )
@@ -170,13 +189,17 @@ async def classify_candidate(
             reason="canonical_url",
         )
 
-    window_start = min(published_at, now) - timedelta(hours=settings.dedup_window_hours)
+    window = timedelta(hours=settings.dedup_window_hours)
+    anchor = min(published_at, now)
+    window_start = anchor - window
     if recent is None:
         recent = await RecentIndex.load(session, since=window_start)
     if not recent:
         return DedupVerdict("new", reason="no_candidates")
 
-    match = recent.nearest(simhash, settings.dedup_simhash_max_distance)
+    match = recent.nearest(
+        simhash, settings.dedup_simhash_max_distance, around=anchor, window=window
+    )
     if match is not None:
         article_id, cluster_id, distance = match
         return DedupVerdict(
@@ -189,7 +212,9 @@ async def classify_candidate(
     if embedding is None:
         return DedupVerdict("new", reason="no_embedding")
 
-    nearest = await _nearest_by_embedding(session, embedding=embedding, since=window_start)
+    nearest = await _nearest_by_embedding(
+        session, embedding=embedding, since=window_start, until=anchor + window
+    )
     if nearest is not None and nearest[1] >= settings.dedup_embedding_min_cosine:
         candidate, similarity = nearest
         return DedupVerdict(
@@ -377,4 +402,78 @@ async def repair_cluster_counts(session: AsyncSession, *, dry_run: bool = False)
 
     result = {"examined": examined, "corrected": corrected, "dry_run": dry_run}
     log.info("cluster_counts_repaired", **result)
+    return result
+
+
+#: Distinct from a moderator's takedown reason, so the admin console's
+#: removed-articles list shows these for what they are.
+PROGRAMME_EPISODE_REMOVAL_REASON = "automated: broadcast or podcast episode, not a news report"
+
+
+async def repair_programme_episodes(
+    session: AsyncSession, *, markers: tuple[str, ...], dry_run: bool = False
+) -> dict[str, int | bool]:
+    """Retire programme and podcast episodes already in the corpus, and the
+    "stories" they formed.
+
+    Ingestion now skips these (see ``rss.is_programme_episode``); this cleans
+    up what arrived before it did. Each episode is hidden the way a takedown
+    hides an article - ``removed_at`` set, row kept - with a reason that says
+    it was automatic. Any cluster left with fewer than two live articles is no
+    longer a story: its remaining article is detached and the cluster deleted,
+    the same rule ``attach_to_cluster`` applies when it declines to create a
+    cluster for a lone article. Clusters that keep two or more are recounted.
+    """
+    now = datetime.now(UTC)
+    matching = (
+        await session.scalars(
+            select(Article).where(
+                Article.removed_at.is_(None),
+                or_(*[Article.url_canonical.contains(marker) for marker in markers]),
+            )
+        )
+    ).all()
+    affected_clusters = {a.story_cluster_id for a in matching if a.story_cluster_id is not None}
+
+    if not dry_run:
+        for article in matching:
+            article.removed_at = now
+            article.removed_reason = PROGRAMME_EPISODE_REMOVAL_REASON
+            article.story_cluster_id = None
+        await session.flush()
+
+    dissolved = 0
+    for cluster_id in affected_clusters:
+        live = (
+            await session.scalars(
+                select(Article).where(
+                    Article.story_cluster_id == cluster_id, Article.removed_at.is_(None)
+                )
+            )
+        ).all()
+        # In a dry run the episodes are still attached, so count what would remain.
+        remaining = [a for a in live if a not in matching] if dry_run else list(live)
+        if len(remaining) >= 2:
+            if not dry_run:
+                cluster = await session.get(StoryCluster, cluster_id)
+                if cluster is not None:
+                    await refresh_cluster_counts(session, cluster, now=now)
+            continue
+        dissolved += 1
+        if not dry_run:
+            for article in remaining:
+                article.story_cluster_id = None
+            await session.flush()
+            cluster = await session.get(StoryCluster, cluster_id)
+            if cluster is not None:
+                await session.delete(cluster)
+
+    if not dry_run:
+        await session.flush()
+    result: dict[str, int | bool] = {
+        "episodes_removed": len(matching),
+        "clusters_dissolved": dissolved,
+        "dry_run": dry_run,
+    }
+    log.info("programme_episodes_repaired", **result)
     return result

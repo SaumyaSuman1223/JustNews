@@ -15,6 +15,7 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
+from urllib.parse import urlsplit
 
 import feedparser
 import httpx
@@ -30,6 +31,22 @@ log = get_logger(__name__)
 
 BACKOFF_BASE_MINUTES = 15
 BACKOFF_MAX_MINUTES = 6 * 60
+
+#: URL path segments that mark an episode of a broadcast programme or a
+#: podcast rather than a news report. General news feeds mix these in (BBC's
+#: RSS carries Sounds and iPlayer episodes; the Guardian's carries its audio
+#: series), and they arrive titled with the *series* name - "Tech Life",
+#: "Inside Health" - so they read as headlines, cluster with every other
+#: episode, and land in the top tiers of a news page. Video reports are kept:
+#: they carry a real headline about a real event.
+PROGRAMME_PATH_MARKERS = ("/sounds/", "/iplayer/", "/programmes/", "/audio/", "/podcasts/")
+
+
+def is_programme_episode(url_canonical: str) -> bool:
+    """True for a broadcast or podcast episode page - see
+    ``PROGRAMME_PATH_MARKERS``."""
+    path = urlsplit(url_canonical).path.lower()
+    return any(marker in path for marker in PROGRAMME_PATH_MARKERS)
 
 
 @dataclass(slots=True)

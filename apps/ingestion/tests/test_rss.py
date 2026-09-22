@@ -12,6 +12,7 @@ from justnews_ingestion.rss import (
     BACKOFF_MAX_MINUTES,
     backoff_until,
     is_due,
+    is_programme_episode,
     parse_feed_bytes,
 )
 
@@ -140,3 +141,31 @@ def test_declared_language_is_used_for_short_headlines(language: str) -> None:
     )
     entries = parse_feed_bytes(payload, feed_language=language, settings=SETTINGS)
     assert entries[0].language == language
+
+
+class TestIsProgrammeEpisode:
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://bbc.co.uk/sounds/play/w3ct8jyg",
+            "https://bbc.co.uk/iplayer/episode/m002zxt1",
+            "https://bbc.co.uk/programmes/p0abc",
+            "https://theguardian.com/lifeandstyle/audio/2026/sep/22/do-any-diets-actually-work",
+            "https://example.com/podcasts/the-daily/episode-12",
+        ],
+    )
+    def test_episode_pages_are_detected(self, url: str) -> None:
+        assert is_programme_episode(url)
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://bbc.com/news/articles/c0123",
+            # A video report carries a real headline about a real event.
+            "https://theguardian.com/world/video/2026/sep/22/drone-attacks-moscow-refinery",
+            # "audio" in a slug is not an audio page.
+            "https://example.com/tech/2026/new-audio-codec-announced",
+        ],
+    )
+    def test_reports_are_kept(self, url: str) -> None:
+        assert not is_programme_episode(url)
