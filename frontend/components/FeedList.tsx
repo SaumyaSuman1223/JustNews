@@ -9,6 +9,8 @@ export interface FeedItem {
   impressionId?: number | null;
   saved?: boolean;
   footnote?: string;
+  /** See ArticleCard's `moreReports`. */
+  moreReports?: { label: string; href: string };
   /** See ArticleCard's `why` - undefined on every real feed today. */
   why?: RankReason;
   /** Overrides the article id as the React key, for lists that can repeat an
@@ -85,6 +87,8 @@ export interface FeedListProps {
    * `allowClusterPromotion`.
    */
   expandableLead?: boolean;
+  /** Words to mark in every headline - search passes its query. */
+  highlight?: string;
 }
 
 const LEAD_COUNT = 1;
@@ -193,6 +197,7 @@ export function FeedList({
   allowClusterPromotion = false,
   allowPerspectivePromotion = false,
   expandableLead = false,
+  highlight,
 }: FeedListProps) {
   const baseVariants = items.map((_, index) =>
     variantFor(index, items.length, layout, leads, features, secondaries, rest),
@@ -220,6 +225,8 @@ export function FeedList({
             signedIn={signedIn}
             saved={item.saved}
             footnote={item.footnote}
+            moreReports={item.moreReports}
+            highlight={highlight}
             why={item.why}
             revalidatePath={revalidatePath}
             variant={variant}

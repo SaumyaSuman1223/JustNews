@@ -21,6 +21,7 @@ class SearchTopicMatchOut(BaseModel):
 class SearchSourceMatchOut(BaseModel):
     id: int
     name: str
+    slug: str
     homepage_url: str
 
 
@@ -88,7 +89,7 @@ async def search_articles(
         ),
         matched_sources=(
             [
-                SearchSourceMatchOut(id=m.id, name=m.name, homepage_url=m.homepage_url)
+                SearchSourceMatchOut(id=m.id, name=m.name, slug=m.slug, homepage_url=m.homepage_url)
                 for m in page.matched_sources
             ]
             if page.matched_sources is not None

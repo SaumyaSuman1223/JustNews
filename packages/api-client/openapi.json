@@ -1884,11 +1884,16 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
+          "slug",
           "homepage_url"
         ],
         "title": "SearchSourceMatchOut",

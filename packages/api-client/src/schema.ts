@@ -1894,6 +1894,8 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+            /** Slug */
+            slug: string;
         };
         /** SearchTopicMatchOut */
         SearchTopicMatchOut: {

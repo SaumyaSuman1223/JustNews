@@ -111,6 +111,11 @@ export interface ArticleCardProps {
   revalidatePath: string;
   /** Extra context line under the metadata row, e.g. "Viewed 3 hours ago". */
   footnote?: string;
+  /** Search's grouped results (fifth pass §2.4): the other reports of this
+   * same story found on the page, collapsed under this one. */
+  moreReports?: { label: string; href: string };
+  /** Words to mark in the headline - search's own query. */
+  highlight?: string;
   /**
    * design-system.md's non-negotiable: "every ranked card can explain
    * itself." Undefined on every real route today - no surface has a reason
@@ -144,6 +149,8 @@ export function ArticleCard({
   saved = false,
   revalidatePath,
   footnote,
+  moreReports,
+  highlight,
   why,
   variant = "secondary",
   priority = false,
@@ -250,7 +257,7 @@ export function ArticleCard({
           {/* The publisher link lives on the detail page, alongside related
               coverage - never fabricated full text, always a click away. */}
           <Link href={`/${locale}/a/${article.id}`} onClick={handleClick}>
-            {article.title}
+            {highlight ? <Highlighted text={article.title} query={highlight} /> : article.title}
           </Link>
         </h2>
         {showSnippet && <p className="card__snippet">{article.snippet}</p>}
@@ -351,6 +358,11 @@ export function ArticleCard({
         )}
         {why && <p className="card__why">{formatRankReason(locale, why)}</p>}
         {footnote && <p className="card__footnote">{footnote}</p>}
+        {moreReports && (
+          <p className="card__more-reports">
+            <Link href={moreReports.href}>{moreReports.label}</Link>
+          </p>
+        )}
         {signedIn && (
           <ArticleActions
             articleId={article.id}
@@ -365,5 +377,30 @@ export function ArticleCard({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * The headline with each query word marked. Whole-word-agnostic on purpose:
+ * search stems ("elections" matches "election"), so marking the typed stem
+ * wherever it starts a word is closer to what matched than exact words would
+ * be. Case-insensitive and Unicode-aware, so it holds for Devanagari and
+ * accented Latin; query text is escaped before it becomes a pattern.
+ */
+function Highlighted({ text, query }: { text: string; query: string }) {
+  const words = query
+    .split(/\s+/)
+    .map((word) => word.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter((word) => word.length >= 2)
+    .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (words.length === 0) return <>{text}</>;
+  const pattern = new RegExp(`(${words.join("|")})`, "giu");
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, index) =>
+        index % 2 === 1 ? <mark key={index}>{part}</mark> : <span key={index}>{part}</span>,
+      )}
+    </>
   );
 }

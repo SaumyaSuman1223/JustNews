@@ -4345,6 +4345,68 @@ span.paper__pageref {
   margin: 0;
 }
 
+/* The type-ahead: a quiet row of direct links under the box (fifth pass F5). */
+.search-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  margin-block: var(--space-3) 0;
+}
+
+.search-suggest__label {
+  font-size: var(--type-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.search-suggest ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-suggest a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.search-suggest__kind {
+  font-family: var(--font-ui, inherit);
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+}
+
+/* Search's query words, marked in each headline - an accent underline rather
+   than the browser's yellow or a tint, which all but vanished on the warm
+   paper ground. Reads the same in both themes. */
+.card__title mark {
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.card__more-reports {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-meta);
+}
+
+.card__more-reports a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* --- search results ------------------------------------------------------ */
 
 /* §21's result grouping: a topic or source the query names, alongside the

@@ -368,6 +368,11 @@ const en = {
   "search.group.topics": "Topics",
   "search.group.sources": "Sources",
   "search.group.stories": "Stories",
+  "search.suggest.label": "Go straight to",
+  "search.suggest.topic": "Topic",
+  "search.suggest.source": "Publisher",
+  "search.moreReports.one": "+ {count} more report on this story",
+  "search.moreReports.other": "+ {count} more reports on this story",
   "search.recent": "Recent searches",
   "search.recent.clear": "Clear",
   "search.tooShort": "Type at least two characters to search.",
@@ -798,6 +803,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "search.group.topics": "Temas",
     "search.group.sources": "Fuentes",
     "search.group.stories": "Historias",
+    "search.suggest.label": "Ir directamente a",
+    "search.suggest.topic": "Tema",
+    "search.suggest.source": "Medio",
+    "search.moreReports.one": "+ {count} información más sobre esta historia",
+    "search.moreReports.other": "+ {count} informaciones más sobre esta historia",
     "search.recent": "Búsquedas recientes",
     "search.recent.clear": "Borrar",
     "search.tooShort": "Escribe al menos dos caracteres para buscar.",
@@ -1220,6 +1230,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "search.group.topics": "विषय",
     "search.group.sources": "स्रोत",
     "search.group.stories": "ख़बरें",
+    "search.suggest.label": "सीधे जाएँ",
+    "search.suggest.topic": "विषय",
+    "search.suggest.source": "प्रकाशक",
+    "search.moreReports.one": "इस ख़बर पर {count} और रिपोर्ट",
+    "search.moreReports.other": "इस ख़बर पर {count} और रिपोर्ट",
     "search.recent": "हाल की खोजें",
     "search.recent.clear": "साफ़ करें",
     "search.tooShort": "खोजने के लिए कम से कम दो अक्षर लिखें।",
@@ -1399,6 +1414,7 @@ type PluralBase =
   | "coverage.sources"
   | "desk.coverage.languages"
   | "desk.coverage.sources"
+  | "search.moreReports"
   | "search.resultCount"
   | "source.articleCount"
   | "stats.articles"

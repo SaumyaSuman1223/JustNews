@@ -7,8 +7,16 @@ import { FeedList } from "@/components/FeedList";
 import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { SearchControls } from "@/components/SearchControls";
-import { getAllSources, getMe, getSaves, getTopics, searchArticles } from "@/lib/api";
+import {
+  getAllSources,
+  getMe,
+  getSaves,
+  getTopics,
+  searchArticles,
+  type Article,
+} from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { getLocale, isLocaleCode, readerLanguages, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -188,7 +196,7 @@ async function SearchBody({
                 {matchedTopics.map((match) => (
                   <li key={match.id}>
                     <a className="topic-chip" href={`/${locale}/desk/${encodeURIComponent(match.id)}`}>
-                      {match.label}
+                      {curatedTopicLabel(match.id, match.label, locale)}
                     </a>
                   </li>
                 ))}
@@ -203,9 +211,7 @@ async function SearchBody({
                   <li key={match.id}>
                     <a
                       className="topic-chip"
-                      href={match.homepage_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/${locale}/source/${encodeURIComponent(match.slug)}`}
                     >
                       {match.name}
                     </a>
@@ -251,10 +257,18 @@ async function SearchBody({
 
       {results.data.items.length > 0 && (
         <FeedList
-          items={results.data.items.map((article) => ({
+          items={groupByStory(results.data.items).map(({ article, others }) => ({
             article,
             saved: savedIds.has(article.id),
+            moreReports:
+              others > 0 && article.story_cluster_id !== null
+                ? {
+                    label: tPlural(locale, "search.moreReports", others),
+                    href: `/${locale}/story/${article.story_cluster_id}`,
+                  }
+                : undefined,
           }))}
+          highlight={query}
           locale={locale}
           surface="search"
           signedIn={Boolean(session)}
@@ -276,6 +290,32 @@ async function SearchBody({
       )}
     </>
   );
+}
+
+/**
+ * One row per story (fifth pass §2.4): "trump" returned the UN speech five
+ * times, once per outlet, as five separate rows. Results that share a story
+ * cluster collapse into the first - the most recent, since search is
+ * recency-ordered - with a link to the story's full coverage for the rest.
+ * Within this page only: the cursor pages over articles, so a story whose
+ * reports straddle a page boundary can appear on both, and the count above
+ * still counts articles, which is what it says it counts.
+ */
+function groupByStory(articles: Article[]): { article: Article; others: number }[] {
+  const groups: { article: Article; others: number }[] = [];
+  const byCluster = new Map<number, { article: Article; others: number }>();
+  for (const article of articles) {
+    const cluster = article.story_cluster_id;
+    const existing = cluster === null ? undefined : byCluster.get(cluster);
+    if (existing) {
+      existing.others += 1;
+      continue;
+    }
+    const group = { article, others: 0 };
+    groups.push(group);
+    if (cluster !== null) byCluster.set(cluster, group);
+  }
+  return groups;
 }
 
 /** The current search as a URL, so page two keeps the filters page one had. */
