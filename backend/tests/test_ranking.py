@@ -225,6 +225,23 @@ class TestDiversify:
         # from both rather than exhausting one source first.
         assert top_four_sources == {"source-a", "source-b"}
 
+    def test_a_limit_is_a_prefix_of_the_full_ordering(self) -> None:
+        # Stopping early must not change which items come first - the top
+        # list and a full feed agree on their shared head.
+        articles = [_article(i, hours_old=i, source_slug=f"source-{i % 4}") for i in range(1, 31)]
+        scored = ranking.score_candidates(
+            articles,
+            topic_ids_by_article={},
+            click_counts={},
+            followed_topic_ids=set(),
+            seen_article_ids=set(),
+            preferred_languages=["en"],
+            now=NOW,
+        )
+        full = ranking.diversify(scored)
+        limited = ranking.diversify(scored, limit=7)
+        assert [a.id for a in limited] == [a.id for a in full[:7]]
+
 
 class TestPolicyAssignment:
     def test_deterministic_for_the_same_user(self) -> None:

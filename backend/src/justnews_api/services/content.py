@@ -226,7 +226,7 @@ async def get_top_articles(
         limit=TOP_CANDIDATE_POOL,
     )
     scored = ranking.dedupe_story_clusters(ranking.score_for_everyone(pool, now=now))
-    return ranking.diversify(scored)[:limit]
+    return ranking.diversify(scored, limit=limit)
 
 
 async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:

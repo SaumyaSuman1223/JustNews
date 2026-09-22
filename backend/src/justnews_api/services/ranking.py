@@ -151,7 +151,9 @@ def _similarity(a: ScoredCandidate, b: ScoredCandidate) -> float:
     return 0.0
 
 
-def diversify(candidates: list[ScoredCandidate]) -> list[ArticleRow]:
+def diversify(
+    candidates: list[ScoredCandidate], *, limit: int | None = None
+) -> list[ArticleRow]:
     """Greedy MMR over the whole scored pool, not just one page of it - the
     feed service slices pages out of this result, so the ordering has to be
     stable and complete across however many pages a reader scrolls.
@@ -160,19 +162,34 @@ def diversify(candidates: list[ScoredCandidate]) -> list[ArticleRow]:
     with what has already been selected, rather than a flat sort by score -
     a flat sort is exactly how a feed collapses into eight cards about the
     same story from the highest-trust source.
+
+    Each candidate's redundancy is the max similarity to everything selected
+    so far, kept as a running value and updated against only the newly
+    chosen item - the same result as recomputing it against the whole
+    selection every round, in O(n^2) instead of O(n^3). At 300 candidates
+    the recomputing version took ~0.85s a request (fifth pass). ``limit``
+    stops once that many are chosen, for callers that need a top-N only.
     """
     pool = sorted(candidates, key=lambda c: c.score, reverse=True)
     if not pool:
         return []
-    selected = [pool.pop(0)]
-    while pool:
+    target = len(pool) if limit is None else min(limit, len(pool))
+    first = pool.pop(0)
+    selected = [first]
+    redundancy = [_similarity(candidate, first) for candidate in pool]
+    while pool and len(selected) < target:
         best_index = 0
         best_mmr = float("-inf")
         for index, candidate in enumerate(pool):
-            redundancy = max(_similarity(candidate, chosen) for chosen in selected)
-            mmr = MMR_LAMBDA * candidate.score - (1 - MMR_LAMBDA) * redundancy
+            mmr = MMR_LAMBDA * candidate.score - (1 - MMR_LAMBDA) * redundancy[index]
             if mmr > best_mmr:
                 best_mmr = mmr
                 best_index = index
-        selected.append(pool.pop(best_index))
+        chosen = pool.pop(best_index)
+        redundancy.pop(best_index)
+        selected.append(chosen)
+        redundancy = [
+            max(current, _similarity(candidate, chosen))
+            for candidate, current in zip(pool, redundancy, strict=True)
+        ]
     return [candidate.article for candidate in selected]
