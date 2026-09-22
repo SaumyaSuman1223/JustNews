@@ -89,6 +89,8 @@ export interface FeedListProps {
   expandableLead?: boolean;
   /** Words to mark in every headline - search passes its query. */
   highlight?: string;
+  /** See ArticleCard's `markNew` - Home's own lists set it. */
+  markNew?: boolean;
 }
 
 const LEAD_COUNT = 1;
@@ -198,6 +200,7 @@ export function FeedList({
   allowPerspectivePromotion = false,
   expandableLead = false,
   highlight,
+  markNew = false,
 }: FeedListProps) {
   const baseVariants = items.map((_, index) =>
     variantFor(index, items.length, layout, leads, features, secondaries, rest),
@@ -227,6 +230,7 @@ export function FeedList({
             footnote={item.footnote}
             moreReports={item.moreReports}
             highlight={highlight}
+            markNew={markNew}
             why={item.why}
             revalidatePath={revalidatePath}
             variant={variant}

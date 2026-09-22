@@ -10,7 +10,15 @@ from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import Source, Topic, UserFollow, UserSourceFollow
+from justnews_core.models import (
+    Article,
+    Source,
+    StoryCluster,
+    Topic,
+    UserFollow,
+    UserSourceFollow,
+    UserStoryFollow,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,3 +186,106 @@ async def list_followed_source_ids(session: AsyncSession, user_id: UUID) -> set[
         select(UserSourceFollow.source_id).where(UserSourceFollow.user_id == user_id)
     )
     return set(result.scalars().all())
+
+
+# --- followed stories (fifth pass F2) ----------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class StoryFollowRow:
+    story_id: int
+    title: str
+    source_count: int
+    language_count: int
+    story_last_seen_at: datetime
+    followed_at: datetime
+    #: Live reports this reader has not seen: articles that arrived in the
+    #: story after they last opened its page.
+    new_reports: int
+
+
+async def create_story_follow(session: AsyncSession, user_id: UUID, story_id: int) -> None:
+    """Idempotent, like the other follows: pressing follow twice is one
+    preference, not an error."""
+    await session.execute(
+        pg_insert(UserStoryFollow)
+        .values(user_id=user_id, story_cluster_id=story_id)
+        .on_conflict_do_nothing(constraint="uq_user_story_follows_user_story")
+    )
+
+
+async def delete_story_follow(session: AsyncSession, user_id: UUID, story_id: int) -> bool:
+    result = await session.execute(
+        delete(UserStoryFollow).where(
+            UserStoryFollow.user_id == user_id, UserStoryFollow.story_cluster_id == story_id
+        )
+    )
+    return bool(result.rowcount)  # type: ignore[attr-defined]
+
+
+async def story_exists(session: AsyncSession, story_id: int) -> bool:
+    result = await session.execute(select(StoryCluster.id).where(StoryCluster.id == story_id))
+    return result.first() is not None
+
+
+async def mark_story_seen(
+    session: AsyncSession, user_id: UUID, story_id: int, *, at: datetime
+) -> bool:
+    """False when the reader does not follow this story - nothing to mark."""
+    result = await session.execute(
+        update(UserStoryFollow)
+        .where(UserStoryFollow.user_id == user_id, UserStoryFollow.story_cluster_id == story_id)
+        .values(last_seen_at=at)
+    )
+    return bool(result.rowcount)  # type: ignore[attr-defined]
+
+
+async def list_story_follows(session: AsyncSession, user_id: UUID) -> list[StoryFollowRow]:
+    """Every followed story, the ones with unseen reports first, then the most
+    recently active."""
+    new_reports = (
+        select(func.count(Article.id))
+        .where(
+            Article.story_cluster_id == UserStoryFollow.story_cluster_id,
+            Article.removed_at.is_(None),
+            Article.fetched_at > UserStoryFollow.last_seen_at,
+        )
+        .correlate(UserStoryFollow)
+        .scalar_subquery()
+        .label("new_reports")
+    )
+    result = await session.execute(
+        select(
+            StoryCluster.id,
+            StoryCluster.title,
+            StoryCluster.source_count,
+            StoryCluster.language_count,
+            StoryCluster.last_seen_at,
+            UserStoryFollow.created_at,
+            new_reports,
+        )
+        .join(StoryCluster, StoryCluster.id == UserStoryFollow.story_cluster_id)
+        .where(UserStoryFollow.user_id == user_id)
+        .order_by(new_reports.desc(), StoryCluster.last_seen_at.desc())
+    )
+    return [
+        StoryFollowRow(
+            story_id=row[0],
+            title=row[1],
+            source_count=row[2],
+            language_count=row[3],
+            story_last_seen_at=row[4],
+            followed_at=row[5],
+            new_reports=int(row[6] or 0),
+        )
+        for row in result.all()
+    ]
+
+
+async def is_following_story(session: AsyncSession, user_id: UUID, story_id: int) -> bool:
+    result = await session.execute(
+        select(UserStoryFollow.id).where(
+            UserStoryFollow.user_id == user_id, UserStoryFollow.story_cluster_id == story_id
+        )
+    )
+    return result.first() is not None

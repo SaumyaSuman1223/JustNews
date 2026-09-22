@@ -173,6 +173,22 @@ export async function unfollowSourceAction(sourceId: number, path: string): Prom
   return true;
 }
 
+export async function followStoryAction(storyId: number, path: string): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  const ok = await api.followStory(auth, storyId);
+  if (ok) revalidatePath(path);
+  return ok;
+}
+
+export async function unfollowStoryAction(storyId: number, path: string): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  const ok = await api.unfollowStory(auth, storyId);
+  if (ok) revalidatePath(path);
+  return ok;
+}
+
 export async function updateLanguagesAction(languages: string[]): Promise<void> {
   const auth = await authOrNull();
   if (!auth) return;

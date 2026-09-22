@@ -12,14 +12,16 @@ import { WhatChanged, type TopicChange } from "@/components/WhatChanged";
 
 import {
   getArticles,
+  getFollowedStories,
   getFollows,
   getTopicOverview,
   getTopicPerspectives,
   getTopicStories,
   getTopics,
+  type StoryFollow,
 } from "@/lib/api";
 import { withCuratedLabels } from "@/lib/curatedTopics";
-import { getLocale, isLocaleCode, t } from "@/lib/i18n";
+import { getLocale, isLocaleCode, t, tPlural } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
 /** How many followed topics "What changed" reports on. A cap, not a
@@ -115,9 +117,10 @@ async function DeskBody({
   // the real thing rather than a picture of it.
   if (!access.ok) return <DeskPreview locale={locale} gate={access.element} />;
 
-  const [follows, topicsRaw] = await Promise.all([
+  const [follows, topicsRaw, followedStories] = await Promise.all([
     getFollows(access.auth),
     getTopics(locale),
+    getFollowedStories(access.auth),
   ]);
   // §24's curated layer, applied once here so every reader below - tiles,
   // the add-topic picker, "what changed" headings - sees the editorial
@@ -158,6 +161,7 @@ async function DeskBody({
   if (tiles.length === 0) {
     return (
       <>
+        <FollowedStories stories={followedStories} locale={locale} />
         <EmptyState
           title={t(locale, "desk.empty.title")}
           body={t(locale, "desk.empty.body")}
@@ -174,6 +178,10 @@ async function DeskBody({
 
   return (
     <>
+      {/* Followed stories first: a story the reader chose to track, with a
+          count of what arrived since, is the most specific thing this page
+          can tell them. */}
+      <FollowedStories stories={followedStories} locale={locale} />
       {/* What changed comes first. The topics themselves are the workspace's
           furniture - useful, and not the thing a reader opened the page to
           find out (§25, §27). */}
@@ -198,6 +206,46 @@ async function DeskBody({
         />
       </section>
     </>
+  );
+}
+
+/**
+ * The stories this reader follows (fifth pass F2), unseen reports first -
+ * each with how many reports arrived since they last opened it. Renders
+ * nothing until they follow one: an empty "stories you follow" box on every
+ * desk would be furniture asking for attention.
+ */
+function FollowedStories({
+  stories,
+  locale,
+}: {
+  stories: StoryFollow[];
+  locale: ReturnType<typeof getLocale>["code"];
+}) {
+  if (stories.length === 0) return null;
+  return (
+    <section className="desk-section">
+      <h2 className="home-tier">{t(locale, "desk.followedStories")}</h2>
+      <p className="desk-section__note">{t(locale, "desk.followedStories.note")}</p>
+      <ul className="followed-stories">
+        {stories.map((story) => (
+          <li key={story.story_id}>
+            <Link href={`/${locale}/story/${story.story_id}`}>{story.title}</Link>
+            <span
+              className={
+                story.new_reports > 0
+                  ? "followed-stories__count followed-stories__count--new"
+                  : "followed-stories__count"
+              }
+            >
+              {story.new_reports > 0
+                ? tPlural(locale, "desk.followedStories.new", story.new_reports)
+                : t(locale, "desk.followedStories.upToDate")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

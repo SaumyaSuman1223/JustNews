@@ -250,6 +250,7 @@ async function FeedBody({
               secondaries={TIER_ONE - TIER_ONE_LEADS}
               aboveFold
               expandableLead
+              markNew
             />
           </div>
 
@@ -277,6 +278,7 @@ async function FeedBody({
                 rest="compact"
                 allowClusterPromotion
                 allowPerspectivePromotion
+                markNew
               />
             </div>
           )}
@@ -349,6 +351,7 @@ async function TabPanel({
         layout="list"
         allowClusterPromotion
         allowPerspectivePromotion
+        markNew
       />
     );
   }
@@ -416,6 +419,7 @@ async function TabPanel({
         layout="list"
         allowClusterPromotion
         allowPerspectivePromotion
+        markNew
       />
       <Pagination
         locale={active.code}

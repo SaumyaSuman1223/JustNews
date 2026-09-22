@@ -12,9 +12,11 @@ import {
   formatRelativeTime,
   locales,
   t,
+  tPlural,
   type LocaleCode,
 } from "@/lib/i18n";
 import { formatRankReason, type RankReason } from "@/lib/rankReason";
+import { usePreviousVisit } from "@/lib/lastVisit";
 import { useHydrated } from "@/lib/useHydrated";
 
 /** ADR 0013's roles, in the same order and under the same labels
@@ -116,6 +118,10 @@ export interface ArticleCardProps {
   moreReports?: { label: string; href: string };
   /** Words to mark in the headline - search's own query. */
   highlight?: string;
+  /** Mark the card when it was published after the reader's previous visit
+   * (fifth pass F6). Home only - on a topic page or search, "new to you"
+   * is not the question being asked. */
+  markNew?: boolean;
   /**
    * design-system.md's non-negotiable: "every ranked card can explain
    * itself." Undefined on every real route today - no surface has a reason
@@ -151,6 +157,7 @@ export function ArticleCard({
   footnote,
   moreReports,
   highlight,
+  markNew = false,
   why,
   variant = "secondary",
   priority = false,
@@ -166,6 +173,21 @@ export function ArticleCard({
   // Relative times and the reader's local clock: re-rendered once after
   // hydration with the browser's own values (see useHydrated).
   useHydrated();
+  const previousVisit = usePreviousVisit();
+  const isNew =
+    markNew && previousVisit !== null && Date.parse(article.published_at) > previousVisit;
+  // The differentiator made visible (fifth pass F1): the same story is being
+  // reported in other languages too. A real count from the story cluster,
+  // linking to the story page that lists them - not on `cluster`/`timeline`
+  // cards, whose coverage line already says it.
+  const otherLanguages =
+    variant !== "cluster" &&
+    variant !== "timeline" &&
+    article.story_cluster_id !== null &&
+    article.coverage &&
+    article.coverage.languages > 1
+      ? article.coverage.languages - 1
+      : 0;
 
   function handleClick() {
     // Fire-and-forget: never block or delay the navigation this accompanies.
@@ -253,6 +275,10 @@ export function ArticleCard({
         </div>
       )}
       <div className="card__body">
+        {/* "New" means new since this reader's previous visit - see
+            usePreviousVisit. The kicker stays one word so a page of fresh
+            stories is not a column of repeated sentences. */}
+        {isNew && <span className="card__new">{t(locale, "card.new")}</span>}
         <h2 className="card__title">
           {/* The publisher link lives on the detail page, alongside related
               coverage - never fabricated full text, always a click away. */}
@@ -309,6 +335,13 @@ export function ArticleCard({
                 {foreign.label}
               </span>
             )}
+          </p>
+        )}
+        {otherLanguages > 0 && (
+          <p className="card__languages">
+            <Link href={`/${locale}/story/${article.story_cluster_id}`}>
+              {tPlural(locale, "article.otherLanguages", otherLanguages)}
+            </Link>
           </p>
         )}
         {showContextToggle && (

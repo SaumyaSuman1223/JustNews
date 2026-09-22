@@ -543,6 +543,38 @@ a.card__source:focus-visible {
   text-underline-offset: 0.15em;
 }
 
+/* "New since your last visit" (fifth pass F6): a small caps kicker above the
+   headline, in the accent - the one card-level mark that is about the
+   reader rather than the story. */
+.card__new {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* The same story in other languages (fifth pass F1) - the product's one
+   structural difference, as a quiet link under the byline. */
+.card__languages {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-meta);
+}
+
+.card__languages a {
+  color: var(--text-mid);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 0.2em;
+}
+
+.card__languages a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
 /* --- article page: filed under, read next --------------------------------- */
 
 .article-topics {
@@ -575,6 +607,52 @@ a.card__source:focus-visible {
 
 .read-next .home-tier a:hover {
   text-decoration: underline;
+}
+
+.story-header__actions {
+  margin-block-start: var(--space-4);
+}
+
+/* --- My Desk: followed stories (fifth pass F2) ----------------------------- */
+
+.followed-stories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.followed-stories li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.followed-stories li:first-child {
+  border-block-start: none;
+  padding-block-start: 0;
+}
+
+.followed-stories a {
+  font-family: var(--font-display);
+  font-size: var(--type-body-l);
+  font-weight: 600;
+}
+
+.followed-stories__count {
+  flex-shrink: 0;
+  font-size: var(--type-meta);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.followed-stories__count--new {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* --- publisher page -------------------------------------------------------- */

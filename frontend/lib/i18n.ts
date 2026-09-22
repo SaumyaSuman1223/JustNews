@@ -517,6 +517,14 @@ const en = {
   "card.why.trending": "Trending now",
   "card.why.exploration": "Something different, on purpose",
   "card.timeline.developing": "Developing since {time}",
+  "card.new": "New",
+  "story.follow": "Follow this story",
+  "story.following": "Following this story",
+  "desk.followedStories": "Stories you follow",
+  "desk.followedStories.note": "New reports since you last opened each one.",
+  "desk.followedStories.new.one": "{count} new report",
+  "desk.followedStories.new.other": "{count} new reports",
+  "desk.followedStories.upToDate": "Up to date",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -949,6 +957,14 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "card.why.trending": "Tendencia ahora",
     "card.why.exploration": "Algo distinto, a propósito",
     "card.timeline.developing": "En desarrollo desde {time}",
+    "card.new": "Nuevo",
+    "story.follow": "Seguir esta historia",
+    "story.following": "Siguiendo esta historia",
+    "desk.followedStories": "Historias que sigues",
+    "desk.followedStories.note": "Informaciones nuevas desde la última vez que abriste cada una.",
+    "desk.followedStories.new.one": "{count} información nueva",
+    "desk.followedStories.new.other": "{count} informaciones nuevas",
+    "desk.followedStories.upToDate": "Al día",
   },
   hi: {
     "skip.toContent": "सामग्री पर जाएँ",
@@ -1374,6 +1390,14 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "card.why.trending": "अभी ट्रेंड में",
     "card.why.exploration": "जान-बूझकर कुछ अलग",
     "card.timeline.developing": "{time} से विकसित हो रही है",
+    "card.new": "नया",
+    "story.follow": "यह ख़बर फ़ॉलो करें",
+    "story.following": "यह ख़बर फ़ॉलो कर रहे हैं",
+    "desk.followedStories": "आपकी फ़ॉलो की हुई ख़बरें",
+    "desk.followedStories.note": "पिछली बार खोलने के बाद आई नई रिपोर्ट।",
+    "desk.followedStories.new.one": "{count} नई रिपोर्ट",
+    "desk.followedStories.new.other": "{count} नई रिपोर्ट",
+    "desk.followedStories.upToDate": "कुछ नया नहीं",
   },
 };
 
@@ -1417,6 +1441,7 @@ type PluralBase =
   | "search.moreReports"
   | "search.resultCount"
   | "source.articleCount"
+  | "desk.followedStories.new"
   | "stats.articles"
   | "stats.languages"
   | "stats.sources"

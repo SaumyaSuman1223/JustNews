@@ -66,6 +66,8 @@ class MeExportOut(BaseModel):
     profile: dict[str, Any]
     saves: list[dict[str, Any]]
     follows: list[dict[str, Any]]
+    source_follows: list[dict[str, Any]]
+    story_follows: list[dict[str, Any]]
     history: list[dict[str, Any]]
 
 
@@ -76,7 +78,12 @@ async def export_me(
 ) -> MeExportOut:
     export = await service.export_user_data(session, principal.user_id)
     return MeExportOut(
-        profile=export.profile, saves=export.saves, follows=export.follows, history=export.history
+        profile=export.profile,
+        saves=export.saves,
+        follows=export.follows,
+        source_follows=export.source_follows,
+        story_follows=export.story_follows,
+        history=export.history,
     )
 
 

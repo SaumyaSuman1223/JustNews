@@ -1384,12 +1384,30 @@
             },
             "title": "Saves",
             "type": "array"
+          },
+          "source_follows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Source Follows",
+            "type": "array"
+          },
+          "story_follows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Story Follows",
+            "type": "array"
           }
         },
         "required": [
           "profile",
           "saves",
           "follows",
+          "source_follows",
+          "story_follows",
           "history"
         ],
         "title": "MeExportOut",
@@ -2338,6 +2356,78 @@
           "articles"
         ],
         "title": "StoryDetailOut",
+        "type": "object"
+      },
+      "StoryFollowIn": {
+        "properties": {
+          "story_id": {
+            "title": "Story Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "story_id"
+        ],
+        "title": "StoryFollowIn",
+        "type": "object"
+      },
+      "StoryFollowOut": {
+        "properties": {
+          "followed_at": {
+            "format": "date-time",
+            "title": "Followed At",
+            "type": "string"
+          },
+          "language_count": {
+            "title": "Language Count",
+            "type": "integer"
+          },
+          "new_reports": {
+            "description": "Live reports that arrived after this reader last opened the story.",
+            "title": "New Reports",
+            "type": "integer"
+          },
+          "source_count": {
+            "title": "Source Count",
+            "type": "integer"
+          },
+          "story_id": {
+            "title": "Story Id",
+            "type": "integer"
+          },
+          "story_last_seen_at": {
+            "format": "date-time",
+            "title": "Story Last Seen At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "story_id",
+          "title",
+          "source_count",
+          "language_count",
+          "story_last_seen_at",
+          "followed_at",
+          "new_reports"
+        ],
+        "title": "StoryFollowOut",
+        "type": "object"
+      },
+      "StoryFollowStateOut": {
+        "properties": {
+          "following": {
+            "title": "Following",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "following"
+        ],
+        "title": "StoryFollowStateOut",
         "type": "object"
       },
       "StoryOut": {
@@ -5054,6 +5144,199 @@
           }
         ],
         "summary": "Delete Source Follow",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/stories": {
+      "get": {
+        "description": "Never cached: per-reader state.",
+        "operationId": "list_story_follows_v1_follows_stories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StoryFollowOut"
+                  },
+                  "title": "Response List Story Follows V1 Follows Stories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Story Follows",
+        "tags": [
+          "follows"
+        ]
+      },
+      "post": {
+        "operationId": "create_story_follow_v1_follows_stories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryFollowIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Story Follow",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/stories/{story_id}": {
+      "delete": {
+        "operationId": "delete_story_follow_v1_follows_stories__story_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "story_id",
+            "required": true,
+            "schema": {
+              "title": "Story Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Story Follow",
+        "tags": [
+          "follows"
+        ]
+      },
+      "get": {
+        "operationId": "story_follow_state_v1_follows_stories__story_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "story_id",
+            "required": true,
+            "schema": {
+              "title": "Story Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryFollowStateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Story Follow State",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/stories/{story_id}/seen": {
+      "post": {
+        "operationId": "mark_story_seen_v1_follows_stories__story_id__seen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "story_id",
+            "required": true,
+            "schema": {
+              "title": "Story Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Story Seen",
         "tags": [
           "follows"
         ]

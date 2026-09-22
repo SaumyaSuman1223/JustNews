@@ -75,6 +75,7 @@ export type TopicOverview = components["schemas"]["TopicOverviewOut"];
 export type RelatedTopic = components["schemas"]["RelatedTopicOut"];
 export type PerspectiveGroup = components["schemas"]["PerspectiveGroupOut"];
 export type SourceDetail = components["schemas"]["SourceDetailOut"];
+export type StoryFollow = components["schemas"]["StoryFollowOut"];
 export type ArticleTopicLink = components["schemas"]["ArticleTopicLinkOut"];
 
 export interface Degradable<T> {
@@ -482,6 +483,65 @@ export async function followSource(auth: AuthContext, sourceId: number): Promise
     body: { source_id: sourceId },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
+}
+
+// --- followed stories (fifth pass F2) -----------------------------------
+
+export async function followStory(auth: AuthContext, storyId: number): Promise<boolean> {
+  const { response } = await authedClient(auth).POST("/v1/follows/stories", {
+    body: { story_id: storyId },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return response.ok;
+}
+
+export async function unfollowStory(auth: AuthContext, storyId: number): Promise<boolean> {
+  const { response } = await authedClient(auth).DELETE("/v1/follows/stories/{story_id}", {
+    params: { path: { story_id: storyId } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return response.ok;
+}
+
+/** Null when it cannot be known (no beta access, API down): the page then
+ * shows no follow control rather than a wrong one. */
+export async function getStoryFollowState(
+  auth: AuthContext,
+  storyId: number,
+): Promise<boolean | null> {
+  try {
+    const { data } = await authedClient(auth).GET("/v1/follows/stories/{story_id}", {
+      params: { path: { story_id: storyId } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return data ? data.following : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fire-and-forget from the story page; a failure only means the "new
+ * reports" count stays a little high until the next visit. */
+export async function markStorySeen(auth: AuthContext, storyId: number): Promise<void> {
+  try {
+    await authedClient(auth).POST("/v1/follows/stories/{story_id}/seen", {
+      params: { path: { story_id: storyId } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch {
+    /* see above */
+  }
+}
+
+export async function getFollowedStories(auth: AuthContext): Promise<StoryFollow[]> {
+  try {
+    const { data } = await authedClient(auth).GET("/v1/follows/stories", {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function unfollowSource(auth: AuthContext, sourceId: number): Promise<void> {
