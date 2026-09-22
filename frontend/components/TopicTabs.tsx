@@ -6,12 +6,11 @@ import { useTransition, type ReactNode } from "react";
 
 import { t, type LocaleCode } from "@/lib/i18n";
 
-export type TopicTab = "understand" | "latest" | "analysis";
+export type TopicTab = "understand" | "latest";
 
 const TABS: { id: TopicTab; labelKey: `desk.tabs.${TopicTab}` }[] = [
   { id: "understand", labelKey: "desk.tabs.understand" },
   { id: "latest", labelKey: "desk.tabs.latest" },
-  { id: "analysis", labelKey: "desk.tabs.analysis" },
 ];
 
 /**

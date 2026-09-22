@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/FeedList";
 import { Pagination } from "@/components/Pagination";
 import { TopicDetailSkeleton } from "@/components/TopicDetailSkeleton";
-import { TopicStub } from "@/components/TopicStub";
 import { TopicTabs, type TopicTab } from "@/components/TopicTabs";
 import { Understand } from "@/components/Understand";
 import {
@@ -30,7 +29,7 @@ interface RouteParams {
 }
 
 function isTopicTab(value: string | undefined): value is Exclude<TopicTab, "understand"> {
-  return value === "latest" || value === "analysis";
+  return value === "latest";
 }
 
 export async function generateMetadata({
@@ -165,26 +164,21 @@ async function TabBody({
   if (tab === "understand") {
     // Both reads in parallel, and the story list serves two of the three
     // modules - see Understand, which sorts the same array two ways.
-    const [stories, groups] = await Promise.all([
+    // The topic's own recent articles too: Understand's stand-in when the
+    // topic has reporting but no multi-outlet stories yet.
+    const [stories, groups, latest] = await Promise.all([
       getTopicStories(topicId),
       getTopicPerspectives(topicId),
+      getArticles({ languages, topic: topicId, pageSize: 24 }),
     ]);
     return (
       <Understand
         topicLabel={topicLabel}
         stories={stories.degraded ? [] : stories.data}
         perspectives={groups.degraded ? [] : groups.data}
+        latest={latest.degraded ? [] : latest.data.items}
         locale={locale}
         storyHref={(storyId) => `/${locale}/story/${storyId}`}
-      />
-    );
-  }
-
-  if (tab === "analysis") {
-    return (
-      <TopicStub
-        title={t(locale, "desk.stub.analysis.title")}
-        body={t(locale, "desk.stub.analysis.body")}
       />
     );
   }

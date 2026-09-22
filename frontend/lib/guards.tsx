@@ -31,10 +31,14 @@ export type BetaAccessResult =
 export async function requireBetaAccess(
   locale: LocaleCode,
   path: string,
+  signInPrompt?: { title: string; body: string; embedded: boolean },
 ): Promise<BetaAccessResult> {
   const session = await getSession();
   if (!session) {
-    return { ok: false, element: <SignInRequired locale={locale} path={path} /> };
+    return {
+      ok: false,
+      element: <SignInRequired locale={locale} path={path} {...signInPrompt} />,
+    };
   }
   const auth = { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
   const profile = await getMe(auth);

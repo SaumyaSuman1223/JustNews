@@ -32,7 +32,7 @@ export function Perspectives({
   headingLevel?: 2 | 3;
 }) {
   if (groups.length === 0) {
-    return <p className="notice">{t(locale, "desk.perspectives.empty")}</p>;
+    return <p className="empty-note">{t(locale, "desk.perspectives.empty")}</p>;
   }
 
   const Heading = headingLevel === 3 ? "h3" : "h2";

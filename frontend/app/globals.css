@@ -1819,6 +1819,16 @@ a.chip:active {
 
 /* --- notices ----------------------------------------------------------- */
 
+/* "Nothing here yet" is not a problem, so it gets no box and no danger rule -
+   a quiet line of type in the place the content would be (fifth pass §2.6).
+   `.notice` below stays for things that are actually wrong. */
+.empty-note {
+  margin: 0 0 var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+  font-style: italic;
+}
+
 /* Reserved for something being wrong - it carries the danger rule. Anything
    that is merely notable gets .callout instead. */
 .notice {
@@ -4605,6 +4615,47 @@ span.paper__pageref {
   margin: var(--space-1) 0 0;
   color: var(--text-muted);
   font-size: var(--type-meta);
+}
+
+/* The stand-ins for a topic with reporting but no stories yet (fifth pass
+   §2.1): the same rule-separated rows as the developments list, without the
+   rank column - newest-first is not an order worth numbering. */
+.understand__latest,
+.understand__outlets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.understand__latest li,
+.understand__outlets li {
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.understand__latest li:first-child,
+.understand__outlets li:first-child {
+  padding-block-start: 0;
+  border-block-start: none;
+}
+
+.understand__outlets li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.understand__outlets .understand__meta {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.understand__outlet {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .desk-tiles {
