@@ -2121,8 +2121,8 @@ a.chip:active {
    that is merely notable gets .callout instead. */
 .notice {
   border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--danger);
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-block-start: 2px solid var(--danger);
+  border-radius: 0 0 var(--radius) var(--radius);
   background: var(--surface);
   color: var(--text-mid);
   padding: var(--space-3) var(--space-4);
@@ -2562,11 +2562,8 @@ a.chip:active {
 /* --- blindspot rail ------------------------------------------------------ */
 
 .blindspot {
-  border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--accent);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: var(--surface);
-  padding: var(--space-4);
+  border-block-start: 2px solid var(--accent);
+  padding-block: var(--space-4) 0;
   margin-block-end: var(--space-8);
 }
 
@@ -2780,12 +2777,12 @@ a.chip:active {
    danger one. The cross-language coverage block was using .notice, which meant
    the one thing this product does that nobody else does was framed as a
    warning. */
+/* A rule above, not a bar down the side of a box: the same "rules and type,
+   not boxes" language as every other section heading on the page (§32), with
+   the accent carrying the emphasis (fifth pass, detector finding). */
 .callout {
-  border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--accent);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: var(--surface);
-  padding: var(--space-4) var(--space-6);
+  border-block-start: 2px solid var(--accent);
+  padding-block: var(--space-4) 0;
   margin-block: var(--space-8);
 }
 

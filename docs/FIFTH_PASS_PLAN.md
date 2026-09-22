@@ -285,3 +285,54 @@ performance against the second-pass baseline.
 | 9 | Error recovery | 3 | Degraded states offer a way forward |
 | 10 | Help and documentation | 1 | Nothing explains clustering, Perspectives or editions |
 | | **Total** | **24/40** | **Acceptable** — the foundation is good; real data exposed the gaps |
+
+---
+
+## 7. What shipped
+
+| Part | Commit | Outcome |
+|---|---|---|
+| 1 · Content quality | `dad4b66` | Programme/podcast episodes skipped at ingest; dedup window now holds between the two articles compared, not just against the run clock. `repair-programme-episodes` hid 26 episodes and dissolved 5 fake stories locally |
+| 2 · Honest empty states | `5dc24e2` | Topic pages fall back to real reporting and an outlet tally; My Desk example picks the broadest topic and never repeats an item; neutral empty states are quiet type; Analysis stub tab removed; duplicate hidden h1 on My Desk fixed |
+| 3 · Aquila, real edition | `d95de53` | Masthead 250px → 99px ("+ N more sections"); curated labels everywhere; lead deck and byline always inside the sheet at 1440/1920; fixed sheet only from 80rem |
+| 4 · Home | `65dbe4e` | `/v1/articles/top`: recency × breadth × trust for signed-out "What matters"; Brief no longer repeats the dense list; hydration failures from relative/local time ended (`useHydrated`); Aquila's edition list stopped printing unlabelled UTC; two undefined spacing tokens fixed |
+| 5 · Article + publisher pages | `8616636` | `/[locale]/source/[slug]`; bylines link to it; article page gains Filed under, More in {topic}, More from {source} |
+| 6 · Search | `4caa2e5` | One row per story, query words marked, type-ahead for topics and publishers, Sources group opens publisher pages |
+| 7 · Differentiator | `f9ad88d` | Follow a story (migration 0018, RLS, "N new reports since you looked"); "Also covered in N other languages" on cards; "New" since last visit (device-only); export gained followed stories and followed publishers |
+| 8 · Reader controls + help | `5a18c5a` | Card reasons from the real ranker; Display page (theme, text size, no flash); keyboard shortcuts with `?`; How JustNews works; forgot password |
+| 9 · Polish + QA | this commit | Side-tab borders replaced with top rules - design detector 3 findings → 0. `/v1/articles/top` 0.85s → 0.05s (MMR keeps a running redundancy, O(n²) not O(n³), and stops at the limit). Consent banner fixed on Home (below). Backend 539 passed; e2e 19 passed, 3 skipped (need credentials); structured data passed |
+
+### Findings corrected on re-measurement
+
+- **Aquila's contents panel "clipped at 1440×900"** (§2.2) did not reproduce: closed, it measures fully off-screen with `visibility: hidden`. The first screenshot caught it mid-slide.
+- **The rail's detached "Sign in" pill** (§2.7) is a hover/focus tooltip at `opacity: 0`; early screenshots caught its transition.
+
+### The consent banner that would not go away
+
+In a production build, choosing Accept or Decline on Home set the cookie but
+left the banner on screen until the next navigation. Present on builds from
+before this pass as well; invisible in dev. Traced into Next 15.5's router:
+the Server Action's response arrived whole and its reducer finished, but
+React's commit of the new tree stayed suspended on Home's streamed Suspense
+boundary with no ping pending, so the layout never re-rendered. Rather than
+depend on that path, the banner now posts to `app/api/consent/route.ts`,
+which sets the cookie and answers 303 to the page the reader was on (same-
+host Referer only, cross-origin posts refused). One full page load, once per
+browser, and it works the same with JavaScript off. The Settings toggle still
+uses the Server Action; it is not on Home and works.
+
+### Found along the way, not fixed (listed per CLAUDE.md)
+
+- **Other Server Actions on Home may hit the same Next commit bug.** Save,
+  follow and "not interested" on Home cards call Server Actions that
+  revalidate `/en`. They need a signed-in account to exercise; check them in
+  the signed-in review before assuming they are fine.
+
+- **16% of live articles have no topic** (106/664 locally), mostly BBC's Spanish and Hindi general feeds, which carry no categories. Those articles show no "Filed under" rather than a guess; better classification for category-less feeds is its own piece of work.
+- **An order-dependent flaky test in `test_follows_api.py`** - a different follows test fails in some full-suite runs and passes in isolation every time. It predates this pass.
+- **Production cluster density is still unmeasured.** Every cluster-driven feature (breadth ranking, grouped search, other-language lines, timeline cards) was verified against temporary local clusters; how often they appear for real depends on production ingest running with the real encoder - which depends on the merge to `main`.
+- **Mobile Home is still long** (§2.3, ~9,000px): the doubled wordmark is gone
+  but the three tiers and the rail still stack end to end on a phone. A
+  mobile-specific summary is a design question worth its own pass rather than
+  a CSS tweak.
+- **Signed-in surfaces were not reviewed live.** Follow-a-story, card reasons, the reset-password landing page and My Desk's followed-stories section are typechecked and backed by integration tests, but need a real test account to see in a browser.
