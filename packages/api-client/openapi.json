@@ -550,6 +550,76 @@
         "title": "CohortWeekOut",
         "type": "object"
       },
+      "CompanyOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "exchange": {
+            "title": "Exchange",
+            "type": "string"
+          },
+          "mentions": {
+            "description": "Articles in the last day that name the company.",
+            "title": "Mentions",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null where the free quote source has no listing.",
+            "title": "Price"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "name",
+          "ticker",
+          "exchange",
+          "domain",
+          "mentions",
+          "price",
+          "change_pct",
+          "as_of"
+        ],
+        "title": "CompanyOut",
+        "type": "object"
+      },
       "CoverageOut": {
         "description": "Third-pass audit \u00a721: \"7 sources / 4 countries / 2 languages\" - how\nwidely the story this article belongs to is being covered, as of the last\ntime the cluster changed. Real counts from `story_clusters`, never\ninferred: a cluster of one source is a real, honest `sources: 1`, not\nsomething the client has to guess from `story_cluster_id` alone.",
         "properties": {
@@ -1370,6 +1440,60 @@
           "count"
         ],
         "title": "LanguageMixOut",
+        "type": "object"
+      },
+      "MarketTileOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "change": {
+            "title": "Change",
+            "type": "number"
+          },
+          "change_pct": {
+            "title": "Change Pct",
+            "type": "number"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "label": {
+            "description": "What the instrument tracks, e.g. 'S&P 500' for SPY.",
+            "title": "Label",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "series": {
+            "description": "The last day's prices, oldest first.",
+            "items": {
+              "type": "number"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "label",
+          "price",
+          "change",
+          "change_pct",
+          "currency",
+          "as_of",
+          "series"
+        ],
+        "title": "MarketTileOut",
         "type": "object"
       },
       "MeExportOut": {
@@ -7138,6 +7262,58 @@
         "summary": "Trending",
         "tags": [
           "content"
+        ]
+      }
+    },
+    "/v1/widgets/companies": {
+      "get": {
+        "description": "Trending Companies. Cache: 300s fresh + 1800s stale (ADR 0014).",
+        "operationId": "companies_v1_widgets_companies_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyOut"
+                  },
+                  "title": "Response Companies V1 Widgets Companies Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Companies",
+        "tags": [
+          "widgets"
+        ]
+      }
+    },
+    "/v1/widgets/markets": {
+      "get": {
+        "description": "Market Outlook. Cache: 120s fresh + 600s stale (ADR 0014) - the job\nthat writes these runs every fifteen minutes.",
+        "operationId": "markets_v1_widgets_markets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MarketTileOut"
+                  },
+                  "title": "Response Markets V1 Widgets Markets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Markets",
+        "tags": [
+          "widgets"
         ]
       }
     }

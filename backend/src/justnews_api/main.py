@@ -28,6 +28,7 @@ from justnews_api.routers import (
     saves,
     search,
     topics,
+    widgets,
 )
 from justnews_api.services.auth import SupabaseJWKSProvider
 from justnews_core.db import dispose_engine, init_engine
@@ -112,6 +113,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(search.router)
     app.include_router(invites.router)
     app.include_router(feedback.router)
+    app.include_router(widgets.router)
     app.include_router(admin.router)
     return app
 

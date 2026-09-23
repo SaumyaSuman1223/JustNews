@@ -1245,6 +1245,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/widgets/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Companies
+         * @description Trending Companies. Cache: 300s fresh + 1800s stale (ADR 0014).
+         */
+        get: operations["companies_v1_widgets_companies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widgets/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Markets
+         * @description Market Outlook. Cache: 120s fresh + 600s stale (ADR 0014) - the job
+         *     that writes these runs every fifteen minutes.
+         */
+        get: operations["markets_v1_widgets_markets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1438,6 +1479,36 @@ export interface components {
             active_users: number;
             /** Week Offset */
             week_offset: number;
+        };
+        /** CompanyOut */
+        CompanyOut: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Change Pct */
+            change_pct: number | null;
+            /** Domain */
+            domain: string;
+            /** Exchange */
+            exchange: string;
+            /**
+             * Mentions
+             * @description Articles in the last day that name the company.
+             */
+            mentions: number;
+            /** Name */
+            name: string;
+            /**
+             * Price
+             * @description Null where the free quote source has no listing.
+             */
+            price: number | null;
+            /** Rank */
+            rank: number;
+            /** Ticker */
+            ticker: string;
         };
         /**
          * CoverageOut
@@ -1775,6 +1846,34 @@ export interface components {
             count: number;
             /** Language */
             language: string;
+        };
+        /** MarketTileOut */
+        MarketTileOut: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Change */
+            change: number;
+            /** Change Pct */
+            change_pct: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Label
+             * @description What the instrument tracks, e.g. 'S&P 500' for SPY.
+             */
+            label: string;
+            /** Price */
+            price: number;
+            /**
+             * Series
+             * @description The last day's prices, oldest first.
+             */
+            series: number[];
+            /** Symbol */
+            symbol: string;
         };
         /** MeExportOut */
         MeExportOut: {
@@ -4678,6 +4777,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    companies_v1_widgets_companies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyOut"][];
+                };
+            };
+        };
+    };
+    markets_v1_widgets_markets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketTileOut"][];
                 };
             };
         };
