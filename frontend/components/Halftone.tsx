@@ -1,7 +1,8 @@
 import Image from "next/image";
 
 /**
- * The Aquila print treatment: photographs reduced to a warm two-tone screen.
+ * The Aquila print treatment: photographs printed in colour, through a dot
+ * screen - the way a newspaper prints a colour picture.
  *
  * Audit §19 asks every Aquila image to carry the same halftone. This does it
  * with an SVG filter and a CSS dot screen, on the publisher's own hotlinked
@@ -13,9 +14,11 @@ import Image from "next/image";
  *
  * The cost is fidelity. A filter cannot threshold per pixel against a screen
  * the way a real halftone does, so this is an impression of one: luminance,
- * flattened to five tonal steps between ink and paper, under a regular dot
- * grid. At reading distance it reads as newsprint. Under a magnifier it is
- * not a rosette, and it never will be.
+ * a press curve per ink channel, under a regular dot grid. At reading distance it reads as newsprint. Under a magnifier it is
+ * not a rosette, and it never will be. Colour survives, held a little below
+ * the original's saturation and warmed toward the paper, because newsprint
+ * ink is duller than a screen and a full-strength photograph on this sheet
+ * reads as pasted on rather than printed.
  *
  * It is also one line to remove. `filter: none` on `.halftone img` and
  * deleting the `::after` returns every image to its original, which is what
@@ -30,25 +33,17 @@ export function HalftoneDefs() {
         {/* sRGB, not linearRGB: the default would do this in linear light and
             the midtones come out muddy, which is the opposite of a press. */}
         <filter id="aquila-halftone" colorInterpolationFilters="sRGB">
-          {/* Rec. 709 luminance into all three channels - a real desaturation
-              rather than an average, so a red jacket and a blue sky do not
-              collapse to the same grey. */}
-          <feColorMatrix
-            type="matrix"
-            values="0.2126 0.7152 0.0722 0 0
-                    0.2126 0.7152 0.0722 0 0
-                    0.2126 0.7152 0.0722 0 0
-                    0 0 0 1 0"
-          />
-          {/* Five steps, not a curve: §19 asks for a limited tonal range, and
-              a press has a limited number of tones by construction. The
-              channels differ slightly so the result lands warm - ink at the
-              shadow end, paper at the highlight end - rather than neutral
-              grey, which would sit on this cream like a photocopy. */}
+          {/* Newsprint colour: a little less saturated than the screen
+              original. */}
+          <feColorMatrix type="saturate" values="0.82" />
+          {/* A press curve per channel - deeper shadows, highlights that stop
+              at the paper rather than at white, and a slight warm cast (red
+              lifted, blue held back) so the picture sits in the cream sheet
+              instead of on top of it. */}
           <feComponentTransfer>
-            <feFuncR type="table" tableValues="0.09 0.22 0.46 0.74 0.94" />
-            <feFuncG type="table" tableValues="0.09 0.21 0.44 0.72 0.92" />
-            <feFuncB type="table" tableValues="0.10 0.19 0.39 0.65 0.86" />
+            <feFuncR type="table" tableValues="0.07 0.27 0.53 0.79 0.97" />
+            <feFuncG type="table" tableValues="0.06 0.25 0.5 0.76 0.94" />
+            <feFuncB type="table" tableValues="0.07 0.22 0.44 0.69 0.88" />
           </feComponentTransfer>
         </filter>
       </defs>

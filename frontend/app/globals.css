@@ -2933,25 +2933,58 @@ a.chip:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-4);
+  inline-size: 100%;
   min-inline-size: 0;
-  /* `.aquila`'s `justify-items: center` does not stretch a grid item to its
-     track, so without this the stage renders at its own preferred width -
-     driven by `.aquila__sheet`'s height-derived aspect-ratio box, which does
-     not know about the viewport at all - and overflows past the track
-     instead of the sheet's own `max-inline-size: 100%` ever having a real
-     container to resolve against. Found at 1024px width / 900px height,
-     where the sheet's preferred 1174.5px only fits a viewport past 1330px. */
-  max-inline-size: 100%;
 }
 
-/* The sheet. A warm surface with a stacked edge, never a photographic paper
-   texture - the direction document bans "overly realistic newspaper
-   textures" and "fake paper physics" in the same breath as it asks for a
-   newspaper, and the pastiche version stops being readable by page two. */
+.aquila__viewport {
+  inline-size: 100%;
+  display: grid;
+  justify-items: center;
+}
+
+.aquila__fit-box,
+.aquila__fit,
+.aquila__book {
+  inline-size: 100%;
+}
+
+.aquila__book {
+  justify-items: center;
+}
+
+/* The pages and the leaf share one grid cell, so the leaf lies exactly over
+   the page it is turning off. `perspective` is what makes a rotating leaf
+   read as lifting toward the reader rather than shrinking. */
+.aquila__book {
+  --dur-turn: 900ms;
+  --turn-sign: -1;
+  position: relative;
+  display: grid;
+  perspective: 2800px;
+}
+
+[dir="rtl"] .aquila__book {
+  --turn-sign: 1;
+}
+
+.aquila__book > .aquila__sheet,
+.aquila__leaf {
+  grid-area: 1 / 1;
+}
+
+.aquila__book[data-pending] {
+  cursor: progress;
+}
+
+/* The sheet. A warm surface with a stacked edge, not a photographic paper
+   texture - the pastiche version stops being readable by page two. What
+   makes it a newspaper is how it turns (the leaf, below), not a coffee ring. */
 .aquila__sheet {
-  inline-size: min(100%, 68.75rem); /* 1100px - overridden into a landscape
-     page once there is room; see the geometry block below. */
+  position: relative;
+  inline-size: min(100%, 68.75rem); /* Scaled to fit from 64rem up - see the
+     fit block below. */
   /* The paper is light in both themes, so its colours are fixed here rather
      than inherited - but fixed to the *accessible* values, not the direction
      document's. Hardcoding #77736c and #a28b68 straight from the brief is
@@ -2983,35 +3016,6 @@ a.chip:active {
     12px 12px 0 -1px #ece7db,
     12px 12px 0 0 rgba(0, 0, 0, 0.16),
     0 18px 40px -24px rgba(0, 0, 0, 0.6);
-  /* §21: a page turn runs 350-550ms. `--dur-editorial` is 450ms, the tier
-     this repo already reserves for exactly this kind of movement. The old
-     240ms was the standard tier - correct for a control, too brisk to read
-     as a page changing. */
-  transition: opacity var(--dur-editorial) var(--ease);
-}
-
-/* The page turn. A crossfade at the editorial tier rather than a rotation:
-   the spec allows stronger movement here, but a fold that has to fake paper
-   physics is the exact "AI slop" the spec is correcting for. What matters is
-   that the reader sees the page change - the fade says that in 450ms (§21's
-   350-550ms band) and never delays reading.
-
-   Under reduced motion the sheet holds at full opacity rather than fading
-   faster: the global override already collapses the duration to 0.01ms, and
-   a dim that arrives instantly is a flash, which is the thing the preference
-   exists to prevent. So the correct reduced-motion form of this is no
-   opacity change at all, not a quicker one. */
-.aquila__sheet[data-pending] {
-  opacity: 0.45;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aquila__sheet {
-    transition: none;
-  }
-  .aquila__sheet[data-pending] {
-    opacity: 1;
-  }
 }
 
 /* --- the paper itself ------------------------------------------------------ */
@@ -3194,7 +3198,36 @@ a.chip:active {
      Highlights into the left rail did - this rule started laying out the
      front page as two columns, and the lead collapsed to 217px. */
   .paper__body:not(.paper__body--front):not(:has(.paper__brief)) {
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: 5fr 7fr;
+  }
+
+  /* A section page's other stories run in two columns beside the lead, the
+     way a newspaper sets an inside page - stacked in one narrow column they
+     made a page two screens tall, which scaled to fit is unreadably small.
+     Pictures on the top row only; below it the stories run as text. */
+  .paper__body:not(.paper__body--front) .paper__columns {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3) var(--space-4);
+    align-items: start;
+  }
+
+  .paper__body:not(.paper__body--front) .paper__highlights {
+    padding-inline-end: 0;
+    border-inline-end: none;
+  }
+
+  .paper__body:not(.paper__body--front) .paper__column {
+    padding-block-end: 0;
+    border-block-end: none;
+  }
+
+  .paper__body:not(.paper__body--front) .paper__column:nth-child(n + 3) {
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--paper-hair);
+  }
+
+  .paper__body:not(.paper__body--front) .paper__column:nth-child(n + 3) .halftone {
+    display: none;
   }
 
   .paper__brief {
@@ -3265,22 +3298,12 @@ a.chip:active {
     aspect-ratio: 3 / 1;
   }
 
-  /* Fifth pass §2.2: a real three-line headline plus a four-line deck ran
-     past the sheet's fixed height and the deck was cut mid-sentence by the
-     clip. On the front page the deck gets two lines - an ellipsis is an
-     honest shortening, a sentence sliced by the page edge is not - and the
-     headline is held to three. */
+  /* A front-page deck is a taste of the story, three lines at most; the
+     headline is never shortened. The page is scaled to fit rather than cut
+     (see the fit block), so nothing here is sized against a clip any more. */
   .paper__body--front .paper__deck {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-
-  .paper__body--front .paper__lead-headline {
-    display: -webkit-box;
     -webkit-line-clamp: 3;
     line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   /* The rail's one picture is a column-width thumbnail, not a second lead. */
@@ -3322,15 +3345,6 @@ a.chip:active {
     padding-block-start: var(--space-2);
   }
 
-  /* Two lines, not three: the lower row this chunk adds took the space a
-     third line was spending. The deck still reads as a real deck at two
-     lines - it is the headline that carries the story, this is its "why it
-     matters" - and the alternative was clipping the page's own footer. */
-  .paper__body--front .paper__deck {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-
   .paper__masthead {
     padding-block-end: 0;
   }
@@ -3342,28 +3356,6 @@ a.chip:active {
      the outlet still identify it. The lead's headline is never clamped - the
      page's main story has to be readable in full on the page. */
   .paper__body--front .paper__brief-list a {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-  }
-
-  .paper__body--front .paper__focus-headline {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    overflow: hidden;
-  }
-
-  /* Two lines, not three: the right rail was the tallest column on the page
-     once the lower row this chunk adds took its slice of the budget, and
-     three clamped headlines stacked in a 251px column were spending 492px on
-     their own - more than the lead's own content. Two brings the rail back
-     under the lead, which is where the tallest column on a front page whose
-     "first story should be unmistakably dominant" (§14) belongs. */
-  .paper__body--front .paper__column-headline {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -3440,9 +3432,11 @@ a.chip:active {
     font-size: var(--type-body-s);
     font-weight: 600;
     line-height: 1.25;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .paper__body--front .paper__lower-story:first-child {
@@ -3526,8 +3520,8 @@ a.chip:active {
 
 /* --- the halftone ---------------------------------------------------------
  *
- * Two layers over the publisher's own image: an SVG filter that flattens it
- * to warm two-tone (see Halftone.tsx), and a dot screen punched through in
+ * Two layers over the publisher's own image: an SVG filter that prints it in
+ * newsprint colour (see Halftone.tsx), and a dot screen punched through in
  * the paper's colour. Nothing is re-encoded and nothing is stored - removing
  * the filter and the ::after returns every picture to its original.
  */
@@ -3567,7 +3561,9 @@ a.chip:active {
      picture is already lighter than the paper, nothing happens. */
   background-image: radial-gradient(circle, var(--paper) 44%, transparent 46%);
   mix-blend-mode: lighten;
-  opacity: 0.62;
+  /* Lighter than the old monochrome screen: at 0.62 the paper dots washed
+     the colour out to pastel. */
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -4008,68 +4004,279 @@ span.paper__pageref {
   margin-block-start: var(--space-6);
 }
 
-/* --- the page as a landscape sheet ----------------------------------------
+/* --- the page, fitted to the screen ---------------------------------------
  *
- * Audit §35 wants 1080-1180 x 700-790 at 1440x900 and 1300-1450 x 820-900 at
- * 1920x1080, at a ratio of 1.45-1.55. The old sheet measured 1004 x 1181 -
- * ratio 0.85, a *portrait* page half again too tall. That single fact is why
- * the reader still felt like a webpage: a page that does not end is scrolled,
- * and turning pages becomes decoration.
+ * From 64rem up the reader is the whole screen: the page is composed at one
+ * fixed width (DESIGN_WIDTH_PX in IssueReader) and its natural height, then
+ * scaled to fit the room there is, the way a PDF viewer shows a whole page.
+ * The fixed 3:2 box this replaced clipped whatever did not fit - a deck
+ * mid-sentence, the rail's second picture - at most window sizes. A scaled
+ * page never loses anything to its own edge.
  *
- * Height leads and width follows from the ratio, which is the only way both
- * viewport sizes land in band from one rule: 82dvh is 738px at 900 and 886px
- * at 1080, and 1.5x those is 1107 and 1329 - inside §35's widths at both.
- * Fixing the width instead would satisfy one size and miss the other.
- *
- * Only from 64rem up. Below that §38 is explicit: one page at a time,
- * scrolling inside it. A landscape sheet on a phone is the "squeezed
- * desktop newspaper" that section forbids.
+ * Below 64rem §38 still holds: one sheet at full width, scrolling inside it.
  */
 @media (min-width: 64rem) {
   .reader__main {
-    padding: var(--space-8) var(--space-12) var(--space-12);
-    padding-inline-start: calc(var(--space-8) + var(--reader-edge));
-    padding-inline-end: calc(var(--space-8) + var(--reader-edge));
+    padding: var(--space-4);
+    padding-inline: calc(var(--space-4) + var(--reader-edge));
+  }
+
+  .aquila {
+    block-size: calc(100dvh - var(--space-4) * 2);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .aquila__stage {
+    block-size: 100%;
+    min-block-size: 0;
+  }
+
+  /* The room the page is fitted into - everything the controls leave. */
+  .aquila__viewport {
+    flex: 1 1 0;
+    min-block-size: 0;
+    align-items: center;
+  }
+
+  /* The box reserves the page's scaled size in layout; the page inside it
+     keeps its design size and is scaled with a transform, which is what lets
+     the composition stay fixed while the screen changes. */
+  .aquila__fit-box[data-fit] {
+    inline-size: calc(var(--fit-width) * var(--fit-scale));
+    block-size: calc(var(--fit-height) * var(--fit-scale));
+  }
+
+  .aquila__fit-box[data-fit] .aquila__fit {
+    inline-size: var(--fit-width);
+    transform: scale(var(--fit-scale));
+    transform-origin: top left;
+  }
+
+  [dir="rtl"] .aquila__fit-box[data-fit] .aquila__fit {
+    transform-origin: top right;
+  }
+
+  .aquila__fit-box[data-fit] .aquila__sheet {
+    inline-size: var(--fit-width);
+  }
+
+  /* The edge strip is the way out on a wide screen; the line under the
+     paper would only push the fitted page off the bottom of the screen. */
+  .aquila__note {
+    display: none;
   }
 }
 
-/* Fifth pass §2.2: the fixed landscape sheet starts at 80rem, not 64rem. At
-   1024x900 the 3:2 box resolved to 872x581, and a real front page - masthead,
-   a three-line lead, the rails, the lower row - needs roughly 800px, so the
-   clip cut the lead's own byline off. Between 64rem and 80rem the page reads
-   the way a tablet does: one sheet, full height, scrolling, with the page
-   turns intact. */
-@media (min-width: 80rem) {
-  .aquila__sheet {
-    /* Width-driven, not height-driven - the earlier height-first formula
-       (`block-size: min(87dvh, 56.25rem)`, `inline-size: auto`) let the
-       aspect-ratio box claim whatever width 3:2 implied with no regard for
-       the viewport's actual width, which overflowed at 1024x900 (measured:
-       a 1174.5px sheet in a 1024px viewport). The same two height caps,
-       converted to their width equivalents (dvh * 1.5, since the ratio is
-       3:2) and joined with `100%` of the stage's own now-bounded width (see
-       `.aquila__stage`'s `max-inline-size: 100%`), give the same sizing on
-       every viewport this was tuned for - 87dvh is 783px at 900px height,
-       ×1.5 is the 1174.5px inline-size below - while never exceeding what
-       the viewport actually has. `block-size: auto` lets aspect-ratio derive
-       the height from whichever cap won, so the sheet is always exactly 3:2
-       rather than being squashed by a competing fixed block-size. */
-    inline-size: min(calc(87dvh * 1.5), calc(56.25rem * 1.5));
-    /* A *separate* hard cap, not folded into the `min()` above: that value
-       is this box's preferred size, computed purely from viewport height
-       and used by `.aquila__stage` to decide how wide it wants to be too -
-       folding a `100%` (of the stage) into it would make each depend on the
-       other's not-yet-resolved width. `max-inline-size` applies after the
-       stage has already resolved its own width (via its own, unrelated
-       `max-inline-size: 100%` of `.aquila`), so there is nothing circular
-       left to resolve. */
-    max-inline-size: 100%;
-    aspect-ratio: 3 / 2;
-    block-size: auto;
-    /* The page ends. Anything the composer put beyond it is the next page's
-       problem, not a scrollbar's - see FRONT_PAGE_* in the composer, which
-       is sized to fit this. */
-    overflow: hidden;
+/* --- the page turn --------------------------------------------------------
+ *
+ * A leaf. The page being turned lifts from its outer edge and folds over the
+ * spine toward the reader, shading as it rises and showing plain paper on its
+ * back once it passes upright; the next page is already lying underneath.
+ * Going back runs the same turn in reverse - the previous page folds in from
+ * the spine. Under `dir="rtl"` the spine is on the right and the sign flips.
+ */
+.aquila__leaf {
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  pointer-events: none;
+  animation: aquila-leaf var(--dur-turn) cubic-bezier(0.55, 0.05, 0.3, 1) both;
+}
+
+[dir="rtl"] .aquila__leaf {
+  transform-origin: right center;
+}
+
+.aquila__leaf--back {
+  animation-direction: reverse;
+}
+
+@keyframes aquila-leaf {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(calc(var(--turn-sign) * 180deg));
+  }
+}
+
+.aquila__leaf-face {
+  backface-visibility: hidden;
+}
+
+/* Both pages are the same size of paper, whichever carries more stories. */
+.aquila__leaf > .aquila__sheet {
+  block-size: 100%;
+}
+
+/* The back of the page: paper, a touch darker than the front, with the light
+   falling off toward the spine. */
+.aquila__leaf-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  border-radius: var(--radius-editorial);
+  background: linear-gradient(to right, #e6e0d2, #f1ede3 70%);
+}
+
+[dir="rtl"] .aquila__leaf-back {
+  background: linear-gradient(to left, #e6e0d2, #f1ede3 70%);
+}
+
+/* Shade on the rising face, deepest as it stands on edge, and on the back as
+   it comes down. */
+.aquila__leaf-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(to left, rgba(20, 16, 10, 0.34), rgba(20, 16, 10, 0.06) 70%);
+  opacity: 0;
+  animation: aquila-leaf-shade-front var(--dur-turn) cubic-bezier(0.55, 0.05, 0.3, 1) both;
+}
+
+.aquila__leaf-back::after {
+  animation-name: aquila-leaf-shade-back;
+}
+
+.aquila__leaf--back .aquila__leaf-face::after {
+  animation-direction: reverse;
+}
+
+@keyframes aquila-leaf-shade-front {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes aquila-leaf-shade-back {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The page underneath sits in the leaf's shadow until it has passed over. */
+.aquila__book[data-turning] > .aquila__sheet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(to right, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
+  animation: aquila-under-shade var(--dur-turn) ease-out both;
+}
+
+[dir="rtl"] .aquila__book[data-turning] > .aquila__sheet::after {
+  background: linear-gradient(to left, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
+}
+
+.aquila__book[data-turning="back"] > .aquila__sheet::after {
+  animation-direction: reverse;
+}
+
+@keyframes aquila-under-shade {
+  0% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The page's corners, for a mouse: the outer one turns forward, the spine
+   one back. At rest a sliver of fold; under the pointer the corner lifts far
+   enough to see the page behind it. Not on touch screens - there the page is
+   swiped. */
+.aquila__corner {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aquila__corner {
+    display: block;
+    position: absolute;
+    inset-block-end: 0;
+    z-index: 3;
+    inline-size: 5rem;
+    block-size: 5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .aquila__corner--forward {
+    inset-inline-end: 0;
+  }
+
+  .aquila__corner--back {
+    inset-inline-start: 0;
+  }
+
+  .aquila__corner::before {
+    content: "";
+    position: absolute;
+    inset-block-end: 0;
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+    transition:
+      inline-size var(--dur-standard) var(--ease),
+      block-size var(--dur-standard) var(--ease);
+  }
+
+  /* Upper-left half is the underside of the lifted corner, the other half is
+     the ground showing through where the paper used to be. */
+  .aquila__corner--forward::before {
+    inset-inline-end: 0;
+    background: linear-gradient(135deg, #e3dccd 0 50%, var(--charcoal) 50%);
+  }
+
+  .aquila__corner--back::before {
+    inset-inline-start: 0;
+    background: linear-gradient(225deg, #e3dccd 0 50%, var(--charcoal) 50%);
+  }
+
+  [dir="rtl"] .aquila__corner--forward::before {
+    background: linear-gradient(225deg, #e3dccd 0 50%, var(--charcoal) 50%);
+  }
+
+  [dir="rtl"] .aquila__corner--back::before {
+    background: linear-gradient(135deg, #e3dccd 0 50%, var(--charcoal) 50%);
+  }
+
+  .aquila__corner:hover::before {
+    inline-size: 3.25rem;
+    block-size: 3.25rem;
+  }
+
+  .aquila__book[data-turning] .aquila__corner {
+    display: none;
+  }
+}
+
+/* No leaf, no shade: the page just changes. (IssueReader does not start a
+   turn under this preference at all; this is the belt to that.) */
+@media (prefers-reduced-motion: reduce) {
+  .aquila__leaf,
+  .aquila__book[data-turning] > .aquila__sheet::after {
+    display: none;
+  }
+
+  .aquila__corner::before {
+    transition: none;
   }
 }
 

@@ -1,7 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 
 import { IssuePaper } from "@/components/IssuePaper";
 import { ReaderUtility } from "@/components/ReaderUtility";
@@ -13,6 +21,43 @@ import { t, type LocaleCode } from "@/lib/i18n";
 const SWIPE_THRESHOLD_PX = 56;
 
 /**
+ * The width every page is composed at. A page is laid out once at this
+ * width and then scaled to fit the screen, the way a PDF viewer shows a
+ * whole page - so the composition never depends on the window, and nothing
+ * on it is ever cut off by the edge of the sheet (the fixed 3:2 box this
+ * replaced clipped the deck and the rail at most window sizes).
+ */
+const DESIGN_WIDTH_PX = 1240;
+/** A big screen may enlarge the page, but only so far - past this the type
+ * reads as a poster rather than a paper. */
+const MAX_SCALE = 1.35;
+/** Below this width a page is not scaled at all: a phone reads one sheet at
+ * full width and scrolls inside it, which is what a narrow screen is for. */
+const FIT_QUERY = "(min-width: 64rem)";
+/** Room kept clear around the sheet for its stacked edge and shadow. */
+const FIT_MARGIN_PX = 20;
+/** Matches `--dur-turn` in globals.css; the fallback that ends a turn if the
+ * animation never reports back (a hidden tab does not run it). */
+const TURN_MS = 900;
+
+type Turn = {
+  /** The page the leaf carries - the old page going forward, the new one
+   * coming back. */
+  leaf: IssuePageContent;
+  /** The page lying underneath while the leaf moves. */
+  under: IssuePageContent;
+  direction: "forward" | "back";
+  id: number;
+};
+
+function subscribeFullscreen(onChange: () => void): () => void {
+  document.addEventListener("fullscreenchange", onChange);
+  return () => document.removeEventListener("fullscreenchange", onChange);
+}
+
+const noSubscribe = () => () => {};
+
+/**
  * Reading an issue: which page you are on, and how you turn to the next one.
  *
  * Pages are fetched one at a time through a route handler rather than shipped
@@ -20,10 +65,15 @@ const SWIPE_THRESHOLD_PX = 56;
  * replayability requirement) - prefetching page 7 would claim a reader saw it
  * when they never turned to it.
  *
+ * A turn is a leaf, not a fade: the page lifts from its outer edge and folds
+ * over the spine, with the next page lying underneath it. Going back, the
+ * previous page folds in from the spine the other way. Under reduced motion
+ * there is no leaf at all - the page simply changes.
+ *
  * Direction is a function of writing mode, not of "next means right": under
  * `dir="rtl"` a paper is turned the other way, so the arrows swap what they
- * point at. The keys follow the same rule, which is why ArrowLeft is not
- * hard-wired to "previous".
+ * point at and the leaf folds toward the right. The keys follow the same
+ * rule, which is why ArrowLeft is not hard-wired to "previous".
  */
 export function IssueReader({
   issue,
@@ -43,12 +93,43 @@ export function IssueReader({
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState(false);
   const [contentsOpen, setContentsOpen] = useState(false);
+  const [turn, setTurn] = useState<Turn | null>(null);
+  const [fit, setFit] = useState<{ scale: number; height: number } | null>(null);
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const bookRef = useRef<HTMLDivElement>(null);
+  const turnCount = useRef(0);
+
+  const isFullscreen = useSyncExternalStore(
+    subscribeFullscreen,
+    () => document.fullscreenElement !== null,
+    () => false,
+  );
+  // iOS Safari has no Fullscreen API for documents; the button is simply
+  // not offered there rather than offered and doing nothing.
+  const canFullscreen = useSyncExternalStore(
+    noSubscribe,
+    () => document.fullscreenEnabled === true,
+    () => false,
+  );
 
   const pageCount = issue.page_count;
+  const turning = turn !== null;
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void document.documentElement.requestFullscreen().catch(() => {
+        // Refused (an iframe without permission, a browser setting). The
+        // reader works exactly as before, just not full screen.
+      });
+    }
+  }, []);
 
   const goTo = useCallback(
     (next: number) => {
-      if (next < 1 || next > pageCount || next === pageNo) return;
+      if (next < 1 || next > pageCount || next === pageNo || turning) return;
       setFailed(false);
       startTransition(async () => {
         const response = await fetch(
@@ -58,23 +139,83 @@ export function IssueReader({
           setFailed(true);
           return;
         }
-        setPage((await response.json()) as IssuePageContent);
+        const incoming = (await response.json()) as IssuePageContent;
+        const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!still) {
+          const direction = next > pageNo ? "forward" : "back";
+          turnCount.current += 1;
+          setTurn({
+            leaf: direction === "forward" ? page : incoming,
+            under: direction === "forward" ? incoming : page,
+            direction,
+            id: turnCount.current,
+          });
+        }
+        setPage(incoming);
         setPageNo(next);
         setContentsOpen(false);
+        // A narrow screen scrolls inside a page; the next one starts at its
+        // top, the way turning a real page does.
+        if (!window.matchMedia(FIT_QUERY).matches) window.scrollTo({ top: 0 });
       });
     },
-    [issue.id, locale, pageCount, pageNo],
+    [issue.id, locale, page, pageCount, pageNo, turning],
   );
 
+  // The end of a turn: the leaf is gone and the new page is the only page.
+  // A timer as well as `animationend`, because a background tab never runs
+  // the animation and the leaf must not be left standing over the page.
+  useEffect(() => {
+    if (!turn) return;
+    const timer = window.setTimeout(() => setTurn(null), TURN_MS + 250);
+    return () => window.clearTimeout(timer);
+  }, [turn]);
+
+  // Scale the page to fit whatever room the screen has. Measured, not
+  // computed from the viewport, because the page's height is its content's:
+  // a front page with a long lead is taller than a section page, and it is
+  // the whole of it that has to fit.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const book = bookRef.current;
+    if (!viewport || !book) return;
+    const query = window.matchMedia(FIT_QUERY);
+
+    function measure() {
+      if (!viewport || !book) return;
+      if (!query.matches) {
+        setFit(null);
+        return;
+      }
+      const height = book.offsetHeight;
+      const scale = Math.min(
+        (viewport.clientWidth - FIT_MARGIN_PX * 2) / DESIGN_WIDTH_PX,
+        (viewport.clientHeight - FIT_MARGIN_PX * 2) / height,
+        MAX_SCALE,
+      );
+      setFit((current) =>
+        current && Math.abs(current.scale - scale) < 0.001 && current.height === height
+          ? current
+          : { scale, height },
+      );
+    }
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    observer.observe(book);
+    query.addEventListener("change", measure);
+    return () => {
+      observer.disconnect();
+      query.removeEventListener("change", measure);
+    };
+  }, []);
+
   // §11/§40's "swipeable Aquila pages": a horizontal drag of the finger
-  // turns the page, the same way the arrow keys and buttons already do -
-  // there is no separate gesture-driven animation to build, because the
-  // page turn itself is already a crossfade rather than a physical page
-  // peel (see `.aquila__sheet[data-pending]`), and a drag that tried to
-  // fake paper physics is exactly what the direction document rules out.
+  // turns the page, the same way the arrow keys and buttons already do.
   // Scoped to `pointerType === "touch"` so mouse users - selecting text,
-  // clicking a headline - are entirely unaffected; nothing here listens to
-  // a mouse drag at all.
+  // clicking a headline - are entirely unaffected; the mouse has the page
+  // corners instead.
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
   const onSwipeStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -124,6 +265,10 @@ export function IssueReader({
         setContentsOpen((open) => !open);
         return;
       }
+      if ((event.key === "f" || event.key === "F") && !event.metaKey && !event.ctrlKey) {
+        toggleFullscreen();
+        return;
+      }
       // §21: Home and End reach the ends of the issue. These do not mirror
       // under RTL - "first page" is the first page whichever way the paper
       // is read, unlike the arrows, which follow writing direction.
@@ -144,21 +289,87 @@ export function IssueReader({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dir, goTo, pageNo, pageCount]);
+  }, [dir, goTo, pageNo, pageCount, toggleFullscreen]);
+
+  const fitStyle: CSSProperties | undefined = fit
+    ? ({
+        "--fit-scale": fit.scale,
+        "--fit-width": `${DESIGN_WIDTH_PX}px`,
+        "--fit-height": `${fit.height}px`,
+      } as CSSProperties)
+    : undefined;
+
+  const under = turn ? turn.under : page;
 
   return (
     <div className="aquila">
       <div className="aquila__stage">
-        <div
-          className="aquila__sheet"
-          data-pending={pending || undefined}
-          onPointerDown={onSwipeStart}
-          onPointerUp={onSwipeEnd}
-          onPointerCancel={() => {
-            swipeStart.current = null;
-          }}
-        >
-          <IssuePaper issue={issue} page={page} locale={locale} onGoTo={goTo} />
+        <div className="aquila__viewport" ref={viewportRef}>
+          <div className="aquila__fit-box" data-fit={fit ? "" : undefined} style={fitStyle}>
+            <div className="aquila__fit">
+              <div
+                ref={bookRef}
+                className="aquila__book"
+                data-pending={pending || undefined}
+                data-turning={turn?.direction}
+                onPointerDown={onSwipeStart}
+                onPointerUp={onSwipeEnd}
+                onPointerCancel={() => {
+                  swipeStart.current = null;
+                }}
+              >
+                <div className="aquila__sheet">
+                  <IssuePaper
+                    issue={issue}
+                    page={under}
+                    locale={locale}
+                    onGoTo={turning ? undefined : goTo}
+                  />
+                </div>
+
+                {turn && (
+                  <div
+                    key={turn.id}
+                    className={`aquila__leaf aquila__leaf--${turn.direction}`}
+                    // A picture of a page mid-turn, not a second copy to
+                    // read or tab through.
+                    inert
+                    onAnimationEnd={(event) => {
+                      if (event.target === event.currentTarget) setTurn(null);
+                    }}
+                  >
+                    <div className="aquila__leaf-face aquila__sheet">
+                      <IssuePaper issue={issue} page={turn.leaf} locale={locale} />
+                    </div>
+                    <div className="aquila__leaf-face aquila__leaf-back" />
+                  </div>
+                )}
+
+                {/* The page's own corners turn it, for a mouse: the outer
+                    corner forward, the spine corner back. They repeat the
+                    buttons below, so they are hidden from assistive tech and
+                    left out of the tab order - one set of controls, not two. */}
+                {pageNo > 1 && (
+                  <button
+                    type="button"
+                    className="aquila__corner aquila__corner--back"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    onClick={() => goTo(pageNo - 1)}
+                  />
+                )}
+                {pageNo < pageCount && (
+                  <button
+                    type="button"
+                    className="aquila__corner aquila__corner--forward"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    onClick={() => goTo(pageNo + 1)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {failed && (
@@ -175,7 +386,7 @@ export function IssueReader({
             type="button"
             className="aquila__arrow"
             onClick={() => goTo(pageNo - 1)}
-            disabled={pageNo <= 1 || pending}
+            disabled={pageNo <= 1 || pending || turning}
             aria-label={t(locale, "aquila.previous")}
           >
             <Chevron direction="back" />
@@ -187,7 +398,7 @@ export function IssueReader({
             type="button"
             className="aquila__arrow"
             onClick={() => goTo(pageNo + 1)}
-            disabled={pageNo >= pageCount || pending}
+            disabled={pageNo >= pageCount || pending || turning}
             aria-label={t(locale, "aquila.next")}
           >
             <Chevron direction="forward" />
@@ -200,6 +411,16 @@ export function IssueReader({
           >
             {t(locale, "aquila.contents")}
           </button>
+          {canFullscreen && (
+            <button
+              type="button"
+              className="aquila__contents-toggle aquila__fullscreen"
+              onClick={toggleFullscreen}
+              aria-pressed={isFullscreen}
+            >
+              {t(locale, isFullscreen ? "aquila.exitFullscreen" : "aquila.fullscreen")}
+            </button>
+          )}
         </nav>
       </div>
 
