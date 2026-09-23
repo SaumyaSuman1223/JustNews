@@ -550,6 +550,76 @@
         "title": "CohortWeekOut",
         "type": "object"
       },
+      "CompanyOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "exchange": {
+            "title": "Exchange",
+            "type": "string"
+          },
+          "mentions": {
+            "description": "Articles in the last day that name the company.",
+            "title": "Mentions",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null where the free quote source has no listing.",
+            "title": "Price"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "name",
+          "ticker",
+          "exchange",
+          "domain",
+          "mentions",
+          "price",
+          "change_pct",
+          "as_of"
+        ],
+        "title": "CompanyOut",
+        "type": "object"
+      },
       "CoverageOut": {
         "description": "Third-pass audit \u00a721: \"7 sources / 4 countries / 2 languages\" - how\nwidely the story this article belongs to is being covered, as of the last\ntime the cluster changed. Real counts from `story_clusters`, never\ninferred: a cluster of one source is a real, honest `sources: 1`, not\nsomething the client has to guess from `story_cluster_id` alone.",
         "properties": {
@@ -574,6 +644,14 @@
             "format": "date-time",
             "title": "Last Seen At",
             "type": "string"
+          },
+          "outlets": {
+            "description": "Up to three of the outlets covering the story, most trusted first - for a card's favicons. `sources` is the full count.",
+            "items": {
+              "$ref": "#/components/schemas/OutletOut"
+            },
+            "title": "Outlets",
+            "type": "array"
           },
           "sources": {
             "title": "Sources",
@@ -1364,6 +1442,60 @@
         "title": "LanguageMixOut",
         "type": "object"
       },
+      "MarketTileOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "change": {
+            "title": "Change",
+            "type": "number"
+          },
+          "change_pct": {
+            "title": "Change Pct",
+            "type": "number"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "label": {
+            "description": "What the instrument tracks, e.g. 'S&P 500' for SPY.",
+            "title": "Label",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "series": {
+            "description": "The last day's prices, oldest first.",
+            "items": {
+              "type": "number"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "label",
+          "price",
+          "change",
+          "change_pct",
+          "currency",
+          "as_of",
+          "series"
+        ],
+        "title": "MarketTileOut",
+        "type": "object"
+      },
       "MeExportOut": {
         "properties": {
           "follows": {
@@ -1494,6 +1626,29 @@
           "surface"
         ],
         "title": "NotInterestedIn",
+        "type": "object"
+      },
+      "OutletOut": {
+        "properties": {
+          "homepage_url": {
+            "title": "Homepage Url",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "homepage_url"
+        ],
+        "title": "OutletOut",
         "type": "object"
       },
       "PageOut": {
@@ -4095,6 +4250,7 @@
     },
     "/v1/articles": {
       "get": {
+        "description": "Cache: the first page of each filter combination, 60s fresh + 300s\nstale (ADR 0014). Later pages are read through: a cursor is one reader's\nposition, and caching every one would fill Redis with keys read once.",
         "operationId": "list_articles_v1_articles_get",
         "parameters": [
           {
@@ -4133,6 +4289,27 @@
                 "medtop:20000724"
               ],
               "title": "Topic"
+            }
+          },
+          {
+            "description": "Any of these topics - Discover's For You for a signed-out reader.",
+            "in": "query",
+            "name": "topics",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Any of these topics - Discover's For You for a signed-out reader.",
+              "examples": [
+                "medtop:11000000,medtop:15000000"
+              ],
+              "title": "Topics"
             }
           },
           {
@@ -4234,7 +4411,7 @@
     },
     "/v1/articles/top": {
       "get": {
-        "description": "What matters now, for a reader with no history to personalise from:\nrecency x breadth of coverage x source trust, one article per story.\n\nDeclared before ``/articles/{article_id}`` so \"top\" is never parsed as an\nid. Cache: the same 60s the web tier applies to the article list.",
+        "description": "What matters now, for a reader with no history to personalise from:\nrecency x breadth of coverage x source trust, one article per story.\n\nDeclared before ``/articles/{article_id}`` so \"top\" is never parsed as an\nid. Cache: 60s fresh + 300s stale (ADR 0014).",
         "operationId": "top_articles_v1_articles_top_get",
         "parameters": [
           {
@@ -4254,6 +4431,25 @@
                 "en,es"
               ],
               "title": "Languages"
+            }
+          },
+          {
+            "in": "query",
+            "name": "topics",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "medtop:11000000,medtop:15000000"
+              ],
+              "title": "Topics"
             }
           },
           {
@@ -5584,7 +5780,7 @@
     },
     "/v1/issues": {
       "get": {
-        "description": "The day's editions - morning, midday, evening - for the selector.",
+        "description": "The day's editions - morning, midday, evening - for the selector.\nCache: 60s fresh + 600s stale, the same as the latest issue it lists.",
         "operationId": "list_editions_v1_issues_get",
         "parameters": [
           {
@@ -5643,11 +5839,6 @@
             "description": "Validation Error"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "List Editions",
         "tags": [
           "aquila"
@@ -5656,7 +5847,7 @@
     },
     "/v1/issues/latest": {
       "get": {
-        "description": "The current edition of The Aquila Tribune, or null.\n\nNull is an ordinary response, not an error: before a locale's first\nedition, after a thin-corpus skip, or with the flag off. A publication\nthat has not published yet is a real state, and 404 would make the client\ntreat it as a fault.",
+        "description": "The current edition of The Aquila Tribune, or null.\n\nNull is an ordinary response, not an error: before a locale's first\nedition, after a thin-corpus skip, or with the flag off. A publication\nthat has not published yet is a real state, and 404 would make the client\ntreat it as a fault.\n\nCache: 60s fresh + 600s stale (ADR 0014). A new edition therefore shows\nwithin about a minute of the composer publishing it.",
         "operationId": "get_latest_issue_v1_issues_latest_get",
         "parameters": [
           {
@@ -5700,11 +5891,6 @@
             "description": "Validation Error"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Get Latest Issue",
         "tags": [
           "aquila"
@@ -5713,7 +5899,7 @@
     },
     "/v1/issues/{issue_id}": {
       "get": {
-        "description": "One issue by id, including a back issue still inside the retention\nwindow - the archive ADR 0012 buys by freezing composition.",
+        "description": "One issue by id, including a back issue still inside the retention\nwindow - the archive ADR 0012 buys by freezing composition.\n\nCache: 600s fresh + 3600s stale. An issue never changes once published.",
         "operationId": "get_issue_v1_issues__issue_id__get",
         "parameters": [
           {
@@ -5759,11 +5945,6 @@
             "description": "Validation Error"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Get Issue",
         "tags": [
           "aquila"
@@ -5772,7 +5953,7 @@
     },
     "/v1/issues/{issue_id}/pages/{page_no}": {
       "get": {
-        "description": "One page of an issue, with its articles.\n\nNot behind the beta gate or `require_user`: Aquila is the same paper for\neveryone, and a signed-out reader is exactly who it is for. Impressions\nare logged against the browsing session, and only with consent - an\nunconsented reader generates no rows at all rather than rows keyed on a\nthrowaway id, the same rule /v1/explore follows.",
+        "description": "One page of an issue, with its articles.\n\nNot behind the beta gate or `require_user`: Aquila is the same paper for\neveryone, and a signed-out reader is exactly who it is for. Impressions\nare logged against the browsing session, and only with consent - an\nunconsented reader generates no rows at all rather than rows keyed on a\nthrowaway id, the same rule /v1/explore follows.\n\nCache: only when nothing is logged. A consented read writes impressions\nwith ids the client reports clicks against, so it always runs; an\nunconsented read of a frozen page is the same bytes for everyone - 300s\nfresh + 3600s stale (ADR 0014), short enough that a takedown clears the\npage within minutes.",
         "operationId": "get_issue_page_v1_issues__issue_id__pages__page_no__get",
         "parameters": [
           {
@@ -6575,7 +6756,7 @@
     },
     "/v1/sources/{slug}": {
       "get": {
-        "description": "One publisher. Cache: the web tier's usual 120s for public metadata.",
+        "description": "One publisher. Cache: 300s fresh + 900s stale (ADR 0014).",
         "operationId": "source_detail_v1_sources__slug__get",
         "parameters": [
           {
@@ -6618,6 +6799,7 @@
     },
     "/v1/stats": {
       "get": {
+        "description": "Cache: 300s fresh + 900s stale (ADR 0014) - a count, not a headline.",
         "operationId": "stats_v1_stats_get",
         "responses": {
           "200": {
@@ -6700,6 +6882,7 @@
     },
     "/v1/stories/{story_id}": {
       "get": {
+        "description": "Cache: 60s fresh + 300s stale (ADR 0014) - a developing story gains\nreports by the minute, so this stays short.",
         "operationId": "get_story_v1_stories__story_id__get",
         "parameters": [
           {
@@ -7015,7 +7198,7 @@
     },
     "/v1/trending": {
       "get": {
-        "description": "What readers are actually clicking, most-clicked first.\n\nRanked on behaviour rather than recency - a rail that repeated the feed's\nown ordering would be decoration. Built from the interaction log that\nalready exists for Stage 6's benefit.",
+        "description": "What readers are actually clicking, most-clicked first.\n\nRanked on behaviour rather than recency - a rail that repeated the feed's\nown ordering would be decoration. Built from the interaction log that\nalready exists for Stage 6's benefit. Cache: 60s fresh + 300s stale.",
         "operationId": "trending_v1_trending_get",
         "parameters": [
           {
@@ -7079,6 +7262,58 @@
         "summary": "Trending",
         "tags": [
           "content"
+        ]
+      }
+    },
+    "/v1/widgets/companies": {
+      "get": {
+        "description": "Trending Companies. Cache: 300s fresh + 1800s stale (ADR 0014).",
+        "operationId": "companies_v1_widgets_companies_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyOut"
+                  },
+                  "title": "Response Companies V1 Widgets Companies Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Companies",
+        "tags": [
+          "widgets"
+        ]
+      }
+    },
+    "/v1/widgets/markets": {
+      "get": {
+        "description": "Market Outlook. Cache: 120s fresh + 600s stale (ADR 0014) - the job\nthat writes these runs every fifteen minutes.",
+        "operationId": "markets_v1_widgets_markets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MarketTileOut"
+                  },
+                  "title": "Response Markets V1 Widgets Markets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Markets",
+        "tags": [
+          "widgets"
         ]
       }
     }

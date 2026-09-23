@@ -129,6 +129,7 @@ working.
 - [0011](docs/decisions/0011-three-destination-ia.md) — three destinations, not a category navbar
 - [0012](docs/decisions/0012-aquila-precomputed-issues.md) — The Aquila Tribune is a published issue, not a feed
 - [0013](docs/decisions/0013-perspectives-from-source-role.md) — perspectives grounded in who published, not inferred from text
+- [0014](docs/decisions/0014-co-location-and-read-cache.md) — co-locate with the database, and cache shared reads in Redis
 
 ## Content policy
 

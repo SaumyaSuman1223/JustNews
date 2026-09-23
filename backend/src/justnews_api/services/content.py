@@ -51,6 +51,7 @@ async def get_article_page(
     cursor: str | None = None,
     page_size: int = DEFAULT_PAGE_SIZE,
     topic: str | None = None,
+    topics: list[str] | None = None,
     country: str | None = None,
     source: int | None = None,
 ) -> ArticlePage:
@@ -69,12 +70,13 @@ async def get_article_page(
         before_published_at=before_published_at,
         before_id=before_id,
         topic_id=topic,
+        topic_ids=topics,
         country=country,
         source_id=source,
     )
 
     has_more = len(rows) > page_size
-    items = rows[:page_size]
+    items = await repo.attach_outlets(session, rows[:page_size])
     next_cursor = (
         encode_cursor(items[-1].published_at, items[-1].id) if has_more and items else None
     )
@@ -205,7 +207,12 @@ MAX_TOP_ARTICLES = 30
 
 
 async def get_top_articles(
-    session: AsyncSession, *, languages: list[str] | None, limit: int, now: datetime | None = None
+    session: AsyncSession,
+    *,
+    languages: list[str] | None,
+    limit: int,
+    topics: list[str] | None = None,
+    now: datetime | None = None,
 ) -> list[repo.ArticleRow]:
     """The signed-out importance order: recent articles scored by recency,
     breadth of coverage and source trust, one per story, spread across
@@ -224,9 +231,33 @@ async def get_top_articles(
         upper_bound=now,
         exclude_article_ids=None,
         limit=TOP_CANDIDATE_POOL,
+        topic_ids=topics,
     )
     scored = ranking.dedupe_story_clusters(ranking.score_for_everyone(pool, now=now))
-    return ranking.diversify(scored, limit=limit)
+    return await repo.attach_outlets(session, ranking.diversify(scored, limit=limit))
+
+
+#: The most topics one Discover request may filter to - "Make it yours" picks
+#: are a handful, and an unbounded IN list is an easy way to make a query slow.
+MAX_TOPIC_FILTER = 12
+
+
+def parse_topics(value: str | None) -> list[str] | None:
+    """``"medtop:11000000,medtop:15000000"`` into ids, de-duplicated in order.
+
+    Ids are passed through, not validated against the taxonomy: an unknown id
+    matches nothing, the same answer as a topic with no articles.
+    """
+    if not value:
+        return None
+    ids: list[str] = []
+    for part in value.split(","):
+        part = part.strip()
+        if part and part not in ids:
+            ids.append(part)
+    if len(ids) > MAX_TOPIC_FILTER:
+        raise ValidationError(f"At most {MAX_TOPIC_FILTER} topics per request.")
+    return ids or None
 
 
 async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:

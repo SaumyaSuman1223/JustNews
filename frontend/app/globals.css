@@ -47,6 +47,10 @@
      against each other, not each against the page ground. */
   --accent-soft: #f0e9dc;
   --danger: #9a3b2e;
+  /* Market moves: semantic, separate from the accent, and never the only
+     signal - every change also carries its sign and an arrow. */
+  --gain: #1d7048;
+  --loss: #a8322a;
 
   /* Aquila's immersive ground. Fixed in both themes - it is a route-level
      surface treatment, not the application's dark mode (ADR 0011 / the design
@@ -171,6 +175,8 @@
     --accent: #c9ae83;
     --accent-soft: #33301f;
     --danger: #e39385;
+    --gain: #5cc48f;
+    --loss: #ef8a80;
   }
 }
 
@@ -192,6 +198,8 @@
   --accent: #c9ae83;
   --accent-soft: #33301f;
   --danger: #e39385;
+  --gain: #5cc48f;
+  --loss: #ef8a80;
 }
 
 *,
@@ -5542,4 +5550,1699 @@ span.paper__pageref {
 
 .perspectives__sources a:hover {
   color: var(--accent);
+}
+
+/* ==========================================================================
+   Discover shell - docs/DISCOVER_PLAN.md
+   The sidebar (search, destinations, account), the phone's top bar and
+   drawer, and Discover itself. Tokens only, so both themes follow.
+   ========================================================================== */
+
+.app-shell__main main {
+  padding: var(--space-4) var(--space-4)
+    calc(var(--space-16) + var(--space-4) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 56.25rem) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .app-shell__main main {
+    padding: var(--space-4) var(--space-8) var(--space-16);
+  }
+}
+
+/* --- sidebar -------------------------------------------------------------- */
+
+.sidebar {
+  --sidebar-width: 15.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  inline-size: var(--sidebar-width);
+  block-size: 100dvh;
+  padding: var(--space-4) var(--space-3);
+  background: var(--surface);
+  border-inline-end: 1px solid var(--border);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 56.25rem) {
+  .sidebar {
+    position: sticky;
+    inset-block-start: 0;
+    transition: inline-size var(--dur-standard) var(--ease);
+  }
+
+  .sidebar[data-collapsed] {
+    --sidebar-width: 4.25rem;
+  }
+}
+
+/* Below the sidebar's breakpoint it is a drawer, opened from the top bar. */
+@media (max-width: 56.1875rem) {
+  .sidebar {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 60;
+    inline-size: min(19rem, 86vw);
+    transform: translateX(-104%);
+    visibility: hidden;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
+    transition:
+      transform var(--dur-standard) var(--ease),
+      visibility var(--dur-standard);
+  }
+
+  [dir="rtl"] .sidebar {
+    transform: translateX(104%);
+  }
+
+  .sidebar[data-open] {
+    transform: none;
+    visibility: visible;
+  }
+
+  .sidebar__collapse {
+    display: none;
+  }
+}
+
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(10, 10, 9, 0.45);
+  animation: fade-in var(--dur-standard) var(--ease);
+}
+
+html[data-drawer-open] {
+  overflow: hidden;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-block-size: 2.5rem;
+  padding-inline: var(--space-2) 0;
+}
+
+.sidebar__wordmark {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sidebar__wordmark-full span,
+.topbar__wordmark span {
+  color: var(--accent);
+}
+
+.sidebar__wordmark-mark {
+  display: none;
+}
+
+.sidebar__collapse,
+.topbar__menu {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  flex: none;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.sidebar__collapse:hover,
+.topbar__menu:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.sidebar__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar__search-icon {
+  position: absolute;
+  inset-inline-start: 0.7rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.sidebar__search-input {
+  inline-size: 100%;
+  padding: 0.6rem 0.75rem;
+  padding-inline-start: 2.35rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  color: var(--text);
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: border-color var(--dur-micro) var(--ease);
+}
+
+.sidebar__search-input:focus {
+  border-color: var(--border-strong);
+  outline: none;
+}
+
+.sidebar__search-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sidebar__nav {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sidebar__group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sidebar__group + .sidebar__group {
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+/* The search field above is the way to search while it is showing; the
+   destination only earns a row once the sidebar is an icon column. */
+.sidebar:not([data-collapsed]) [data-nav="search"] {
+  display: none;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  color: var(--text-mid);
+  font-size: var(--type-body-m);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.sidebar__link:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.sidebar__link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.sidebar__link[aria-current="page"] .sidebar__icon {
+  color: var(--accent);
+}
+
+.sidebar__icon {
+  flex: none;
+}
+
+.sidebar__foot {
+  margin-block-start: auto;
+  display: grid;
+  gap: var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+.sidebar__small {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--type-label);
+}
+
+.sidebar__small a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.sidebar__small a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.sidebar__locale {
+  padding-inline: var(--space-2);
+}
+
+.sidebar__account .account-menu,
+.sidebar__account .account-menu__trigger {
+  inline-size: 100%;
+}
+
+.sidebar__account .account-menu__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+}
+
+/* The sidebar's account menu sits at the bottom of the screen, so it opens
+   upward. */
+.sidebar__account .account-menu__panel {
+  inset-block-end: 100%;
+  inset-inline: 0;
+  margin-block: 0 var(--space-2);
+}
+
+/* Collapsed: an icon column. Labels leave the layout but not the
+   accessibility tree - each link is still named by its text. */
+.sidebar[data-collapsed] .sidebar__label,
+.sidebar[data-collapsed] .account-menu__email,
+.sidebar[data-collapsed] .account-menu__signin span {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sidebar[data-collapsed] .sidebar__search,
+.sidebar[data-collapsed] .sidebar__small,
+.sidebar[data-collapsed] .sidebar__locale,
+.sidebar[data-collapsed] .sidebar__wordmark-full {
+  display: none;
+}
+
+.sidebar[data-collapsed] .sidebar__wordmark-mark {
+  display: inline;
+}
+
+.sidebar[data-collapsed] .sidebar__head {
+  flex-direction: column;
+  padding-inline: 0;
+}
+
+.sidebar[data-collapsed] .sidebar__link,
+.sidebar[data-collapsed] .account-menu__trigger {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+/* --- phone top bar -------------------------------------------------------- */
+
+.topbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 3.25rem;
+  padding-inline: var(--space-2) var(--space-4);
+  background: color-mix(in srgb, var(--ground) 92%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-block-end: 1px solid var(--border);
+}
+
+.topbar__wordmark {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+@media (min-width: 56.25rem) {
+  .topbar {
+    display: none;
+  }
+}
+
+/* --- Discover page -------------------------------------------------------- */
+
+.discover-page {
+  inline-size: min(100%, 78rem);
+  margin-inline: auto;
+  display: grid;
+  gap: var(--space-8);
+}
+
+@media (min-width: 75rem) {
+  .discover-page:has(.discover-rail) {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+  }
+}
+
+.discover-page__main {
+  min-inline-size: 0;
+}
+
+.discover__bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-2) var(--space-4);
+  background: color-mix(in srgb, var(--ground) 94%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-block-end: 1px solid var(--border);
+}
+
+@media (max-width: 56.1875rem) {
+  .discover__bar {
+    inset-block-start: 3.25rem;
+    grid-template-columns: auto;
+    justify-content: center;
+  }
+
+  .discover__title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+.discover__title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--type-body-l);
+  font-weight: 600;
+}
+
+.discover__tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.discover__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  font-size: var(--type-body-m);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-micro) var(--ease);
+}
+
+.discover__tab:hover {
+  color: var(--text);
+}
+
+.discover__tab[aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.discover__tab[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.8rem;
+  inset-block-end: calc(var(--space-2) * -1 - 1px);
+  block-size: 2px;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.discover__chevron {
+  transition: transform var(--dur-micro) var(--ease);
+}
+
+.discover__tab[aria-expanded="true"] .discover__chevron {
+  transform: rotate(180deg);
+}
+
+.discover__topics {
+  position: relative;
+}
+
+.discover__topic-list {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-3));
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 25;
+  inline-size: min(26rem, 90vw);
+  max-block-size: min(28rem, 65vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
+  animation: pop-in var(--dur-micro) var(--ease);
+}
+
+[dir="rtl"] .discover__topic-list {
+  translate: 50% 0;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.discover__topic {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  color: var(--text-mid);
+  font-size: var(--type-body-s);
+  text-decoration: none;
+}
+
+.discover__topic:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.discover__topic[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.discover__feed {
+  display: grid;
+  gap: var(--space-8);
+  padding-block-start: var(--space-6);
+}
+
+.discover__feed--enter {
+  animation: discover-in var(--dur-editorial) var(--ease);
+}
+
+@keyframes discover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.discover__block--card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .discover__block--card {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.discover__empty,
+.discover__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding-block: var(--space-8);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+  margin: 0;
+}
+
+.discover__spinner {
+  inline-size: 1rem;
+  block-size: 1rem;
+  border: 2px solid var(--border);
+  border-block-start-color: var(--text-mid);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.discover__error {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-8);
+  color: var(--text-mid);
+}
+
+.discover__sentinel {
+  block-size: 1px;
+}
+
+/* --- stories -------------------------------------------------------------- */
+
+.story {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.story__media {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-sub);
+  aspect-ratio: 16 / 10;
+}
+
+.story__media img {
+  object-fit: cover;
+  transition: transform var(--dur-editorial) var(--ease);
+}
+
+.story:hover .story__media img {
+  transform: scale(1.025);
+}
+
+.story__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.story__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.16;
+  text-wrap: balance;
+}
+
+.story__link {
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* The whole card opens the article: the headline's link is stretched over
+   it. The foot sits above that layer, so its links and buttons stay their
+   own targets. */
+.story__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.story__link:focus-visible {
+  outline: none;
+}
+
+.story:has(.story__link:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+
+.story:hover .story__link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.story__published {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+}
+
+.story__snippet {
+  margin: 0;
+  color: var(--text-mid);
+  font-size: var(--type-body-m);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.story__why {
+  margin: 0;
+  font-size: var(--type-label);
+  color: var(--accent);
+}
+
+.story__foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-start: auto;
+  padding-block-start: var(--space-2);
+}
+
+.story__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.story__action {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+
+.story__action:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.story__action:active {
+  transform: scale(0.92);
+}
+
+.story__action[data-active] {
+  color: var(--danger);
+}
+
+.story__menu {
+  position: relative;
+}
+
+.story__popover {
+  position: absolute;
+  inset-block-end: calc(100% + 6px);
+  inset-inline-end: 0;
+  z-index: 5;
+  display: grid;
+  gap: 2px;
+  min-inline-size: 15rem;
+  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
+  animation: pop-in var(--dur-micro) var(--ease);
+}
+
+.story__popover a,
+.story__popover button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+  text-align: start;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.story__popover a:hover,
+.story__popover button:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.story__toast {
+  position: absolute;
+  inset-block-end: calc(100% + 6px);
+  inset-inline-end: 0;
+  padding: 0.3rem 0.6rem;
+  font-size: var(--type-label);
+  white-space: nowrap;
+  color: var(--surface);
+  background: var(--text);
+  border-radius: 6px;
+}
+
+.story--hidden {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+}
+
+.story--hidden p {
+  margin: 0;
+}
+
+.story__undo {
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* The lead: text beside a large picture. */
+.story--lead {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.story--lead .story__title {
+  font-size: clamp(1.75rem, 1.2rem + 1.7vw, 2.45rem);
+  line-height: 1.1;
+}
+
+.story--lead .story__snippet {
+  font-family: var(--font-display);
+  font-size: var(--type-body-l);
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+@media (min-width: 48rem) {
+  .story--lead {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .story--lead .story__media {
+    order: 2;
+    aspect-ratio: 3 / 2;
+  }
+
+  /* The lead's sources line follows its snippet, as the others do - not
+     pushed to the bottom of a column the picture happens to make tall. */
+  .story--lead .story__foot {
+    margin-block-start: var(--space-2);
+  }
+
+  .story--lead .story__body {
+    gap: var(--space-3);
+  }
+}
+
+/* A card in a row of three. */
+.story--card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-standard) var(--ease);
+}
+
+.story--card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.35);
+}
+
+.story--card .story__media {
+  border-radius: 0;
+}
+
+.story--card .story__body {
+  padding: var(--space-4);
+}
+
+.story--card .story__title {
+  font-size: 1.22rem;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.story--card:has(.story__link:focus-visible) {
+  border-radius: 14px;
+}
+
+/* A wide feature: picture beside text. */
+.story--wide {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.story--wide .story__title {
+  font-size: clamp(1.35rem, 1.1rem + 0.9vw, 1.75rem);
+  font-weight: 600;
+}
+
+/* A card with no picture carries its snippet instead, so it is not a
+   headline floating in an empty box beside two illustrated ones. */
+.story--card:not(:has(.story__media)) .story__body {
+  padding-block-start: var(--space-6);
+}
+
+@media (min-width: 48rem) {
+  .story--wide {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: var(--space-8);
+    align-items: center;
+  }
+}
+
+/* --- the sources line ------------------------------------------------------ */
+
+.sources {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-inline-size: 0;
+  color: var(--text-muted);
+  font-size: var(--type-label);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sources:hover {
+  color: var(--text);
+}
+
+.sources__icons {
+  display: inline-flex;
+  flex: none;
+}
+
+.sources__icon {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--surface);
+  object-fit: cover;
+}
+
+.sources__icon + .sources__icon {
+  margin-inline-start: -0.35rem;
+}
+
+.sources__icon--letter {
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  background: var(--surface-sub);
+}
+
+.sources__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- loading skeleton ------------------------------------------------------ */
+
+.discover__skeleton {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.skel__row {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .skel__row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.skel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.skel--lead {
+  gap: var(--space-8);
+}
+
+@media (min-width: 48rem) {
+  .skel--lead {
+    grid-template-columns: 1fr 1.05fr;
+  }
+}
+
+.skel__text {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.skel__media,
+.skel__line {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-sub) 0%,
+    var(--surface) 50%,
+    var(--surface-sub) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s var(--ease) infinite;
+}
+
+.skel__media {
+  aspect-ratio: 16 / 10;
+}
+
+.skel--lead .skel__media {
+  aspect-ratio: 3 / 2;
+}
+
+.skel__line {
+  block-size: 0.9rem;
+}
+
+.skel__line--xl {
+  block-size: 2rem;
+}
+
+.skel__line--short {
+  inline-size: 60%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover__feed--enter,
+  .discover__topic-list,
+  .story__popover,
+  .drawer-scrim {
+    animation: none;
+  }
+
+  .skel__media,
+  .skel__line {
+    animation: none;
+  }
+
+  .story:hover .story__media img {
+    transform: none;
+  }
+}
+
+/* --- Discover's bar tools -------------------------------------------------- */
+
+.discover__tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.discover__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  block-size: 2.25rem;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  font-weight: 500;
+  color: var(--text-mid);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.discover__tool:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.discover__tool--customize {
+  inline-size: 2.25rem;
+  padding: 0;
+  justify-content: center;
+}
+
+@media (max-width: 56.1875rem) {
+  .discover__tools {
+    display: none;
+  }
+}
+
+@media (max-width: 74.9375rem) {
+  .discover__tool--customize {
+    display: none;
+  }
+}
+
+/* --- the rail -------------------------------------------------------------- */
+
+.discover-rail {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+/* Wide: beside the feed, following the reader down the page. */
+@media (min-width: 75rem) {
+  .discover-rail {
+    position: sticky;
+    inset-block-start: calc(var(--space-16) + var(--space-2));
+    max-block-size: calc(100dvh - var(--space-16) - var(--space-6));
+    overflow-y: auto;
+    padding-block-start: var(--space-6);
+    scrollbar-width: thin;
+  }
+}
+
+/* Narrow: the feed never ends, so a rail below it would never be seen. The
+   interests card moves above the feed; the widgets wait for a wide screen. */
+@media (max-width: 74.9375rem) {
+  .discover-page {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .discover-rail {
+    order: -1;
+  }
+
+  .discover-rail > :not(.interests) {
+    display: none;
+  }
+
+  .discover-rail:not(:has(.interests)) {
+    display: none;
+  }
+}
+
+.rail-widget,
+.interests,
+.rail-customize {
+  position: relative;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.rail-widget__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--type-body-m);
+  font-weight: 600;
+}
+
+.rail-widget__sub {
+  margin: calc(var(--space-2) * -1) 0 var(--space-3);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.rail-widget__empty {
+  margin: 0;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+}
+
+.rail-widget__source {
+  margin: var(--space-3) 0 0;
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+}
+
+.rail-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  font: inherit;
+  font-size: var(--type-body-s);
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.rail-link-button:hover {
+  text-decoration: underline;
+}
+
+.rail__customize {
+  justify-self: center;
+  color: var(--text-muted);
+  padding-block: var(--space-2);
+}
+
+/* --- Make it yours --------------------------------------------------------- */
+
+.interests {
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%);
+}
+
+.interests__close {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.interests__close:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.interests__title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.interests__body {
+  margin: 0 0 var(--space-4);
+  padding-inline-end: var(--space-8);
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+}
+
+.interests__chips {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.interests__chip {
+  cursor: pointer;
+}
+
+.interests__chip[aria-pressed="true"] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+.interests__save {
+  inline-size: 100%;
+}
+
+/* --- weather --------------------------------------------------------------- */
+
+.weather__now {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.weather__temp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.9rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.weather__icon {
+  color: var(--accent);
+}
+
+.weather__unit {
+  align-self: flex-start;
+  padding: 0.1rem 0.2rem;
+  font: inherit;
+  font-size: var(--type-label);
+  font-weight: 600;
+  color: var(--text-mid);
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.weather__unit:hover {
+  background: var(--surface-sub);
+}
+
+.weather__unit-alt {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.weather__sky {
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+}
+
+.weather__place {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block: var(--space-2) var(--space-4);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather__change {
+  padding: 0;
+  font: inherit;
+  color: var(--text-mid);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}
+
+.weather__days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  text-align: center;
+}
+
+.weather__days li {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  font-size: var(--type-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather__day-icon {
+  color: var(--text-mid);
+}
+
+.weather__day-name {
+  color: var(--text-muted);
+}
+
+.weather__loading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.weather__prompt {
+  margin: 0 0 var(--space-3);
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+}
+
+.weather__search {
+  inline-size: 100%;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  color: var(--text);
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.weather__results {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.weather__results button {
+  display: grid;
+  inline-size: 100%;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.weather__results button:hover {
+  background: var(--surface-sub);
+}
+
+.weather__results span {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.weather__picker-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: var(--space-3);
+}
+
+/* --- markets ----------------------------------------------------------------- */
+
+.markets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.markets__tile {
+  display: grid;
+  gap: 0.15rem;
+  padding: var(--space-3) var(--space-3) 0;
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.markets__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  font-size: var(--type-label);
+}
+
+.markets__label {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.markets__symbol {
+  margin-inline-start: 0.3rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.markets__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.markets__change--up {
+  color: var(--gain);
+}
+
+.markets__change--down {
+  color: var(--loss);
+}
+
+.markets__change--flat {
+  color: var(--text-muted);
+}
+
+.markets__price {
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+}
+
+.spark {
+  display: block;
+  inline-size: calc(100% + var(--space-3) * 2);
+  block-size: 2.4rem;
+  margin-inline: calc(var(--space-3) * -1);
+  color: var(--text-muted);
+}
+
+.spark--up {
+  color: var(--gain);
+}
+
+.spark--down {
+  color: var(--loss);
+}
+
+.spark__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.spark__area {
+  fill: currentColor;
+  opacity: 0.12;
+}
+
+/* --- companies ------------------------------------------------------------- */
+
+.companies {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.companies__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.companies__row:hover {
+  background: var(--surface-sub);
+}
+
+.companies__mark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 8px;
+  background: var(--surface-sub);
+  overflow: hidden;
+}
+
+.companies__initial {
+  font-weight: 700;
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+}
+
+.companies__logo {
+  position: absolute;
+  inset: 0.2rem;
+  inline-size: calc(100% - 0.4rem);
+  block-size: calc(100% - 0.4rem);
+  object-fit: contain;
+  background: var(--surface);
+  border-radius: 4px;
+}
+
+.companies__name {
+  display: grid;
+  font-size: var(--type-body-s);
+  font-weight: 600;
+  min-inline-size: 0;
+}
+
+.companies__meta {
+  font-size: var(--type-label);
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.companies__quote {
+  display: grid;
+  justify-items: end;
+  font-size: var(--type-body-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.companies__quote .markets__change {
+  font-size: var(--type-label);
+}
+
+.companies__quote--none {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+/* --- customize ------------------------------------------------------------- */
+
+.rail-customize {
+  display: grid;
+  gap: var(--space-3);
+  border-color: var(--border-strong);
+  animation: pop-in var(--dur-micro) var(--ease);
+}
+
+.rail-customize .rail-widget__title:focus {
+  outline: none;
+}
+
+.rail-customize__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.rail-customize__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.rail-customize__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-body-s);
+  cursor: pointer;
+}
+
+.rail-customize__moves {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rail-customize__moves button {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.9rem;
+  block-size: 1.9rem;
+  padding: 0;
+  color: var(--text-mid);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rail-customize__moves button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.rail-customize__up {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-customize {
+    animation: none;
+  }
 }

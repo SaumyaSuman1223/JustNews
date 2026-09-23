@@ -388,7 +388,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Articles */
+        /**
+         * List Articles
+         * @description Cache: the first page of each filter combination, 60s fresh + 300s
+         *     stale (ADR 0014). Later pages are read through: a cursor is one reader's
+         *     position, and caching every one would fill Redis with keys read once.
+         */
         get: operations["list_articles_v1_articles_get"];
         put?: never;
         post?: never;
@@ -411,7 +416,7 @@ export interface paths {
          *     recency x breadth of coverage x source trust, one article per story.
          *
          *     Declared before ``/articles/{article_id}`` so "top" is never parsed as an
-         *     id. Cache: the same 60s the web tier applies to the article list.
+         *     id. Cache: 60s fresh + 300s stale (ADR 0014).
          */
         get: operations["top_articles_v1_articles_top_get"];
         put?: never;
@@ -771,6 +776,7 @@ export interface paths {
         /**
          * List Editions
          * @description The day's editions - morning, midday, evening - for the selector.
+         *     Cache: 60s fresh + 600s stale, the same as the latest issue it lists.
          */
         get: operations["list_editions_v1_issues_get"];
         put?: never;
@@ -796,6 +802,9 @@ export interface paths {
          *     edition, after a thin-corpus skip, or with the flag off. A publication
          *     that has not published yet is a real state, and 404 would make the client
          *     treat it as a fault.
+         *
+         *     Cache: 60s fresh + 600s stale (ADR 0014). A new edition therefore shows
+         *     within about a minute of the composer publishing it.
          */
         get: operations["get_latest_issue_v1_issues_latest_get"];
         put?: never;
@@ -817,6 +826,8 @@ export interface paths {
          * Get Issue
          * @description One issue by id, including a back issue still inside the retention
          *     window - the archive ADR 0012 buys by freezing composition.
+         *
+         *     Cache: 600s fresh + 3600s stale. An issue never changes once published.
          */
         get: operations["get_issue_v1_issues__issue_id__get"];
         put?: never;
@@ -843,6 +854,12 @@ export interface paths {
          *     are logged against the browsing session, and only with consent - an
          *     unconsented reader generates no rows at all rather than rows keyed on a
          *     throwaway id, the same rule /v1/explore follows.
+         *
+         *     Cache: only when nothing is logged. A consented read writes impressions
+         *     with ids the client reports clicks against, so it always runs; an
+         *     unconsented read of a frozen page is the same bytes for everyone - 300s
+         *     fresh + 3600s stale (ADR 0014), short enough that a takedown clears the
+         *     page within minutes.
          */
         get: operations["get_issue_page_v1_issues__issue_id__pages__page_no__get"];
         put?: never;
@@ -1039,7 +1056,7 @@ export interface paths {
         };
         /**
          * Source Detail
-         * @description One publisher. Cache: the web tier's usual 120s for public metadata.
+         * @description One publisher. Cache: 300s fresh + 900s stale (ADR 0014).
          */
         get: operations["source_detail_v1_sources__slug__get"];
         put?: never;
@@ -1057,7 +1074,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Stats */
+        /**
+         * Stats
+         * @description Cache: 300s fresh + 900s stale (ADR 0014) - a count, not a headline.
+         */
         get: operations["stats_v1_stats_get"];
         put?: never;
         post?: never;
@@ -1091,7 +1111,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Story */
+        /**
+         * Get Story
+         * @description Cache: 60s fresh + 300s stale (ADR 0014) - a developing story gains
+         *     reports by the minute, so this stays short.
+         */
         get: operations["get_story_v1_stories__story_id__get"];
         put?: never;
         post?: never;
@@ -1210,9 +1234,50 @@ export interface paths {
          *
          *     Ranked on behaviour rather than recency - a rail that repeated the feed's
          *     own ordering would be decoration. Built from the interaction log that
-         *     already exists for Stage 6's benefit.
+         *     already exists for Stage 6's benefit. Cache: 60s fresh + 300s stale.
          */
         get: operations["trending_v1_trending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widgets/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Companies
+         * @description Trending Companies. Cache: 300s fresh + 1800s stale (ADR 0014).
+         */
+        get: operations["companies_v1_widgets_companies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widgets/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Markets
+         * @description Market Outlook. Cache: 120s fresh + 600s stale (ADR 0014) - the job
+         *     that writes these runs every fifteen minutes.
+         */
+        get: operations["markets_v1_widgets_markets_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1415,6 +1480,36 @@ export interface components {
             /** Week Offset */
             week_offset: number;
         };
+        /** CompanyOut */
+        CompanyOut: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Change Pct */
+            change_pct: number | null;
+            /** Domain */
+            domain: string;
+            /** Exchange */
+            exchange: string;
+            /**
+             * Mentions
+             * @description Articles in the last day that name the company.
+             */
+            mentions: number;
+            /** Name */
+            name: string;
+            /**
+             * Price
+             * @description Null where the free quote source has no listing.
+             */
+            price: number | null;
+            /** Rank */
+            rank: number;
+            /** Ticker */
+            ticker: string;
+        };
         /**
          * CoverageOut
          * @description Third-pass audit §21: "7 sources / 4 countries / 2 languages" - how
@@ -1440,6 +1535,11 @@ export interface components {
              * Format: date-time
              */
             last_seen_at: string;
+            /**
+             * Outlets
+             * @description Up to three of the outlets covering the story, most trusted first - for a card's favicons. `sources` is the full count.
+             */
+            outlets?: components["schemas"]["OutletOut"][];
             /** Sources */
             sources: number;
         };
@@ -1747,6 +1847,34 @@ export interface components {
             /** Language */
             language: string;
         };
+        /** MarketTileOut */
+        MarketTileOut: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Change */
+            change: number;
+            /** Change Pct */
+            change_pct: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Label
+             * @description What the instrument tracks, e.g. 'S&P 500' for SPY.
+             */
+            label: string;
+            /** Price */
+            price: number;
+            /**
+             * Series
+             * @description The last day's prices, oldest first.
+             */
+            series: number[];
+            /** Symbol */
+            symbol: string;
+        };
         /** MeExportOut */
         MeExportOut: {
             /** Follows */
@@ -1801,6 +1929,15 @@ export interface components {
             article_id: number;
             /** Surface */
             surface: string;
+        };
+        /** OutletOut */
+        OutletOut: {
+            /** Homepage Url */
+            homepage_url: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
         };
         /** PageOut */
         PageOut: {
@@ -3037,6 +3174,8 @@ export interface operations {
             query?: {
                 languages?: string | null;
                 topic?: string | null;
+                /** @description Any of these topics - Discover's For You for a signed-out reader. */
+                topics?: string | null;
                 /** @description Publisher country - what makes an edition regional, not just a language. */
                 country?: string | null;
                 /** @description Filter to one publisher's own id. */
@@ -3074,6 +3213,7 @@ export interface operations {
         parameters: {
             query?: {
                 languages?: string | null;
+                topics?: string | null;
                 limit?: number;
             };
             header?: never;
@@ -4637,6 +4777,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    companies_v1_widgets_companies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyOut"][];
+                };
+            };
+        };
+    };
+    markets_v1_widgets_markets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketTileOut"][];
                 };
             };
         };

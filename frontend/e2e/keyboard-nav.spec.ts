@@ -25,40 +25,48 @@ test("skip link moves keyboard focus past the masthead, and the masthead is reac
 });
 
 /**
- * The icon rail's failure mode (audit §14).
- *
- * An icon rail is easy to build and easy to build wrongly: the label becomes a
- * hover tooltip, the tooltip is hidden with `display: none` or `visibility`,
- * and the destination is then an unnamed link for anyone not using a mouse.
- * These assertions are specifically about the name surviving - by role and
- * name, which is what a screen reader would use, not by CSS.
+ * The sidebar's failure mode: collapsed to icons, a destination must still
+ * be a named link - by role and name, which is what a screen reader uses,
+ * not by what CSS happens to draw.
  */
-test("the icon rail is keyboard-reachable and every destination keeps a name", async ({ page }) => {
-  // Above the 900px line, where the rail replaces the mobile tab bar.
+test("the sidebar is keyboard-reachable, and collapsed it keeps every name", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/en");
 
-  const rail = page.locator(".rail-nav");
-  await expect(rail).toBeVisible();
-  // 52-60px, per §14. The measurement is the point of the chunk.
-  const box = await page.locator(".masthead").boundingBox();
-  expect(box?.width).toBeGreaterThanOrEqual(52);
-  expect(box?.width).toBeLessThanOrEqual(60);
+  const sidebar = page.getByRole("complementary", { name: "Main menu" });
+  await expect(sidebar).toBeVisible();
+  const discover = sidebar.getByRole("link", { name: "Discover", exact: true });
+  await expect(discover).toHaveAttribute("aria-current", "page");
 
-  const home = rail.getByRole("link", { name: "Home", exact: true });
-  await expect(home).toHaveAttribute("aria-current", "page");
+  // Skip link, wordmark, collapse toggle, search field, then the first
+  // destination.
+  for (let i = 0; i < 5; i += 1) await page.keyboard.press("Tab");
+  await expect(discover).toBeFocused();
 
-  // At rest the label is transparent, not removed - `toBeVisible` is true
-  // because opacity is not visibility, which is exactly the property that
-  // keeps it in the accessibility tree.
-  const label = home.locator(".rail-link__label");
-  await expect(label).toHaveCSS("opacity", "0");
+  await sidebar.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(sidebar).toHaveAttribute("data-collapsed");
+  // An icon column now - and the same link, by the same name.
+  await expect(sidebar.getByRole("link", { name: "Discover", exact: true })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "Aquila", exact: true })).toBeVisible();
 
-  // Tabbed to, not `.focus()`d: the reveal is on `:focus-visible`, and only a
-  // real keyboard interaction sets it. Skip link, wordmark, then the rail.
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  await expect(home).toBeFocused();
-  await expect(label).toHaveCSS("opacity", "1");
+  // The choice survives a reload, rendered by the server.
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Main menu" })).toHaveAttribute(
+    "data-collapsed",
+  );
+});
+
+test("Discover's views swap in place and keep a real URL", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/en");
+  const tabs = page.getByRole("navigation", { name: "Discover views" });
+  await expect(tabs.getByRole("link", { name: "For You" })).toHaveAttribute("aria-current", "page");
+
+  await tabs.getByRole("link", { name: "Top" }).click();
+  await expect(page).toHaveURL(/\/en\?view=top$/);
+  await expect(tabs.getByRole("link", { name: "Top" })).toHaveAttribute("aria-current", "page");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(tabs.getByRole("link", { name: "For You" })).toHaveAttribute("aria-current", "page");
 });

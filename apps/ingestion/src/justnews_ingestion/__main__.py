@@ -20,7 +20,7 @@ from justnews_core.db import dispose_engine, init_engine, session_scope
 from justnews_core.embedding import build_embedder
 from justnews_core.logging import configure_logging, get_logger
 from justnews_core.settings import get_settings
-from justnews_ingestion import retention
+from justnews_ingestion import markets, retention
 from justnews_ingestion.aquila import compose_issue, current_slot, repair_edition_times
 from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.content import repair_snippets
@@ -71,6 +71,15 @@ async def _cmd_run(args: argparse.Namespace) -> int:
         trigger=args.trigger,
     )
     _print(asdict(stats) | {"errors": stats.errors[:10]})
+    return 0
+
+
+async def _cmd_markets(_: argparse.Namespace) -> int:
+    """Discover's Market Outlook and Trending Companies - see markets.py."""
+    settings = get_settings()
+    async with session_scope() as session:
+        counts = await markets.refresh(session, settings)
+    _print(dict(counts))
     return 0
 
 
@@ -261,6 +270,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub.add_parser("prune", help="apply the retention window and report database size")
+    sub.add_parser(
+        "markets", help="record market quotes and the companies in the last day's headlines"
+    )
     sub.add_parser("stats", help="corpus size, language spread and quota usage")
 
     gnews = sub.add_parser("gnews", help="one GNews search (costs one call from today's budget)")
@@ -277,6 +289,7 @@ _COMMANDS = {
     "reclassify": _cmd_reclassify,
     "retire-languages": _cmd_retire_languages,
     "prune": _cmd_prune,
+    "markets": _cmd_markets,
     "compose-aquila": _cmd_compose_aquila,
     "repair-edition-times": _cmd_repair_edition_times,
     "repair-snippets": _cmd_repair_snippets,

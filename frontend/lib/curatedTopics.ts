@@ -40,6 +40,16 @@ const CURATED_LABELS: Record<string, Partial<Record<LocaleCode, string>>> = {
   "medtop:20000045": { en: "AI", es: "IA", hi: "एआई" },
 };
 
+/** Every curated id with its label - the Topics menu and "Make it yours"
+ * when the API's topic list is unavailable, so both still offer something
+ * real (these are the taxonomy's own ids) rather than nothing. */
+export function curatedTopics(locale: LocaleCode): { id: string; label: string }[] {
+  return Object.entries(CURATED_LABELS).flatMap(([id, labels]) => {
+    const label = labels[locale] ?? labels.en;
+    return label ? [{ id, label }] : [];
+  });
+}
+
 export function curatedTopicLabel(id: string, fallback: string, locale: LocaleCode): string {
   return CURATED_LABELS[id]?.[locale] ?? fallback;
 }

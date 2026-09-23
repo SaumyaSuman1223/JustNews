@@ -243,6 +243,9 @@ class TestArticleCoverage:
             "countries": 2,
             "first_seen_at": "2026-09-01T06:00:00Z",
             "last_seen_at": "2026-09-03T18:00:00Z",
+            # One article's own page lists no outlets - that line belongs to
+            # feed cards, which fetch it for a whole page at once.
+            "outlets": [],
         }
 
     async def test_a_single_source_cluster_reports_one_honestly(
@@ -627,3 +630,82 @@ class TestArticleTopicsEndpoint:
         await session.commit()
 
         assert (await client.get(f"/v1/articles/{article.id}/topics")).status_code == 404
+
+
+class TestDiscoverSupport:
+    """What Discover's cards and For You need from the article endpoints:
+    the story's outlets for the favicon line, and a filter to any of a
+    reader's chosen topics."""
+
+    async def _cluster(self, session: AsyncSession, articles: list) -> StoryCluster:
+        cluster = StoryCluster(
+            title=articles[0].title,
+            first_seen_at=articles[0].published_at,
+            last_seen_at=articles[-1].published_at,
+            article_count=len(articles),
+            source_count=len(articles),
+            language_count=1,
+            country_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        for article in articles:
+            article.story_cluster_id = cluster.id
+        return cluster
+
+    async def test_a_clustered_article_carries_its_most_trusted_outlets(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        trusts = [0.5, 0.9, 0.7, 0.8]
+        sources = [
+            await make_source(session, slug=f"outlet-{i}", trust_score=trust)
+            for i, trust in enumerate(trusts)
+        ]
+        articles = [
+            await make_article(session, source, title=f"Summit agrees fund {i}")
+            for i, source in enumerate(sources)
+        ]
+        await self._cluster(session, articles)
+        await session.commit()
+
+        body = (await client.get("/v1/articles?languages=en")).json()
+        coverage = body["items"][0]["coverage"]
+        assert coverage["sources"] == 4
+        # Three, most trusted first - the full count stays in `sources`.
+        assert [o["slug"] for o in coverage["outlets"]] == ["outlet-1", "outlet-3", "outlet-2"]
+        assert coverage["outlets"][0]["homepage_url"] == "https://outlet-1.example"
+
+    async def test_an_unclustered_article_has_no_coverage(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        source = await make_source(session)
+        await make_article(session, source, title="Alone")
+        await session.commit()
+
+        body = (await client.get("/v1/articles/top?languages=en")).json()
+        assert body[0]["coverage"] is None
+
+    async def test_topics_filters_to_any_of_them(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        politics = await make_topic(session, topic_id="medtop:11000000", slug="politics")
+        sport = await make_topic(session, topic_id="medtop:15000000", slug="sport")
+        source = await make_source(session)
+        vote = await make_article(session, source, title="Vote")
+        match = await make_article(session, source, title="Match")
+        await make_article(session, source, title="Weather")
+        session.add(ArticleTopic(article_id=vote.id, topic_id=politics.id, is_primary=True))
+        session.add(ArticleTopic(article_id=match.id, topic_id=sport.id, is_primary=True))
+        await session.commit()
+
+        topics = f"{politics.id},{sport.id}"
+        listed = (await client.get(f"/v1/articles?languages=en&topics={topics}")).json()
+        assert {item["title"] for item in listed["items"]} == {"Vote", "Match"}
+        top = (await client.get(f"/v1/articles/top?languages=en&topics={topics}")).json()
+        assert {item["title"] for item in top} == {"Vote", "Match"}
+
+    async def test_too_many_topics_is_a_validation_error(self, client: AsyncClient) -> None:
+        topics = ",".join(f"medtop:{i:08d}" for i in range(13))
+        response = await client.get(f"/v1/articles?topics={topics}")
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == "validation_error"

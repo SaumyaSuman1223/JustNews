@@ -14,6 +14,10 @@ services:
     dockerfilePath: infra/docker/api.Dockerfile
     dockerContext: .
     plan: free
+    # Staying in Oregon for now. The planned move next to the database
+    # (Supabase is in Tokyo; Singapore is Render's nearest region) is in
+    # docs/decisions/0014 - deferred until it can be done with the env vars
+    # and the web app's API_URL moved in the same step.
     region: oregon
     healthCheckPath: /health
     envVars:

@@ -21,7 +21,7 @@ on:
       command:
         description: Which ingestion command to run
         type: choice
-        options: [run, prune, stats, seed]
+        options: [run, prune, stats, seed, markets]
         default: run
 
 concurrency:
@@ -34,6 +34,9 @@ env:
   UV_FROZEN: "1"
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+  # Discover's Market Outlook (docs/DISCOVER_PLAN.md). Optional: without it
+  # the markets step records Bitcoin only.
+  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
   EMBEDDER: sentence-transformers
   # Mirrors the default in packages/core/src/justnews_core/settings.py, made
   # explicit here so the cache key below actually tracks it.
@@ -69,3 +72,13 @@ jobs:
 
       - name: Run ingestion
         run: uv run justnews-ingest ${{ inputs.command || 'run' }}
+
+      - name: Market quotes and trending companies
+        # On the same schedule as ingestion, on the runner that is already
+        # up, rather than a second workflow paying its own start-up. Only on
+        # the scheduled `run`: a manual prune or stats has no reason to spend
+        # quota. Never fails the job - Discover shows the last snapshot, and
+        # the next quarter-hour tries again.
+        if: ${{ (inputs.command || 'run') == 'run' }}
+        continue-on-error: true
+        run: uv run justnews-ingest markets

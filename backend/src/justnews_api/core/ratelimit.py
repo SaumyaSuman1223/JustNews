@@ -1,8 +1,10 @@
 """Per-minute rate limiting via Upstash's REST API.
 
 Upstash, not a persistent Redis connection: the free-tier API host spins down
-between requests, so a connection pool has nothing to sit on between them. A
-REST call per request is the shape that actually works here.
+between requests, so a Redis connection pool has nothing to sit on between
+them. A REST call per request is the shape that works here - over one
+keep-alive HTTPS client (core/upstash.py), not a new one per call, which paid
+a fresh TCP and TLS handshake before every request did any work.
 
 Degrades to a no-op when Upstash is not configured - the default in local dev
 and CI, where requiring a paid external dependency just to run `pytest` would
@@ -19,12 +21,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from justnews_api.core import upstash
 from justnews_core.logging import get_logger
 from justnews_core.settings import Settings
 
 log = get_logger(__name__)
 
-_UPSTASH_TIMEOUT_SECONDS = 2.0
 _EXEMPT_PATHS = frozenset({"/health", "/health/ready"})
 
 
@@ -32,7 +34,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: object, settings: Settings) -> None:
         super().__init__(app)  # type: ignore[arg-type]
         self._settings = settings
-        self._enabled = bool(settings.upstash_redis_rest_url and settings.upstash_redis_rest_token)
+        self._enabled = upstash.is_configured(settings)
         if not self._enabled:
             log.warning("rate_limiting_disabled", reason="Upstash is not configured")
 
@@ -71,15 +73,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
     async def _increment(self, key: str) -> int:
-        url = f"{self._settings.upstash_redis_rest_url}/pipeline"
-        headers = {"Authorization": f"Bearer {self._settings.upstash_redis_rest_token}"}
-        async with httpx.AsyncClient(timeout=_UPSTASH_TIMEOUT_SECONDS) as client:
-            response = await client.post(
-                url, headers=headers, json=[["INCR", key], ["EXPIRE", key, "60"]]
-            )
-            response.raise_for_status()
-        results = response.json()
-        return int(results[0]["result"])
+        results = await upstash.pipeline(self._settings, [["INCR", key], ["EXPIRE", key, "60"]])
+        return int(results[0])
 
 
 def _client_identity(request: Request) -> str:

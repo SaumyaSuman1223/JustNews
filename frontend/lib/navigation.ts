@@ -17,7 +17,7 @@ export type NavGroup = "primary" | "secondary" | "tertiary";
 
 export type NavItem = {
   /** Stable key, also the icon lookup and the i18n key suffix. */
-  id: "home" | "aquila" | "desk" | "saved" | "search" | "settings" | "profile";
+  id: "home" | "aquila" | "saved" | "history" | "search" | "settings";
   group: NavGroup;
   /** Path after the locale prefix. Empty string is the locale root (Home). */
   path: string;
@@ -32,33 +32,31 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
+  { id: "home", group: "primary", path: "", labelKey: "nav.discover", inTabBar: true },
+  { id: "aquila", group: "primary", path: "/aquila", labelKey: "nav.aquila", inTabBar: true },
+  { id: "search", group: "primary", path: "/search", labelKey: "nav.search", inTabBar: true },
   {
-    id: "home",
-    group: "primary",
-    path: "",
-    labelKey: "nav.home",
-    subtitleKey: "nav.home.subtitle",
+    id: "saved",
+    group: "secondary",
+    path: "/saved",
+    labelKey: "nav.saved",
+    requiresSession: true,
     inTabBar: true,
   },
   {
-    id: "aquila",
-    group: "primary",
-    path: "/aquila",
-    labelKey: "nav.aquila",
-    subtitleKey: "nav.aquila.subtitle",
-    inTabBar: true,
+    id: "history",
+    group: "secondary",
+    path: "/history",
+    labelKey: "nav.history",
+    requiresSession: true,
   },
   {
-    id: "desk",
-    group: "primary",
-    path: "/desk",
-    labelKey: "nav.desk",
-    subtitleKey: "nav.desk.subtitle",
-    inTabBar: true,
+    id: "settings",
+    group: "tertiary",
+    path: "/settings",
+    labelKey: "nav.settings",
+    requiresSession: true,
   },
-  { id: "saved", group: "secondary", path: "/saved", labelKey: "nav.saved", requiresSession: true, inTabBar: true },
-  { id: "search", group: "secondary", path: "/search", labelKey: "nav.search" },
-  { id: "settings", group: "tertiary", path: "/settings", labelKey: "nav.settings", requiresSession: true },
 ];
 
 export function hrefFor(item: NavItem, locale: LocaleCode): string {

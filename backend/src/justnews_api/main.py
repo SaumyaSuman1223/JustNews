@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from justnews_api.core import cache, upstash
 from justnews_api.core.errors import install_error_handlers
 from justnews_api.core.middleware import RequestContextMiddleware
 from justnews_api.core.ratelimit import RateLimitMiddleware
@@ -27,6 +28,7 @@ from justnews_api.routers import (
     saves,
     search,
     topics,
+    widgets,
 )
 from justnews_api.services.auth import SupabaseJWKSProvider
 from justnews_core.db import dispose_engine, init_engine
@@ -45,6 +47,8 @@ def _lifespan(settings: Settings):  # type: ignore[no-untyped-def]
         try:
             yield
         finally:
+            await cache.drain()
+            await upstash.close()
             await dispose_engine()
             log.info("api_stopped")
 
@@ -109,6 +113,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(search.router)
     app.include_router(invites.router)
     app.include_router(feedback.router)
+    app.include_router(widgets.router)
     app.include_router(admin.router)
     return app
 

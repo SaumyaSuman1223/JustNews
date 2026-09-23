@@ -3,7 +3,7 @@ import { FeedSkeleton } from "@/components/FeedSkeleton";
 /**
  * A My Desk topic page's loading form: title, tabs, and the same
  * `.desk-layout` split (main column + overview/related rail) the real page
- * renders into - see HomeSkeleton's own note on why a flat feed placeholder
+ * renders into - a flat feed placeholder
  * would collapse that rail and then snap it wide once data lands.
  */
 export function TopicDetailSkeleton() {

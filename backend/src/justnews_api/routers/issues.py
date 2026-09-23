@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, Path, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from justnews_api.core import cache
 from justnews_api.core.auth import optional_user
-from justnews_api.core.db import get_public_session
+from justnews_api.core.db import get_public_session, get_session
 from justnews_api.routers.content import ArticleOut
 from justnews_api.services import issues as service
 from justnews_api.services.auth import Principal
@@ -112,7 +114,7 @@ def _locale(value: str) -> str:
 
 @router.get("/issues/latest", response_model=IssueOut | None)
 async def get_latest_issue(
-    session: AsyncSession = Depends(get_public_session),
+    session: AsyncSession = Depends(get_session),
     locale: str = Query(default="en"),
 ) -> IssueOut | None:
     """The current edition of The Aquila Tribune, or null.
@@ -121,31 +123,67 @@ async def get_latest_issue(
     edition, after a thin-corpus skip, or with the flag off. A publication
     that has not published yet is a real state, and 404 would make the client
     treat it as a fault.
+
+    Cache: 60s fresh + 600s stale (ADR 0014). A new edition therefore shows
+    within about a minute of the composer publishing it.
     """
-    view = await service.get_latest_issue(session, locale=_locale(locale))
-    return _issue_out(view) if view is not None else None
+    code = _locale(locale)
+
+    async def load(s: AsyncSession) -> dict[str, Any] | None:
+        view = await service.get_latest_issue(s, locale=code)
+        return _issue_out(view).model_dump(mode="json") if view is not None else None
+
+    payload = await cache.read_through(
+        f"issue:latest:{code}", ttl=60, stale=600, session=session, load=load
+    )
+    return IssueOut.model_validate(payload) if payload is not None else None
 
 
 @router.get("/issues", response_model=list[IssueEditionOut])
 async def list_editions(
-    session: AsyncSession = Depends(get_public_session),
+    session: AsyncSession = Depends(get_session),
     locale: str = Query(default="en"),
     on: date | None = Query(default=None, description="Defaults to the latest issue's day."),
 ) -> list[IssueEditionOut]:
-    """The day's editions - morning, midday, evening - for the selector."""
-    rows = await service.list_editions(session, locale=_locale(locale), on=on)
-    return [IssueEditionOut.from_row(row) for row in rows]
+    """The day's editions - morning, midday, evening - for the selector.
+    Cache: 60s fresh + 600s stale, the same as the latest issue it lists."""
+    code = _locale(locale)
+
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        rows = await service.list_editions(s, locale=code, on=on)
+        return [IssueEditionOut.from_row(row).model_dump(mode="json") for row in rows]
+
+    payload = await cache.read_through(
+        f"issue:editions:{code}:{on.isoformat() if on else ''}",
+        ttl=60,
+        stale=600,
+        session=session,
+        load=load,
+    )
+    return [IssueEditionOut.model_validate(item) for item in payload]
 
 
 @router.get("/issues/{issue_id}", response_model=IssueOut)
 async def get_issue(
     issue_id: int = Path(ge=1),
-    session: AsyncSession = Depends(get_public_session),
+    session: AsyncSession = Depends(get_session),
     locale: str = Query(default="en"),
 ) -> IssueOut:
     """One issue by id, including a back issue still inside the retention
-    window - the archive ADR 0012 buys by freezing composition."""
-    return _issue_out(await service.get_issue(session, issue_id=issue_id, locale=_locale(locale)))
+    window - the archive ADR 0012 buys by freezing composition.
+
+    Cache: 600s fresh + 3600s stale. An issue never changes once published."""
+    code = _locale(locale)
+
+    async def load(s: AsyncSession) -> dict[str, Any]:
+        view = await service.get_issue(s, issue_id=issue_id, locale=code)
+        return _issue_out(view).model_dump(mode="json")
+
+    return IssueOut.model_validate(
+        await cache.read_through(
+            f"issue:{issue_id}:{code}", ttl=600, stale=3600, session=session, load=load
+        )
+    )
 
 
 @router.get("/issues/{issue_id}/pages/{page_no}", response_model=PageOut)
@@ -165,28 +203,50 @@ async def get_issue_page(
     are logged against the browsing session, and only with consent - an
     unconsented reader generates no rows at all rather than rows keyed on a
     throwaway id, the same rule /v1/explore follows.
+
+    Cache: only when nothing is logged. A consented read writes impressions
+    with ids the client reports clicks against, so it always runs; an
+    unconsented read of a frozen page is the same bytes for everyone - 300s
+    fresh + 3600s stale (ADR 0014), short enough that a takedown clears the
+    page within minutes.
     """
-    view = await service.get_page(
-        session,
-        issue_id=issue_id,
-        page_no=page_no,
-        locale=_locale(locale),
-        user_id=principal.user_id if principal else None,
-        session_id=x_session_id or UNCONSENTED_SESSION,
-        log_impressions=x_analytics_consent == "granted",
-    )
-    return PageOut(
-        page_no=view.page_no,
-        topic_id=view.topic_id,
-        title=view.title,
-        slots=[
-            SlotOut(
-                position=slot.position,
-                role=slot.role,
-                article=ArticleOut.from_row(slot.article),
-                impression_id=slot.impression_id,
-                page_ref=slot.page_ref,
-            )
-            for slot in view.slots
-        ],
+    code = _locale(locale)
+    log_impressions = x_analytics_consent == "granted"
+
+    async def load(s: AsyncSession) -> dict[str, Any]:
+        view = await service.get_page(
+            s,
+            issue_id=issue_id,
+            page_no=page_no,
+            locale=code,
+            user_id=principal.user_id if principal else None,
+            session_id=x_session_id or UNCONSENTED_SESSION,
+            log_impressions=log_impressions,
+        )
+        return PageOut(
+            page_no=view.page_no,
+            topic_id=view.topic_id,
+            title=view.title,
+            slots=[
+                SlotOut(
+                    position=slot.position,
+                    role=slot.role,
+                    article=ArticleOut.from_row(slot.article),
+                    impression_id=slot.impression_id,
+                    page_ref=slot.page_ref,
+                )
+                for slot in view.slots
+            ],
+        ).model_dump(mode="json")
+
+    if log_impressions:
+        return PageOut.model_validate(await load(session))
+    return PageOut.model_validate(
+        await cache.read_through(
+            f"issue:{issue_id}:page:{page_no}:{code}",
+            ttl=300,
+            stale=3600,
+            session=session,
+            load=load,
+        )
     )

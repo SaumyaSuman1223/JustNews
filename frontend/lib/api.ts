@@ -19,6 +19,8 @@
  * explicit timeout, and every failure degrades - empty content plus a flag,
  * so the page renders with a banner rather than a 500.
  */
+import { cache } from "react";
+
 import { createApiClient } from "@justnews/api-client";
 import type { components } from "@justnews/api-client";
 
@@ -41,6 +43,8 @@ export type ArticlePage = components["schemas"]["ArticlePageOut"];
 export type SearchPage = components["schemas"]["SearchPageOut"];
 export type CorpusStats = components["schemas"]["StatsOut"];
 export type Topic = components["schemas"]["TopicOut"];
+export type MarketTile = components["schemas"]["MarketTileOut"];
+export type TrendingCompany = components["schemas"]["CompanyOut"];
 export type Story = components["schemas"]["StoryOut"];
 export type StoryDetail = components["schemas"]["StoryDetailOut"];
 export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
@@ -105,6 +109,8 @@ async function get<T>(path: string, fallback: T, revalidate: number): Promise<De
 export function getArticles(params: {
   languages?: string;
   topic?: string;
+  /** Any of these topic ids - Discover's For You for a signed-out reader. */
+  topics?: string[];
   country?: string;
   source?: number;
   cursor?: string;
@@ -113,6 +119,7 @@ export function getArticles(params: {
   const query = new URLSearchParams();
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
+  if (params.topics?.length) query.set("topics", params.topics.join(","));
   if (params.country) query.set("country", params.country);
   if (params.source !== undefined) query.set("source", String(params.source));
   if (params.cursor) query.set("cursor", params.cursor);
@@ -224,9 +231,24 @@ export function getBlindspots(languages: string, limit = 4): Promise<Degradable<
 
 /** Signed-out "What matters": recency x breadth of coverage x source trust,
  * one article per story (see the API's `/v1/articles/top`). */
-export function getTopArticles(languages: string, limit = 14): Promise<Degradable<Article[]>> {
+export function getTopArticles(
+  languages: string,
+  limit = 14,
+  topics?: string[],
+): Promise<Degradable<Article[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });
+  if (topics?.length) query.set("topics", topics.join(","));
   return get<Article[]>(`/v1/articles/top?${query}`, [], 60);
+}
+
+/** Discover's Market Outlook. The job behind it runs every 15 minutes. */
+export function getMarketTiles(): Promise<Degradable<MarketTile[]>> {
+  return get<MarketTile[]>("/v1/widgets/markets", [], 120);
+}
+
+/** Discover's Trending Companies: the most named in the last day's news. */
+export function getTrendingCompanies(): Promise<Degradable<TrendingCompany[]>> {
+  return get<TrendingCompany[]>("/v1/widgets/companies", [], 300);
 }
 
 /** What readers are actually clicking. Behaviour, not recency. */
@@ -551,11 +573,21 @@ export async function unfollowSource(auth: AuthContext, sourceId: number): Promi
   });
 }
 
-export async function getMe(auth: AuthContext): Promise<MeProfile | null> {
-  const { data } = await authedClient(auth).GET("/v1/me", {
+/** Once per request (see getSession): the shell and the page both read the
+ * profile. Keyed on the token's primitives because `cache()` compares
+ * arguments by identity, and every caller builds its own AuthContext. */
+const getMeOnce = cache(async function getMeOnce(
+  accessToken: string,
+  sessionId: string | null,
+): Promise<MeProfile | null> {
+  const { data } = await authedClient({ accessToken, sessionId }).GET("/v1/me", {
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? null;
+});
+
+export function getMe(auth: AuthContext): Promise<MeProfile | null> {
+  return getMeOnce(auth.accessToken, auth.sessionId ?? null);
 }
 
 export type ReadingProfile = components["schemas"]["ReadingProfileOut"];
