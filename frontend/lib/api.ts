@@ -19,6 +19,8 @@
  * explicit timeout, and every failure degrades - empty content plus a flag,
  * so the page renders with a banner rather than a 500.
  */
+import { cache } from "react";
+
 import { createApiClient } from "@justnews/api-client";
 import type { components } from "@justnews/api-client";
 
@@ -551,11 +553,21 @@ export async function unfollowSource(auth: AuthContext, sourceId: number): Promi
   });
 }
 
-export async function getMe(auth: AuthContext): Promise<MeProfile | null> {
-  const { data } = await authedClient(auth).GET("/v1/me", {
+/** Once per request (see getSession): the shell and the page both read the
+ * profile. Keyed on the token's primitives because `cache()` compares
+ * arguments by identity, and every caller builds its own AuthContext. */
+const getMeOnce = cache(async function getMeOnce(
+  accessToken: string,
+  sessionId: string | null,
+): Promise<MeProfile | null> {
+  const { data } = await authedClient({ accessToken, sessionId }).GET("/v1/me", {
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return data ?? null;
+});
+
+export function getMe(auth: AuthContext): Promise<MeProfile | null> {
+  return getMeOnce(auth.accessToken, auth.sessionId ?? null);
 }
 
 export type ReadingProfile = components["schemas"]["ReadingProfileOut"];

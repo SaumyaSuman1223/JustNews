@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -19,7 +21,13 @@ export interface Session {
  * auth server to validate the token - trusting the cookie's claims directly
  * would trust whatever a client sent.
  */
-export async function getSession(): Promise<Session | null> {
+/**
+ * Once per request, however many layouts and pages ask. `getUser()` is a
+ * network round trip to Supabase Auth, and the shell, the page and the feed
+ * body each used to make their own - three serial hops before a signed-in
+ * page could render (docs/decisions/0014).
+ */
+export const getSession = cache(async function getSession(): Promise<Session | null> {
   if (!isSupabaseConfigured) return null;
   try {
     const supabase = await createServerSupabaseClient();
@@ -32,4 +40,4 @@ export async function getSession(): Promise<Session | null> {
   } catch {
     return null;
   }
-}
+});

@@ -9,7 +9,12 @@ on:
   schedule:
     # Offset from the hour/quarter-hour marks - see ingest.yml's comment on
     # why "*/15 * * * *" itself is the wrong shape to ask GitHub for.
-    - cron: "3,18,33,48 * * * *"
+    #
+    # Every 10 minutes, not 15: this is also what keeps the free API awake.
+    # Render sleeps it after 15 idle minutes, and GitHub routinely runs a
+    # scheduled job several minutes late - a 15-minute ping lost that race
+    # often enough that readers met 30-50s cold starts (ADR 0014).
+    - cron: "3,13,23,33,43,53 * * * *"
   workflow_dispatch:
 
 concurrency:
