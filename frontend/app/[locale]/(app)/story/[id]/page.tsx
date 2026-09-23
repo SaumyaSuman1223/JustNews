@@ -5,8 +5,15 @@ import { notFound } from "next/navigation";
 
 import { ArticleCard } from "@/components/ArticleCard";
 import { CoverageChips } from "@/components/CoverageChips";
+import { FollowStoryButton } from "@/components/FollowStoryButton";
 import { Perspectives } from "@/components/Perspectives";
-import { getSaves, getStory, getTopicStories } from "@/lib/api";
+import {
+  getSaves,
+  getStory,
+  getStoryFollowState,
+  getTopicStories,
+  markStorySeen,
+} from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
@@ -74,12 +81,18 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
         )
       : Promise.resolve([]),
   ]);
-  const savedIds = session
-    ? await getSaves({
-        accessToken: session.accessToken,
-        sessionId: await getBrowsingSessionId(),
-      }).then((page) => new Set(page.data.items.map((item) => item.article.id)))
-    : new Set<number>();
+  const auth = session
+    ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
+    : null;
+  const [savedIds, following] = await Promise.all([
+    auth
+      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
+      : Promise.resolve(new Set<number>()),
+    auth ? getStoryFollowState(auth, detail.story.id) : Promise.resolve(null),
+  ]);
+  // Opening the story is what "seen" means for "N new reports since you
+  // looked" (fifth pass F2) - so a follower's visit resets their count.
+  if (auth && following) await markStorySeen(auth, detail.story.id);
 
   // The lead article - earliest reported, since list_articles_in_cluster
   // orders that way - stands in for the story's own image and standfirst.
@@ -140,6 +153,18 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
           </ul>
         )}
         <CoverageChips coverage={detail.coverage} locale={active.code} />
+        {/* Null when it cannot be known (signed out, no beta access): no
+            control at all rather than one that cannot work. */}
+        {following !== null && (
+          <div className="story-header__actions">
+            <FollowStoryButton
+              storyId={detail.story.id}
+              locale={active.code}
+              following={following}
+              revalidatePath={`/${active.code}/story/${detail.story.id}`}
+            />
+          </div>
+        )}
       </div>
 
       {lead?.image_url && (

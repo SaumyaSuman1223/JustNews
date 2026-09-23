@@ -148,6 +148,7 @@ async def list_articles(
     exclude_article_ids: set[int] | None = None,
     topic_id: str | None = None,
     country: str | None = None,
+    source_id: int | None = None,
 ) -> list[ArticleRow]:
     """Keyset pagination over ``(published_at DESC, id DESC)``.
 
@@ -168,6 +169,8 @@ async def list_articles(
         # An edition is a language *and* a place; the place lives on the
         # publisher, not the article.
         query = query.where(Source.country == country)
+    if source_id is not None:
+        query = query.where(Article.source_id == source_id)
     if before_published_at is not None and before_id is not None:
         # sa.tuple_(), not a Python tuple. Writing
         # ``(Article.published_at, Article.id) < (ts, id)`` looks identical but
@@ -687,6 +690,22 @@ async def list_sources_for_language(
         .limit(limit)
     )
     return list(result.scalars().all())
+
+
+async def get_source_by_slug(session: AsyncSession, slug: str) -> Source | None:
+    result = await session.execute(
+        select(Source).where(Source.slug == slug, Source.active.is_(True))
+    )
+    return result.scalar_one_or_none()
+
+
+async def count_live_articles_for_source(session: AsyncSession, source_id: int) -> int:
+    result = await session.execute(
+        select(func.count())
+        .select_from(Article)
+        .where(Article.source_id == source_id, Article.removed_at.is_(None))
+    )
+    return int(result.scalar_one())
 
 
 async def list_all_sources(session: AsyncSession) -> list[Source]:

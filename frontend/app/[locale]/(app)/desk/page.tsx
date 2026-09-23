@@ -11,14 +11,17 @@ import Link from "next/link";
 import { WhatChanged, type TopicChange } from "@/components/WhatChanged";
 
 import {
+  getArticles,
+  getFollowedStories,
   getFollows,
   getTopicOverview,
   getTopicPerspectives,
   getTopicStories,
   getTopics,
+  type StoryFollow,
 } from "@/lib/api";
 import { withCuratedLabels } from "@/lib/curatedTopics";
-import { getLocale, isLocaleCode, t } from "@/lib/i18n";
+import { getLocale, isLocaleCode, t, tPlural } from "@/lib/i18n";
 import { requireBetaAccess } from "@/lib/guards";
 
 /** How many followed topics "What changed" reports on. A cap, not a
@@ -103,16 +106,21 @@ async function DeskBody({
 }: {
   locale: ReturnType<typeof getLocale>["code"];
 }) {
-  const access = await requireBetaAccess(locale, `/${locale}/desk`);
+  const access = await requireBetaAccess(locale, `/${locale}/desk`, {
+    title: t(locale, "desk.gate.title"),
+    body: t(locale, "desk.gate.body"),
+    embedded: true,
+  });
   // Audit §28: a gate is a fair authentication state but a poor front door.
   // A visitor who cannot yet sign in should still be able to see what a desk
   // is for - and every topic page behind these links is public, so this shows
   // the real thing rather than a picture of it.
   if (!access.ok) return <DeskPreview locale={locale} gate={access.element} />;
 
-  const [follows, topicsRaw] = await Promise.all([
+  const [follows, topicsRaw, followedStories] = await Promise.all([
     getFollows(access.auth),
     getTopics(locale),
+    getFollowedStories(access.auth),
   ]);
   // §24's curated layer, applied once here so every reader below - tiles,
   // the add-topic picker, "what changed" headings - sees the editorial
@@ -153,6 +161,7 @@ async function DeskBody({
   if (tiles.length === 0) {
     return (
       <>
+        <FollowedStories stories={followedStories} locale={locale} />
         <EmptyState
           title={t(locale, "desk.empty.title")}
           body={t(locale, "desk.empty.body")}
@@ -169,6 +178,10 @@ async function DeskBody({
 
   return (
     <>
+      {/* Followed stories first: a story the reader chose to track, with a
+          count of what arrived since, is the most specific thing this page
+          can tell them. */}
+      <FollowedStories stories={followedStories} locale={locale} />
       {/* What changed comes first. The topics themselves are the workspace's
           furniture - useful, and not the thing a reader opened the page to
           find out (§25, §27). */}
@@ -193,6 +206,46 @@ async function DeskBody({
         />
       </section>
     </>
+  );
+}
+
+/**
+ * The stories this reader follows (fifth pass F2), unseen reports first -
+ * each with how many reports arrived since they last opened it. Renders
+ * nothing until they follow one: an empty "stories you follow" box on every
+ * desk would be furniture asking for attention.
+ */
+function FollowedStories({
+  stories,
+  locale,
+}: {
+  stories: StoryFollow[];
+  locale: ReturnType<typeof getLocale>["code"];
+}) {
+  if (stories.length === 0) return null;
+  return (
+    <section className="desk-section">
+      <h2 className="home-tier">{t(locale, "desk.followedStories")}</h2>
+      <p className="desk-section__note">{t(locale, "desk.followedStories.note")}</p>
+      <ul className="followed-stories">
+        {stories.map((story) => (
+          <li key={story.story_id}>
+            <Link href={`/${locale}/story/${story.story_id}`}>{story.title}</Link>
+            <span
+              className={
+                story.new_reports > 0
+                  ? "followed-stories__count followed-stories__count--new"
+                  : "followed-stories__count"
+              }
+            >
+              {story.new_reports > 0
+                ? tPlural(locale, "desk.followedStories.new", story.new_reports)
+                : t(locale, "desk.followedStories.upToDate")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -223,21 +276,51 @@ async function DeskPreview({
   // Fourth-pass §20: the page should demonstrate the value before it asks
   // for an account, not describe it. One real topic, rendered with the same
   // `Understand` module a signed-in reader's own topic page uses - not a
-  // screenshot of one, the thing itself, working signed out. Picked as the
-  // first of these topics that actually has coverage, reusing the stories
-  // already fetched above, so the demonstration is never an empty shell
-  // when a topic with real content is sitting right next to it.
-  const exampleIndex = storyLists.findIndex(
-    (stories) => !stories.degraded && stories.data.length > 0,
-  );
-  const example = exampleIndex >= 0 ? changeTopics[exampleIndex] : (preview[0] ?? null);
-  const exampleStoriesResult = exampleIndex >= 0 ? storyLists[exampleIndex] : null;
-  const [exampleStories, examplePerspectives] = example
+  // screenshot of one, the thing itself, working signed out.
+  //
+  // Fifth-pass §2.1: "the first topic with any story" picked Climate, whose
+  // stories were a podcast and a documentary at one source each - under a
+  // pitch promising "compare who is covering it". The example is now the
+  // topic with the broadest real coverage: most outlets, then most articles,
+  // read from each topic's own overview counts.
+  const overviews = await Promise.all(preview.map((topic) => getTopicOverview(topic.id)));
+  const breadth = (index: number): [number, number] => {
+    const overview = overviews[index];
+    const data = overview && !overview.degraded ? overview.data : null;
+    return data ? [data.sources, data.articles] : [0, 0];
+  };
+  let exampleIndex = -1;
+  preview.forEach((_, index) => {
+    const [sources, articles] = breadth(index);
+    if (articles === 0) return;
+    const [bestSources, bestArticles] = exampleIndex >= 0 ? breadth(exampleIndex) : [-1, -1];
+    if (sources > bestSources || (sources === bestSources && articles > bestArticles)) {
+      exampleIndex = index;
+    }
+  });
+  const example = exampleIndex >= 0 ? (preview[exampleIndex] ?? null) : null;
+  const [exampleStories, examplePerspectives, exampleLatest] = example
     ? await Promise.all([
-        exampleStoriesResult ? Promise.resolve(exampleStoriesResult) : getTopicStories(example.id),
+        getTopicStories(example.id),
         getTopicPerspectives(example.id),
+        getArticles({ languages: locale, topic: example.id, pageSize: 24 }),
       ])
-    : [null, null];
+    : [null, null, null];
+  // The example already shows its own topic in full; "what changed" below
+  // covers the others, so nothing on the page is printed twice.
+  const shownStoryIds = new Set(
+    exampleStories && !exampleStories.degraded ? exampleStories.data.map((story) => story.id) : [],
+  );
+  // A showcase for someone deciding whether to sign up features only stories
+  // more than one outlet is carrying - the same bar Understand sets for a
+  // "development". A signed-in reader's own desk still reports every change
+  // in the topics they chose.
+  const otherChanges = changes.filter(
+    (change) =>
+      change.topicId !== example?.id &&
+      !shownStoryIds.has(change.story.id) &&
+      change.story.source_count > 1,
+  );
 
   return (
     <>
@@ -251,13 +334,14 @@ async function DeskPreview({
         </ul>
       </section>
 
-      {example && exampleStories && examplePerspectives && (
+      {example && exampleStories && examplePerspectives && exampleLatest && (
         <section className="desk-example">
           <p className="desk-section__note">{t(locale, "desk.example.note")}</p>
           <Understand
             topicLabel={example.label}
             stories={exampleStories.degraded ? [] : exampleStories.data}
             perspectives={examplePerspectives.degraded ? [] : examplePerspectives.data}
+            latest={exampleLatest.degraded ? [] : exampleLatest.data.items}
             locale={locale}
             storyHref={(storyId) => `/${locale}/story/${storyId}`}
           />
@@ -268,13 +352,13 @@ async function DeskPreview({
         {gate}
       </section>
 
-      {changes.length > 0 && (
+      {otherChanges.length > 0 && (
         <section className="desk-section">
           <h2 className="home-tier">{t(locale, "desk.whatChanged")}</h2>
           <p className="desk-section__note">
             {t(locale, "desk.whatChanged.previewNote")}
           </p>
-          <WhatChanged changes={changes} locale={locale} />
+          <WhatChanged changes={otherChanges} locale={locale} />
         </section>
       )}
       {preview.length > 0 && (

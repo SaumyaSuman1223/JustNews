@@ -49,6 +49,7 @@ class TopicMatch:
 class SourceMatch:
     id: int
     name: str
+    slug: str
     homepage_url: str
 
 
@@ -122,7 +123,9 @@ async def search(
         ]
         source_rows = await repo.search_sources(session, query=query_text, limit=MAX_GROUP_MATCHES)
         matched_sources = [
-            SourceMatch(id=source.id, name=source.name, homepage_url=source.homepage_url)
+            SourceMatch(
+                id=source.id, name=source.name, slug=source.slug, homepage_url=source.homepage_url
+            )
             for source in source_rows
         ]
 

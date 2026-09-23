@@ -19,11 +19,15 @@ import {
   getMe,
   getSaves,
   getStats,
+  getTopArticles,
+  getTopics,
   getTrending,
   type Article,
 } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { getLocale, isLocaleCode, readerLanguages, t } from "@/lib/i18n";
+import type { RankReason } from "@/lib/rankReason";
 import { getSession } from "@/lib/session";
 
 // The layout's description would otherwise also be emitted, deferred, as a
@@ -56,6 +60,52 @@ const TIER_TWO = 6;
 const TIER_TWO_FEATURES = 1;
 const TIER_TWO_PICTURES = 2;
 const TAB_PAGE_SIZE = 10;
+/** The Daily Brief's five, drawn from right after the two editorial tiers. */
+const BRIEF = 5;
+
+/**
+ * Home for a reader with no personal ranking (signed out, or signed in
+ * without beta access).
+ *
+ * Fifth pass §2.3: this used to be the plain newest-first list, so "What
+ * matters" was whatever landed last - on the day it was reviewed, a
+ * celebrity spat. The first page now opens with the importance order
+ * (recency x breadth of coverage x source trust, one per story - see
+ * `getTopArticles`) and continues with the chronological stream, minus
+ * anything the top order already placed. Later pages are the chronological
+ * stream alone: the cursor belongs to it, and the importance order has no
+ * pages of its own.
+ */
+async function anonymousFeed(languages: string, cursor: string | undefined) {
+  const [page, top] = await Promise.all([
+    getArticles({ languages, cursor, pageSize: 24 }),
+    cursor ? Promise.resolve(null) : getTopArticles(languages, TIER_ONE + TIER_TWO + BRIEF),
+  ]);
+  const lead = top && !top.degraded ? top.data : [];
+  const placed = new Set(lead.map((article) => article.id));
+  const articles = [...lead, ...page.data.items.filter((article) => !placed.has(article.id))];
+  return {
+    degraded: page.degraded,
+    // Uniform shape either way - an anonymous read has no impression to
+    // report a click against, so there is nothing to attribute.
+    items: articles.map((article) => ({ article, impression_id: null, reason: null })),
+    nextCursor: page.data.next_cursor,
+  };
+}
+
+type ApiReason = { kind: "followed_topic" | "trending" | "exploration"; topic_id?: string | null };
+
+function whyFor(
+  reason: ApiReason | null | undefined,
+  topicLabels: Map<string, string>,
+): RankReason | undefined {
+  if (!reason) return undefined;
+  if (reason.kind === "followed_topic") {
+    const topic = reason.topic_id ? topicLabels.get(reason.topic_id) : undefined;
+    return topic ? { kind: "followed_topic", topic } : undefined;
+  }
+  return { kind: reason.kind };
+}
 
 function isHomeTab(value: string | undefined): value is HomeTab {
   return value === "trending" || value === "history" || value === "saved";
@@ -130,26 +180,36 @@ async function FeedBody({
   // honour them.
   const languages = readerLanguages(profile?.preferred_languages, active.code);
 
-  const [feed, stats, trending, savedIds] = await Promise.all([
+  const [feedRaw, stats, trending, savedIds, topics] = await Promise.all([
     auth && hasBetaAccess
       ? getFeed(auth, { locale: active.code, cursor, pageSize: 24 }).then((page) => ({
           degraded: page.degraded,
           items: page.data.items,
           nextCursor: page.data.next_cursor,
         }))
-      : getArticles({ languages, cursor, pageSize: 24 }).then((page) => ({
-          degraded: page.degraded,
-          // Uniform shape either way - an anonymous read has no impression
-          // to report a click against, so there is nothing to attribute.
-          items: page.data.items.map((article) => ({ article, impression_id: null })),
-          nextCursor: page.data.next_cursor,
-        })),
+      : anonymousFeed(languages, cursor),
     getStats(),
     getTrending(languages, 20),
     auth && hasBetaAccess
       ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
+    // Only to label "Because you follow {topic}" - the reason carries the id.
+    auth && hasBetaAccess ? getTopics(active.code) : Promise.resolve(null),
   ]);
+
+  // Fifth pass F7: the ranker's own reason for each card, with the topic id
+  // resolved to the label the reader knows it by. A reason for a topic this
+  // page cannot name is dropped rather than shown as a raw concept id.
+  const topicLabels = new Map(
+    (topics?.data ?? []).map((topic) => [
+      topic.id,
+      curatedTopicLabel(topic.id, topic.label, active.code),
+    ]),
+  );
+  const feed = {
+    ...feedRaw,
+    items: feedRaw.items.map((item) => ({ ...item, why: whyFor(item.reason, topicLabels) })),
+  };
 
   // The two editorial tiers always lead with the same top stories, whichever
   // tab is selected below them - the tabs switch the dense stream, not the
@@ -161,8 +221,12 @@ async function FeedBody({
   // pixels above in the hero itself. The Brief draws from what neither
   // editorial tier above it shows, so it is additional reading rather than
   // the same page condensed.
+  //
+  // Fifth pass §2.3: the dense stream under the tabs also started at
+  // position 9, so its first five rows were the Brief reprinted. The Brief
+  // now owns positions 9-13 and the stream starts after it.
   const briefArticles = feed.items
-    .slice(TIER_ONE + TIER_TWO, TIER_ONE + TIER_TWO + 5)
+    .slice(TIER_ONE + TIER_TWO, TIER_ONE + TIER_TWO + BRIEF)
     .map((item) => item.article);
 
   return (
@@ -209,6 +273,7 @@ async function FeedBody({
               items={tierOne.map((item) => ({
                 article: item.article,
                 impressionId: item.impression_id,
+                why: item.why,
                 saved: savedIds.has(item.article.id),
               }))}
               locale={active.code}
@@ -219,6 +284,7 @@ async function FeedBody({
               secondaries={TIER_ONE - TIER_ONE_LEADS}
               aboveFold
               expandableLead
+              markNew
             />
           </div>
 
@@ -229,6 +295,7 @@ async function FeedBody({
                 items={tierTwo.map((item) => ({
                   article: item.article,
                   impressionId: item.impression_id,
+                  why: item.why,
                   saved: savedIds.has(item.article.id),
                 }))}
                 locale={active.code}
@@ -246,6 +313,7 @@ async function FeedBody({
                 rest="compact"
                 allowClusterPromotion
                 allowPerspectivePromotion
+                markNew
               />
             </div>
           )}
@@ -273,7 +341,7 @@ async function FeedBody({
               active={active}
               auth={auth}
               hasBetaAccess={hasBetaAccess}
-              feedRest={feed.items.slice(TIER_ONE + TIER_TWO)}
+              feedRest={feed.items.slice(TIER_ONE + TIER_TWO + BRIEF)}
               trending={trending.data}
               savedIds={savedIds}
               cursor={cursor}
@@ -301,7 +369,7 @@ async function TabPanel({
   active: ReturnType<typeof getLocale>;
   auth: { accessToken: string; sessionId: string | null } | null;
   hasBetaAccess: boolean;
-  feedRest: { article: Article; impression_id: number | null }[];
+  feedRest: { article: Article; impression_id: number | null; why: RankReason | undefined }[];
   trending: Article[];
   savedIds: Set<number>;
   cursor?: string;
@@ -318,6 +386,7 @@ async function TabPanel({
         layout="list"
         allowClusterPromotion
         allowPerspectivePromotion
+        markNew
       />
     );
   }
@@ -376,6 +445,7 @@ async function TabPanel({
         items={feedRest.map((item) => ({
           article: item.article,
           impressionId: item.impression_id,
+          why: item.why,
           saved: savedIds.has(item.article.id),
         }))}
         locale={active.code}
@@ -385,6 +455,7 @@ async function TabPanel({
         layout="list"
         allowClusterPromotion
         allowPerspectivePromotion
+        markNew
       />
       <Pagination
         locale={active.code}

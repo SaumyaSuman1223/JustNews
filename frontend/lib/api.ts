@@ -74,6 +74,9 @@ export type DeckCard = components["schemas"]["DeckCardOut"];
 export type TopicOverview = components["schemas"]["TopicOverviewOut"];
 export type RelatedTopic = components["schemas"]["RelatedTopicOut"];
 export type PerspectiveGroup = components["schemas"]["PerspectiveGroupOut"];
+export type SourceDetail = components["schemas"]["SourceDetailOut"];
+export type StoryFollow = components["schemas"]["StoryFollowOut"];
+export type ArticleTopicLink = components["schemas"]["ArticleTopicLinkOut"];
 
 export interface Degradable<T> {
   data: T;
@@ -103,6 +106,7 @@ export function getArticles(params: {
   languages?: string;
   topic?: string;
   country?: string;
+  source?: number;
   cursor?: string;
   pageSize?: number;
 }): Promise<Degradable<ArticlePage>> {
@@ -110,6 +114,7 @@ export function getArticles(params: {
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
   if (params.country) query.set("country", params.country);
+  if (params.source !== undefined) query.set("source", String(params.source));
   if (params.cursor) query.set("cursor", params.cursor);
   query.set("page_size", String(params.pageSize ?? 20));
   // 60s: a news feed may be a minute stale; it may not be a minute slow.
@@ -146,6 +151,20 @@ export function getSources(language: string): Promise<Degradable<SourceOption[]>
  * (audit §27), as opposed to `getSources`' bounded onboarding sample. */
 export function getAllSources(): Promise<Degradable<SourceOption[]>> {
   return get<SourceOption[]>("/v1/sources", [], 3600);
+}
+
+/** One publisher's page (fifth pass F3). */
+export function getSource(slug: string): Promise<Degradable<SourceDetail | null>> {
+  return get<SourceDetail | null>(`/v1/sources/${encodeURIComponent(slug)}`, null, 120);
+}
+
+/** What an article is filed under, primary first, labelled in `language`. */
+export function getArticleTopicLinks(
+  id: number,
+  language: string,
+): Promise<Degradable<ArticleTopicLink[]>> {
+  const query = new URLSearchParams({ language });
+  return get<ArticleTopicLink[]>(`/v1/articles/${id}/topics?${query}`, [], 120);
 }
 
 export function getStory(id: number, language: string): Promise<Degradable<StoryDetail | null>> {
@@ -201,6 +220,13 @@ export function getTopicPerspectives(topicId: string): Promise<Degradable<Perspe
 export function getBlindspots(languages: string, limit = 4): Promise<Degradable<Blindspot[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });
   return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
+}
+
+/** Signed-out "What matters": recency x breadth of coverage x source trust,
+ * one article per story (see the API's `/v1/articles/top`). */
+export function getTopArticles(languages: string, limit = 14): Promise<Degradable<Article[]>> {
+  const query = new URLSearchParams({ languages, limit: String(limit) });
+  return get<Article[]>(`/v1/articles/top?${query}`, [], 60);
 }
 
 /** What readers are actually clicking. Behaviour, not recency. */
@@ -457,6 +483,65 @@ export async function followSource(auth: AuthContext, sourceId: number): Promise
     body: { source_id: sourceId },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
+}
+
+// --- followed stories (fifth pass F2) -----------------------------------
+
+export async function followStory(auth: AuthContext, storyId: number): Promise<boolean> {
+  const { response } = await authedClient(auth).POST("/v1/follows/stories", {
+    body: { story_id: storyId },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return response.ok;
+}
+
+export async function unfollowStory(auth: AuthContext, storyId: number): Promise<boolean> {
+  const { response } = await authedClient(auth).DELETE("/v1/follows/stories/{story_id}", {
+    params: { path: { story_id: storyId } },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return response.ok;
+}
+
+/** Null when it cannot be known (no beta access, API down): the page then
+ * shows no follow control rather than a wrong one. */
+export async function getStoryFollowState(
+  auth: AuthContext,
+  storyId: number,
+): Promise<boolean | null> {
+  try {
+    const { data } = await authedClient(auth).GET("/v1/follows/stories/{story_id}", {
+      params: { path: { story_id: storyId } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return data ? data.following : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fire-and-forget from the story page; a failure only means the "new
+ * reports" count stays a little high until the next visit. */
+export async function markStorySeen(auth: AuthContext, storyId: number): Promise<void> {
+  try {
+    await authedClient(auth).POST("/v1/follows/stories/{story_id}/seen", {
+      params: { path: { story_id: storyId } },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch {
+    /* see above */
+  }
+}
+
+export async function getFollowedStories(auth: AuthContext): Promise<StoryFollow[]> {
+  try {
+    const { data } = await authedClient(auth).GET("/v1/follows/stories", {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function unfollowSource(auth: AuthContext, sourceId: number): Promise<void> {

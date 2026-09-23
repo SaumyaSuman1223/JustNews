@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import * as api from "@/lib/api";
-import { BROWSING_SESSION_COOKIE, getBrowsingSessionId } from "@/lib/browsingSession";
-import { CONSENT_COOKIE, type ConsentState } from "@/lib/consent";
+import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { type ConsentState, writeConsent } from "@/lib/consent";
+import { TEXT_SIZE_COOKIE, THEME_COOKIE } from "@/lib/preferences";
 import { getSession } from "@/lib/session";
 
 async function authOrNull() {
@@ -16,46 +17,17 @@ async function authOrNull() {
 }
 
 /**
- * The only place `jn_consent` is ever written - a reader's own choice, on
- * the banner or the Settings toggle, never a default middleware.ts assigns.
- * `httpOnly`: nothing client-side needs to read this cookie, since the
- * banner is server-rendered and both its buttons are plain `<form
- * action={...}>` submissions, not client state - one fewer thing a tampered
- * client value could lie to the server about.
+ * The Settings page's consent toggle. The banner posts to
+ * app/api/consent/route.ts instead - see there for why.
  *
- * Also sets/deletes jn_sid directly here, synchronously, rather than only
- * relying on middleware.ts to notice the new consent cookie on some later
- * request. middleware.ts's own copy of this logic is what keeps the
- * invariant holding on every ordinary navigation afterward (and is what
- * actually enforces it - a tampered client could call this action with any
- * cookie state it likes, but every subsequent real request still passes
- * through middleware); this one is what makes the grant or withdrawal take
- * effect immediately, in the same response, rather than waiting on a
- * refresh whose exact timing relative to a Server Action isn't a contract
- * this code should depend on.
- *
- * `revalidatePath("/", "layout")` matches the pattern every other
- * account-wide action in this file already uses (redeemInviteAction) - the
- * root layout is what decides whether ConsentBanner renders at all.
+ * Writing jn_sid here as well as in middleware.ts is what makes a grant or a
+ * withdrawal take effect in this same response; middleware.ts is what keeps
+ * the invariant on every request afterwards, whatever a tampered client
+ * sends. `revalidatePath("/", "layout")` because the layout decides whether
+ * the banner renders at all.
  */
 export async function setConsentAction(state: ConsentState): Promise<void> {
-  const store = await cookies();
-  store.set(CONSENT_COOKIE, state, {
-    maxAge: 60 * 60 * 24 * 180,
-    sameSite: "lax",
-    httpOnly: true,
-    path: "/",
-  });
-  if (state === "granted") {
-    const existing = store.get(BROWSING_SESSION_COOKIE)?.value;
-    store.set(BROWSING_SESSION_COOKIE, existing ?? crypto.randomUUID(), {
-      maxAge: 60 * 60 * 24 * 30,
-      sameSite: "lax",
-      path: "/",
-    });
-  } else {
-    store.delete(BROWSING_SESSION_COOKIE);
-  }
+  await writeConsent(state);
   revalidatePath("/", "layout");
 }
 
@@ -171,6 +143,42 @@ export async function unfollowSourceAction(sourceId: number, path: string): Prom
   await api.unfollowSource(auth, sourceId);
   revalidatePath(path);
   return true;
+}
+
+export async function followStoryAction(storyId: number, path: string): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  const ok = await api.followStory(auth, storyId);
+  if (ok) revalidatePath(path);
+  return ok;
+}
+
+export async function unfollowStoryAction(storyId: number, path: string): Promise<boolean> {
+  const auth = await authOrNull();
+  if (!auth) return false;
+  const ok = await api.unfollowStory(auth, storyId);
+  if (ok) revalidatePath(path);
+  return ok;
+}
+
+/** The Display page's form (fifth pass F8). A plain form action, so it
+ * works without JavaScript; an invalid value falls back to the default
+ * rather than being stored. One year, first-party, readable only by the
+ * server - these are display settings, not identifiers. */
+export async function setDisplayPreferencesAction(formData: FormData): Promise<void> {
+  const theme = formData.get("theme");
+  const textSize = formData.get("textSize");
+  const store = await cookies();
+  const options = {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax" as const,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  };
+  store.set(THEME_COOKIE, theme === "light" || theme === "dark" ? theme : "system", options);
+  store.set(TEXT_SIZE_COOKIE, textSize === "large" ? "large" : "standard", options);
+  revalidatePath("/", "layout");
 }
 
 export async function updateLanguagesAction(languages: string[]): Promise<void> {

@@ -1,10 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import type { SourceOption, Topic } from "@/lib/api";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { locales, t, type LocaleCode } from "@/lib/i18n";
+
+/** How many of each kind the type-ahead offers. */
+const SUGGESTIONS_PER_KIND = 3;
 
 const RECENT_KEY = "jn_recent_searches";
 const RECENT_LIMIT = 5;
@@ -107,6 +112,9 @@ export function SearchControls({
 }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
+  // What is in the box right now, for the type-ahead. The input itself stays
+  // uncontrolled (defaultValue) so the form still submits without JS.
+  const [draft, setDraft] = useState(query);
   const recent = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -127,6 +135,27 @@ export function SearchControls({
       ),
     );
   }, [query]);
+
+  // Fifth pass F5: topics and publishers whose name matches what is being
+  // typed, as direct links - "politics" goes to the Politics desk rather than
+  // to forty articles that mention the word. Matched client-side over the
+  // lists this page already loaded for its filters, so typing costs no
+  // requests. Plain links under the box rather than an ARIA combobox: a
+  // keyboard reader tabs to them, a screen reader hears them as a list.
+  const needle = draft.trim().toLocaleLowerCase(locale);
+  const topicSuggestions =
+    needle.length >= 2
+      ? topics
+          .map((item) => ({ ...item, label: curatedTopicLabel(item.id, item.label, locale) }))
+          .filter((item) => item.label.toLocaleLowerCase(locale).includes(needle))
+          .slice(0, SUGGESTIONS_PER_KIND)
+      : [];
+  const sourceSuggestions =
+    needle.length >= 2
+      ? sources
+          .filter((item) => item.name.toLocaleLowerCase(locale).includes(needle))
+          .slice(0, SUGGESTIONS_PER_KIND)
+      : [];
 
   function clearRecent() {
     try {
@@ -156,6 +185,7 @@ export function SearchControls({
           defaultValue={query}
           placeholder={t(locale, "search.placeholder")}
           autoComplete="off"
+          onChange={(event) => setDraft(event.target.value)}
         />
         <button className="button" type="submit">
           {t(locale, "search.submit")}
@@ -174,7 +204,7 @@ export function SearchControls({
               <option value="">{t(locale, "search.filter.anyTopic")}</option>
               {topics.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.label}
+                  {curatedTopicLabel(item.id, item.label, locale)}
                 </option>
               ))}
             </select>
@@ -227,6 +257,30 @@ export function SearchControls({
           </label>
         </div>
       </form>
+
+      {(topicSuggestions.length > 0 || sourceSuggestions.length > 0) && (
+        <nav className="search-suggest" aria-label={t(locale, "search.suggest.label")}>
+          <span className="search-suggest__label">{t(locale, "search.suggest.label")}</span>
+          <ul>
+            {topicSuggestions.map((item) => (
+              <li key={item.id}>
+                <Link href={`/${locale}/desk/${encodeURIComponent(item.id)}`}>
+                  {item.label}
+                  <span className="search-suggest__kind">{t(locale, "search.suggest.topic")}</span>
+                </Link>
+              </li>
+            ))}
+            {sourceSuggestions.map((item) => (
+              <li key={item.id}>
+                <Link href={`/${locale}/source/${encodeURIComponent(item.slug)}`}>
+                  {item.name}
+                  <span className="search-suggest__kind">{t(locale, "search.suggest.source")}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {recent.length > 0 && (
         <div className="search-recent">

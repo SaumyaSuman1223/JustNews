@@ -51,7 +51,13 @@ from justnews_ingestion import dedup, gnews
 from justnews_ingestion.classify import assign_topics
 from justnews_ingestion.enrich import enrich
 from justnews_ingestion.http import PoliteClient
-from justnews_ingestion.rss import FeedResult, ParsedEntry, fetch_feed, is_due
+from justnews_ingestion.rss import (
+    FeedResult,
+    ParsedEntry,
+    fetch_feed,
+    is_due,
+    is_programme_episode,
+)
 
 log = get_logger(__name__)
 
@@ -236,7 +242,7 @@ async def store_entry(
     stats.articles_new += 1
     if recent is not None:
         # So that two entries about one event in the same pass still collapse.
-        recent.add(article.id, simhash, article.story_cluster_id)
+        recent.add(article.id, simhash, article.story_cluster_id, article.published_at)
 
     if verdict.kind == "cluster_member":
         cluster = await dedup.attach_to_cluster(session, article=article, verdict=verdict, now=now)
@@ -542,9 +548,14 @@ async def _store_feed_entries(
             session, [entry.url_canonical for entry in result.entries]
         )
 
-    fresh = [entry for entry in result.entries if entry.url_canonical not in known]
+    unseen = [entry for entry in result.entries if entry.url_canonical not in known]
     stats.entries_seen += len(result.entries)
-    stats.articles_duplicate += len(result.entries) - len(fresh)
+    stats.articles_duplicate += len(result.entries) - len(unseen)
+    fresh = [entry for entry in unseen if not is_programme_episode(entry.url_canonical)]
+    if len(fresh) < len(unseen):
+        log.info(
+            "programme_episodes_skipped", feed_id=result.feed_id, count=len(unseen) - len(fresh)
+        )
     if not fresh:
         return 0
 

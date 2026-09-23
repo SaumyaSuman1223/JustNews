@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { setConsentAction } from "@/lib/actions";
 import { t, type LocaleCode } from "@/lib/i18n";
 
 /**
@@ -13,15 +12,12 @@ import { t, type LocaleCode } from "@/lib/i18n";
  * Decline next to a filled, primary Accept is the textbook version of the
  * dark pattern that requirement exists to rule out.
  *
- * Two plain `<form action={...}>` submissions, no client component: matches
- * how every other one-shot choice in this app already works
- * (completeOnboardingAction, redeemInviteAction), and a consent choice is
- * exactly the kind of action that should keep working with JavaScript off.
+ * Two plain form posts to app/api/consent/route.ts, no client component and
+ * no Server Action: a consent choice should keep working with JavaScript
+ * off, and the route's own comment says why the Server Action it replaced
+ * left the banner on screen.
  */
 export function ConsentBanner({ locale }: { locale: LocaleCode }) {
-  const grant = setConsentAction.bind(null, "granted");
-  const deny = setConsentAction.bind(null, "denied");
-
   return (
     <div className="consent-banner" role="region" aria-label={t(locale, "consent.label")}>
       <div className="consent-banner__inner">
@@ -30,12 +26,14 @@ export function ConsentBanner({ locale }: { locale: LocaleCode }) {
           <Link href={`/${locale}/privacy`}>{t(locale, "settings.privacyPolicy")}</Link>
         </p>
         <div className="consent-banner__actions">
-          <form action={deny}>
+          <form action="/api/consent" method="post">
+            <input type="hidden" name="choice" value="denied" />
             <button type="submit" className="button button--secondary">
               {t(locale, "consent.decline")}
             </button>
           </form>
-          <form action={grant}>
+          <form action="/api/consent" method="post">
+            <input type="hidden" name="choice" value="granted" />
             <button type="submit" className="button button--secondary">
               {t(locale, "consent.accept")}
             </button>

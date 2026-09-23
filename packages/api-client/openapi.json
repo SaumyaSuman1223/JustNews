@@ -304,6 +304,29 @@
         "title": "ArticlePageOut",
         "type": "object"
       },
+      "ArticleTopicLinkOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_primary": {
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "is_primary"
+        ],
+        "title": "ArticleTopicLinkOut",
+        "type": "object"
+      },
       "ArticleTopicOut": {
         "properties": {
           "id": {
@@ -745,6 +768,16 @@
               }
             ],
             "title": "Impression Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankReasonOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1361,12 +1394,30 @@
             },
             "title": "Saves",
             "type": "array"
+          },
+          "source_follows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Source Follows",
+            "type": "array"
+          },
+          "story_follows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Story Follows",
+            "type": "array"
           }
         },
         "required": [
           "profile",
           "saves",
           "follows",
+          "source_follows",
+          "story_follows",
           "history"
         ],
         "title": "MeExportOut",
@@ -1544,6 +1595,36 @@
           "homepage_url"
         ],
         "title": "PerspectiveSourceOut",
+        "type": "object"
+      },
+      "RankReasonOut": {
+        "description": "Why this card is on the feed - only a factor the ranker actually\napplied (see services.feed.RankReason).",
+        "properties": {
+          "kind": {
+            "enum": [
+              "followed_topic",
+              "trending",
+              "exploration"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "RankReasonOut",
         "type": "object"
       },
       "RankingPolicyCtrOut": {
@@ -1861,11 +1942,16 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
+          "slug",
           "homepage_url"
         ],
         "title": "SearchSourceMatchOut",
@@ -2011,6 +2097,68 @@
           "impression_id"
         ],
         "title": "SlotOut",
+        "type": "object"
+      },
+      "SourceDetailOut": {
+        "properties": {
+          "article_count": {
+            "title": "Article Count",
+            "type": "integer"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "homepage_url": {
+            "title": "Homepage Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "source_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Role"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "homepage_url",
+          "country",
+          "language",
+          "source_role",
+          "article_count"
+        ],
+        "title": "SourceDetailOut",
         "type": "object"
       },
       "SourceFollowIn": {
@@ -2248,6 +2396,78 @@
           "articles"
         ],
         "title": "StoryDetailOut",
+        "type": "object"
+      },
+      "StoryFollowIn": {
+        "properties": {
+          "story_id": {
+            "title": "Story Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "story_id"
+        ],
+        "title": "StoryFollowIn",
+        "type": "object"
+      },
+      "StoryFollowOut": {
+        "properties": {
+          "followed_at": {
+            "format": "date-time",
+            "title": "Followed At",
+            "type": "string"
+          },
+          "language_count": {
+            "title": "Language Count",
+            "type": "integer"
+          },
+          "new_reports": {
+            "description": "Live reports that arrived after this reader last opened the story.",
+            "title": "New Reports",
+            "type": "integer"
+          },
+          "source_count": {
+            "title": "Source Count",
+            "type": "integer"
+          },
+          "story_id": {
+            "title": "Story Id",
+            "type": "integer"
+          },
+          "story_last_seen_at": {
+            "format": "date-time",
+            "title": "Story Last Seen At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "story_id",
+          "title",
+          "source_count",
+          "language_count",
+          "story_last_seen_at",
+          "followed_at",
+          "new_reports"
+        ],
+        "title": "StoryFollowOut",
+        "type": "object"
+      },
+      "StoryFollowStateOut": {
+        "properties": {
+          "following": {
+            "title": "Following",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "following"
+        ],
+        "title": "StoryFollowStateOut",
         "type": "object"
       },
       "StoryOut": {
@@ -3938,6 +4158,24 @@
             }
           },
           {
+            "description": "Filter to one publisher's own id.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to one publisher's own id.",
+              "title": "Source"
+            }
+          },
+          {
             "in": "query",
             "name": "cursor",
             "required": false,
@@ -3994,6 +4232,75 @@
         ]
       }
     },
+    "/v1/articles/top": {
+      "get": {
+        "description": "What matters now, for a reader with no history to personalise from:\nrecency x breadth of coverage x source trust, one article per story.\n\nDeclared before ``/articles/{article_id}`` so \"top\" is never parsed as an\nid. Cache: the same 60s the web tier applies to the article list.",
+        "operationId": "top_articles_v1_articles_top_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "en,es"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 14,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleOut"
+                  },
+                  "title": "Response Top Articles V1 Articles Top Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Top Articles",
+        "tags": [
+          "content"
+        ]
+      }
+    },
     "/v1/articles/{article_id}": {
       "get": {
         "operationId": "get_article_v1_articles__article_id__get",
@@ -4031,6 +4338,65 @@
           }
         },
         "summary": "Get Article",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/articles/{article_id}/topics": {
+      "get": {
+        "description": "What an article is filed under, primary first - the article page's\ntopic links and its \"more in this topic\" (fifth pass F4). Cache: 120s.",
+        "operationId": "article_topics_v1_articles__article_id__topics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "title": "Article Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Interface language, for the labels.",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "Interface language, for the labels.",
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleTopicLinkOut"
+                  },
+                  "title": "Response Article Topics V1 Articles  Article Id  Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Article Topics",
         "tags": [
           "content"
         ]
@@ -4818,6 +5184,199 @@
           }
         ],
         "summary": "Delete Source Follow",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/stories": {
+      "get": {
+        "description": "Never cached: per-reader state.",
+        "operationId": "list_story_follows_v1_follows_stories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StoryFollowOut"
+                  },
+                  "title": "Response List Story Follows V1 Follows Stories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Story Follows",
+        "tags": [
+          "follows"
+        ]
+      },
+      "post": {
+        "operationId": "create_story_follow_v1_follows_stories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryFollowIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Story Follow",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/stories/{story_id}": {
+      "delete": {
+        "operationId": "delete_story_follow_v1_follows_stories__story_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "story_id",
+            "required": true,
+            "schema": {
+              "title": "Story Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Story Follow",
+        "tags": [
+          "follows"
+        ]
+      },
+      "get": {
+        "operationId": "story_follow_state_v1_follows_stories__story_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "story_id",
+            "required": true,
+            "schema": {
+              "title": "Story Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryFollowStateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Story Follow State",
+        "tags": [
+          "follows"
+        ]
+      }
+    },
+    "/v1/follows/stories/{story_id}/seen": {
+      "post": {
+        "operationId": "mark_story_seen_v1_follows_stories__story_id__seen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "story_id",
+            "required": true,
+            "schema": {
+              "title": "Story Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Story Seen",
         "tags": [
           "follows"
         ]
@@ -6009,6 +6568,49 @@
           }
         },
         "summary": "Sources",
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/v1/sources/{slug}": {
+      "get": {
+        "description": "One publisher. Cache: the web tier's usual 120s for public metadata.",
+        "operationId": "source_detail_v1_sources__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Detail",
         "tags": [
           "content"
         ]

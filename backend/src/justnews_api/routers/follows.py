@@ -128,3 +128,85 @@ async def list_source_follows(
         _source_out(item)
         for item in await service.list_followed_sources(session, principal.user_id)
     ]
+
+
+# --- followed stories (fifth pass F2) ----------------------------------------
+
+
+class StoryFollowIn(BaseModel):
+    story_id: int
+
+
+class StoryFollowOut(BaseModel):
+    story_id: int
+    title: str
+    source_count: int
+    language_count: int
+    story_last_seen_at: datetime
+    followed_at: datetime
+    new_reports: int = Field(
+        description="Live reports that arrived after this reader last opened the story."
+    )
+
+
+class StoryFollowStateOut(BaseModel):
+    following: bool
+
+
+@router.post("/follows/stories", status_code=status.HTTP_204_NO_CONTENT)
+async def create_story_follow(
+    body: StoryFollowIn,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+) -> None:
+    await service.follow_story(session, principal.user_id, body.story_id)
+
+
+@router.delete("/follows/stories/{story_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_story_follow(
+    story_id: int,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+) -> None:
+    await service.unfollow_story(session, principal.user_id, story_id)
+
+
+@router.get("/follows/stories", response_model=list[StoryFollowOut])
+async def list_story_follows(
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+) -> list[StoryFollowOut]:
+    """Never cached: per-reader state."""
+    rows = await service.list_followed_stories(session, principal.user_id)
+    return [
+        StoryFollowOut(
+            story_id=row.story_id,
+            title=row.title,
+            source_count=row.source_count,
+            language_count=row.language_count,
+            story_last_seen_at=row.story_last_seen_at,
+            followed_at=row.followed_at,
+            new_reports=row.new_reports,
+        )
+        for row in rows
+    ]
+
+
+@router.get("/follows/stories/{story_id}", response_model=StoryFollowStateOut)
+async def story_follow_state(
+    story_id: int,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+) -> StoryFollowStateOut:
+    return StoryFollowStateOut(
+        following=await service.is_following_story(session, principal.user_id, story_id)
+    )
+
+
+@router.post("/follows/stories/{story_id}/seen", status_code=status.HTTP_204_NO_CONTENT)
+async def mark_story_seen(
+    story_id: int,
+    principal: Principal = Depends(require_user),
+    session: AsyncSession = Depends(get_beta_session),
+) -> None:
+    await service.mark_story_seen(session, principal.user_id, story_id)

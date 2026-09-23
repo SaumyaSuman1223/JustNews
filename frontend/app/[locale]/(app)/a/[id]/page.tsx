@@ -7,9 +7,26 @@ import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleCard } from "@/components/ArticleCard";
 import { CoverageChips } from "@/components/CoverageChips";
 import { FollowSourceButton } from "@/components/FollowSourceButton";
-import { getArticle, getFollowedSources, getSaves, getStory } from "@/lib/api";
+import { FeedList } from "@/components/FeedList";
+import {
+  getArticle,
+  getArticleTopicLinks,
+  getArticles,
+  getFollowedSources,
+  getSaves,
+  getStory,
+} from "@/lib/api";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
+import {
+  formatRelativeTime,
+  getLocale,
+  isLocaleCode,
+  locales,
+  readerLanguages,
+  t,
+  tPlural,
+} from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -53,12 +70,18 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
   const article = await loadArticle(id);
   if (!article) notFound();
 
-  const [session, story] = await Promise.all([
+  const [session, story, topics] = await Promise.all([
     getSession(),
     article.story_cluster_id
       ? getStory(article.story_cluster_id, active.code)
       : Promise.resolve(null),
+    getArticleTopicLinks(article.id, active.code),
   ]);
+  const filedUnder = topics.data.map((topic) => ({
+    ...topic,
+    label: curatedTopicLabel(topic.id, topic.label, active.code),
+  }));
+  const primaryTopic = filedUnder.find((topic) => topic.is_primary) ?? filedUnder[0] ?? null;
 
   // Checked against the most recent saves only - good enough for the common
   // case, and consistent with how every other page in this app checks it.
@@ -77,6 +100,33 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
     : false;
 
   const related = story?.data?.articles.filter((item) => item.id !== article.id) ?? [];
+
+  // Fifth pass F4: this page is where search and shared links land, and it
+  // used to end at the outbound button. What to read next comes from facts
+  // about this article - its own topic, its own publisher - in the reader's
+  // languages, never repeating the article itself or the story's other
+  // reports already listed above.
+  const shown = new Set([article.id, ...related.map((item) => item.id)]);
+  // The reader's languages, plus the one this article is in - they are
+  // already reading it, so it is a language they asked for.
+  const readNextLanguages = [
+    ...new Set([...readerLanguages(undefined, active.code).split(","), article.language]),
+  ].join(",");
+  const [inTopic, fromSource] = await Promise.all([
+    primaryTopic
+      ? getArticles({ languages: readNextLanguages, topic: primaryTopic.id, pageSize: 12 })
+      : Promise.resolve(null),
+    getArticles({ languages: readNextLanguages, source: article.source_id, pageSize: 8 }),
+  ]);
+  const moreInTopic = (inTopic?.data.items ?? [])
+    .filter(
+      (item) =>
+        !shown.has(item.id) &&
+        (article.story_cluster_id === null || item.story_cluster_id !== article.story_cluster_id),
+    )
+    .slice(0, 5);
+  moreInTopic.forEach((item) => shown.add(item.id));
+  const moreFromSource = fromSource.data.items.filter((item) => !shown.has(item.id)).slice(0, 4);
   // Only languages other than the one being read: telling someone the article
   // in front of them is available in the language it is written in is noise.
   const otherLanguages =
@@ -109,7 +159,12 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
 
       <article className="article-header">
         <p className="card__meta">
-          <span>{article.source_name}</span>
+          <Link
+            className="card__source"
+            href={`/${active.code}/source/${encodeURIComponent(article.source_slug)}`}
+          >
+            {article.source_name}
+          </Link>
           <time dateTime={article.published_at}>
             {formatRelativeTime(article.published_at, active.code)}
           </time>
@@ -134,6 +189,21 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
         )}
 
         {article.snippet && <p className="article-snippet">{article.snippet}</p>}
+
+        {filedUnder.length > 0 && (
+          <p className="article-topics">
+            <span className="article-topics__label">{t(active.code, "article.filedUnder")}</span>
+            {filedUnder.map((topic) => (
+              <Link
+                key={topic.id}
+                className="topic-chip"
+                href={`/${active.code}/desk/${encodeURIComponent(topic.id)}`}
+              >
+                {topic.label}
+              </Link>
+            ))}
+          </p>
+        )}
 
         <div className="outbound-cta">
           <a
@@ -199,6 +269,42 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
               />
             ))}
           </ul>
+        </section>
+      )}
+
+      {primaryTopic && moreInTopic.length > 0 && (
+        <section className="read-next" aria-labelledby="more-in-topic">
+          <h2 id="more-in-topic" className="home-tier">
+            <Link href={`/${active.code}/desk/${encodeURIComponent(primaryTopic.id)}`}>
+              {t(active.code, "article.moreIn", { topic: primaryTopic.label })}
+            </Link>
+          </h2>
+          <FeedList
+            items={moreInTopic.map((item) => ({ article: item }))}
+            locale={active.code}
+            surface="topic"
+            signedIn={Boolean(session)}
+            revalidatePath={`/${active.code}/a/${article.id}`}
+            layout="list"
+          />
+        </section>
+      )}
+
+      {moreFromSource.length > 0 && (
+        <section className="read-next" aria-labelledby="more-from-source">
+          <h2 id="more-from-source" className="home-tier">
+            <Link href={`/${active.code}/source/${encodeURIComponent(article.source_slug)}`}>
+              {t(active.code, "article.moreFrom", { source: article.source_name })}
+            </Link>
+          </h2>
+          <FeedList
+            items={moreFromSource.map((item) => ({ article: item }))}
+            locale={active.code}
+            surface="topic"
+            signedIn={Boolean(session)}
+            revalidatePath={`/${active.code}/a/${article.id}`}
+            layout="list"
+          />
         </section>
       )}
 

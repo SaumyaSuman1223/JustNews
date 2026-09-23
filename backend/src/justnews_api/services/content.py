@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_api.repositories import content as repo
+from justnews_api.services import ranking
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_api.services.perspectives import PerspectiveGroup, group_by_role
 from justnews_core.errors import NotFoundError, ValidationError
@@ -51,6 +52,7 @@ async def get_article_page(
     page_size: int = DEFAULT_PAGE_SIZE,
     topic: str | None = None,
     country: str | None = None,
+    source: int | None = None,
 ) -> ArticlePage:
     if not 1 <= page_size <= MAX_PAGE_SIZE:
         raise ValidationError(f"page_size must be between 1 and {MAX_PAGE_SIZE}.")
@@ -68,6 +70,7 @@ async def get_article_page(
         before_id=before_id,
         topic_id=topic,
         country=country,
+        source_id=source,
     )
 
     has_more = len(rows) > page_size
@@ -83,6 +86,31 @@ async def get_article(session: AsyncSession, article_id: int) -> repo.ArticleRow
     if article is None:
         raise NotFoundError(f"No article with id {article_id}.")
     return article
+
+
+async def get_article_topics(session: AsyncSession, article_id: int) -> list[tuple[Topic, bool]]:
+    """The topics a live article is filed under, primary first. Raises
+    NotFound for a missing or taken-down article, the same as reading it."""
+    await get_article(session, article_id)
+    return await repo.get_article_topics(session, article_id)
+
+
+@dataclass(frozen=True, slots=True)
+class SourceDetail:
+    source: Source
+    article_count: int
+
+
+async def get_source(session: AsyncSession, slug: str) -> SourceDetail:
+    """A publisher's own page (fifth pass F3): who they are, and how much of
+    their reporting this corpus holds. Inactive sources are not found - a
+    publisher we have stopped carrying has no page to land on."""
+    source = await repo.get_source_by_slug(session, slug)
+    if source is None:
+        raise NotFoundError(f"No source {slug!r}.")
+    return SourceDetail(
+        source=source, article_count=await repo.count_live_articles_for_source(session, source.id)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +197,36 @@ async def get_trending(
         since=datetime.now(UTC) - TRENDING_WINDOW,
         limit=limit,
     )
+
+
+#: How many recent articles the signed-out importance order considers.
+TOP_CANDIDATE_POOL = 300
+MAX_TOP_ARTICLES = 30
+
+
+async def get_top_articles(
+    session: AsyncSession, *, languages: list[str] | None, limit: int, now: datetime | None = None
+) -> list[repo.ArticleRow]:
+    """The signed-out importance order: recent articles scored by recency,
+    breadth of coverage and source trust, one per story, spread across
+    sources - see ``ranking.score_for_everyone``.
+
+    A bounded list, not a feed: Home takes its editorial tiers from it and
+    continues with the ordinary cursor-paginated stream, so this has no
+    cursor of its own.
+    """
+    if not 1 <= limit <= MAX_TOP_ARTICLES:
+        raise ValidationError(f"limit must be between 1 and {MAX_TOP_ARTICLES}.")
+    now = now or datetime.now(UTC)
+    pool = await repo.list_articles_window(
+        session,
+        languages=languages,
+        upper_bound=now,
+        exclude_article_ids=None,
+        limit=TOP_CANDIDATE_POOL,
+    )
+    scored = ranking.dedupe_story_clusters(ranking.score_for_everyone(pool, now=now))
+    return ranking.diversify(scored, limit=limit)
 
 
 async def list_editions(session: AsyncSession, *, languages: list[str] | None) -> list[Edition]:

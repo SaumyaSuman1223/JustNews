@@ -9,7 +9,7 @@ import { safeNext } from "@/lib/safeNext";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-type Mode = "sign-in" | "sign-up";
+type Mode = "sign-in" | "sign-up" | "reset";
 
 /** Shortest password we will submit. Supabase's own default floor is 6; the
  *  form claimed 8 via minLength but also set noValidate, so nothing enforced
@@ -111,7 +111,18 @@ export function LoginForm() {
     setPending(true);
     try {
       const supabase = createBrowserSupabaseClient();
-      if (mode === "sign-in") {
+      if (mode === "reset") {
+        // Fifth pass F10. The same notice whether or not the address has an
+        // account, so this form cannot be used to find out who is registered.
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+            `/${locale}/account/password`,
+          )}`,
+        });
+        if (resetError) throw resetError;
+        setNotice(t(locale, "login.reset.sent"));
+        setMode("sign-in");
+      } else if (mode === "sign-in") {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -148,8 +159,17 @@ export function LoginForm() {
         </Link>
 
         <div className="auth-card__header">
-          <h1>{t(locale, mode === "sign-in" ? "login.title" : "login.createHeading")}</h1>
-          <p>{t(locale, "login.intro")}</p>
+          <h1>
+            {t(
+              locale,
+              mode === "sign-in"
+                ? "login.title"
+                : mode === "reset"
+                  ? "login.reset.heading"
+                  : "login.createHeading",
+            )}
+          </h1>
+          <p>{t(locale, mode === "reset" ? "login.reset.intro" : "login.intro")}</p>
         </div>
 
         {error && (
@@ -163,17 +183,21 @@ export function LoginForm() {
           </p>
         )}
 
-        <button
-          type="button"
-          className="auth-oauth"
-          disabled={googlePending || pending}
-          onClick={handleGoogleSignIn}
-        >
-          <GoogleIcon />
-          {googlePending ? t(locale, "login.pending") : t(locale, "login.google")}
-        </button>
+        {mode !== "reset" && (
+          <>
+            <button
+              type="button"
+              className="auth-oauth"
+              disabled={googlePending || pending}
+              onClick={handleGoogleSignIn}
+            >
+              <GoogleIcon />
+              {googlePending ? t(locale, "login.pending") : t(locale, "login.google")}
+            </button>
 
-        <div className="auth-divider">{t(locale, "login.or")}</div>
+            <div className="auth-divider">{t(locale, "login.or")}</div>
+          </>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="field">
@@ -187,18 +211,33 @@ export function LoginForm() {
               onChange={(event) => setEmail(event.target.value)}
             />
           </div>
-          <div className="field">
-            <label htmlFor="password">{t(locale, "login.password")}</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
-              minLength={MIN_PASSWORD}
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </div>
+          {mode !== "reset" && (
+            <div className="field">
+              <label htmlFor="password">{t(locale, "login.password")}</label>
+              <input
+                id="password"
+                type="password"
+                autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+                minLength={MIN_PASSWORD}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              {mode === "sign-in" && (
+                <button
+                  type="button"
+                  className="link-button auth-card__forgot"
+                  onClick={() => {
+                    setError(null);
+                    setNotice(null);
+                    setMode("reset");
+                  }}
+                >
+                  {t(locale, "login.reset.link")}
+                </button>
+              )}
+            </div>
+          )}
           <button
             type="submit"
             className="button button--primary"
@@ -206,12 +245,23 @@ export function LoginForm() {
           >
             {pending
               ? t(locale, "login.pending")
-              : t(locale, mode === "sign-in" ? "login.title" : "login.createSubmit")}
+              : t(
+                  locale,
+                  mode === "sign-in"
+                    ? "login.title"
+                    : mode === "reset"
+                      ? "login.reset.submit"
+                      : "login.createSubmit",
+                )}
           </button>
         </form>
 
         <p className="auth-card__footer">
-          {mode === "sign-in" ? (
+          {mode === "reset" ? (
+            <button type="button" className="link-button" onClick={() => setMode("sign-in")}>
+              {t(locale, "login.reset.back")}
+            </button>
+          ) : mode === "sign-in" ? (
             <>
               {t(locale, "login.newHere")}{" "}
               <button type="button" className="link-button" onClick={() => setMode("sign-up")}>

@@ -27,6 +27,9 @@ FOLLOWED_TOPIC_BOOST = 1.6
 POPULARITY_WEIGHT = 0.35
 SOURCE_TRUST_FLOOR = 0.5  # a low-trust source is deprioritised, never zeroed out
 MMR_LAMBDA = 0.7  # relevance vs diversity trade-off
+# How much a story gains per doubling of the outlets carrying it, in the
+# signed-out importance order (`score_for_everyone`).
+BREADTH_WEIGHT = 0.5
 
 # How far back "recent" reaches for the popularity signal (recent_click_counts).
 # Lives here, not in feed.py, so services.exploration_deck can share it
@@ -92,6 +95,32 @@ def score_candidates(
     return scored
 
 
+def score_for_everyone(
+    candidates: list[ArticleRow], *, now: datetime | None = None
+) -> list[ScoredCandidate]:
+    """Importance with no reader to personalise for - signed-out Home's "What
+    matters" (fifth pass §2.3), which was plain newest-first and so led with
+    whatever landed last.
+
+    recency x breadth x source trust: the same recency decay and trust term
+    the personal ranker uses, times how widely the story is being carried -
+    ``1 + BREADTH_WEIGHT * log2(outlets)``, so a story five outlets are
+    running outranks a comparable one only one is. Arithmetic over columns
+    already on the row (ADR 0004); nothing here knows or guesses what a story
+    is about. ``topic_ids`` stay empty, so `diversify` spreads the result
+    across sources rather than topics.
+    """
+    now = now or datetime.now(UTC)
+    scored: list[ScoredCandidate] = []
+    for article in candidates:
+        outlets = article.coverage.sources if article.coverage is not None else 1
+        breadth = 1.0 + BREADTH_WEIGHT * math.log2(max(outlets, 1))
+        trust = SOURCE_TRUST_FLOOR + (1 - SOURCE_TRUST_FLOOR) * article.source_trust_score
+        score = _recency_score(article.published_at, now=now) * breadth * trust
+        scored.append(ScoredCandidate(article=article, score=score, topic_ids=frozenset()))
+    return scored
+
+
 def dedupe_story_clusters(candidates: list[ScoredCandidate]) -> list[ScoredCandidate]:
     """Keep only the highest-scored article per story cluster - the ranker's
     own "don't show the same story twice" rule, downstream of and distinct
@@ -122,7 +151,7 @@ def _similarity(a: ScoredCandidate, b: ScoredCandidate) -> float:
     return 0.0
 
 
-def diversify(candidates: list[ScoredCandidate]) -> list[ArticleRow]:
+def diversify(candidates: list[ScoredCandidate], *, limit: int | None = None) -> list[ArticleRow]:
     """Greedy MMR over the whole scored pool, not just one page of it - the
     feed service slices pages out of this result, so the ordering has to be
     stable and complete across however many pages a reader scrolls.
@@ -131,19 +160,34 @@ def diversify(candidates: list[ScoredCandidate]) -> list[ArticleRow]:
     with what has already been selected, rather than a flat sort by score -
     a flat sort is exactly how a feed collapses into eight cards about the
     same story from the highest-trust source.
+
+    Each candidate's redundancy is the max similarity to everything selected
+    so far, kept as a running value and updated against only the newly
+    chosen item - the same result as recomputing it against the whole
+    selection every round, in O(n^2) instead of O(n^3). At 300 candidates
+    the recomputing version took ~0.85s a request (fifth pass). ``limit``
+    stops once that many are chosen, for callers that need a top-N only.
     """
     pool = sorted(candidates, key=lambda c: c.score, reverse=True)
     if not pool:
         return []
-    selected = [pool.pop(0)]
-    while pool:
+    target = len(pool) if limit is None else min(limit, len(pool))
+    first = pool.pop(0)
+    selected = [first]
+    redundancy = [_similarity(candidate, first) for candidate in pool]
+    while pool and len(selected) < target:
         best_index = 0
         best_mmr = float("-inf")
         for index, candidate in enumerate(pool):
-            redundancy = max(_similarity(candidate, chosen) for chosen in selected)
-            mmr = MMR_LAMBDA * candidate.score - (1 - MMR_LAMBDA) * redundancy
+            mmr = MMR_LAMBDA * candidate.score - (1 - MMR_LAMBDA) * redundancy[index]
             if mmr > best_mmr:
                 best_mmr = mmr
                 best_index = index
-        selected.append(pool.pop(best_index))
+        chosen = pool.pop(best_index)
+        redundancy.pop(best_index)
+        selected.append(chosen)
+        redundancy = [
+            max(current, _similarity(candidate, chosen))
+            for candidate, current in zip(pool, redundancy, strict=True)
+        ]
     return [candidate.article for candidate in selected]

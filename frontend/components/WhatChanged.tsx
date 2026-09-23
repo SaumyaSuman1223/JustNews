@@ -34,7 +34,7 @@ export function WhatChanged({
   locale: LocaleCode;
 }) {
   if (changes.length === 0) {
-    return <p className="notice">{t(locale, "desk.whatChanged.empty")}</p>;
+    return <p className="empty-note">{t(locale, "desk.whatChanged.empty")}</p>;
   }
 
   return (

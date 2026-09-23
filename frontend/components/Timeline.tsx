@@ -21,7 +21,7 @@ export function Timeline({
   topicHref: (storyId: number) => string;
 }) {
   if (stories.length === 0) {
-    return <p className="notice">{t(locale, "desk.timeline.empty")}</p>;
+    return <p className="empty-note">{t(locale, "desk.timeline.empty")}</p>;
   }
 
   return (

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -83,3 +83,31 @@ async def list_followed_sources(session: AsyncSession, user_id: UUID) -> list[Fo
         )
         for row in await repo.list_source_follows(session, user_id)
     ]
+
+
+# --- followed stories (fifth pass F2) ----------------------------------------
+
+
+async def follow_story(session: AsyncSession, user_id: UUID, story_id: int) -> None:
+    if not await repo.story_exists(session, story_id):
+        raise NotFoundError(f"No story with id {story_id}.")
+    await repo.create_story_follow(session, user_id, story_id)
+
+
+async def unfollow_story(session: AsyncSession, user_id: UUID, story_id: int) -> None:
+    if not await repo.delete_story_follow(session, user_id, story_id):
+        raise NotFoundError(f"Not following story {story_id}.")
+
+
+async def mark_story_seen(session: AsyncSession, user_id: UUID, story_id: int) -> None:
+    """The reader opened the story page: everything in it now counts as seen."""
+    if not await repo.mark_story_seen(session, user_id, story_id, at=datetime.now(UTC)):
+        raise NotFoundError(f"Not following story {story_id}.")
+
+
+async def list_followed_stories(session: AsyncSession, user_id: UUID) -> list[repo.StoryFollowRow]:
+    return await repo.list_story_follows(session, user_id)
+
+
+async def is_following_story(session: AsyncSession, user_id: UUID, story_id: int) -> bool:
+    return await repo.is_following_story(session, user_id, story_id)

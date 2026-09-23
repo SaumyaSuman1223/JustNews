@@ -154,8 +154,11 @@
    produce. The brass brightens here - the light theme's interactive brass is
    dark enough to disappear on charcoal, so dark gets the brighter tone for
    both roles. */
+/* An explicit choice on the Display page (fifth pass F8) wins over the
+   system: `data-theme` on <html>, set server-side from the reader's cookie so
+   the first paint is already right. No attribute means "follow the system". */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ground: #1a1b19;
     --surface: #20211f;
     --surface-sub: #2a2b28;
@@ -171,6 +174,26 @@
   }
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #1a1b19;
+  --surface: #20211f;
+  --surface-sub: #2a2b28;
+  --text: #ede9e0;
+  --text-mid: #c6c1b6;
+  --text-muted: #96918a;
+  --border: #34352f;
+  --border-strong: #55564e;
+  --brass: #c9ae83;
+  --accent: #c9ae83;
+  --accent-soft: #33301f;
+  --danger: #e39385;
+}
+
 *,
 *::before,
 *::after {
@@ -180,6 +203,12 @@
 html {
   /* Arabic and Hebrew need slightly looser leading than the Latin default. */
   line-height: 1.6;
+}
+
+/* Display page's larger text: every size in the system is in rem, so one
+   root step scales type, spacing and measure together. */
+html[data-text-size="large"] {
+  font-size: 112.5%;
 }
 
 html[dir="rtl"] {
@@ -528,6 +557,265 @@ a {
 .card__source {
   color: var(--text-mid);
   font-weight: 600;
+}
+
+/* Every byline links to its publisher's page (fifth pass F3). Underlined only
+   on hover, like the headline beside it - a permanently underlined byline on
+   every card would out-shout the headline it sits under. */
+a.card__source {
+  text-decoration: none;
+}
+
+a.card__source:hover,
+a.card__source:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* "New since your last visit" (fifth pass F6): a small caps kicker above the
+   headline, in the accent - the one card-level mark that is about the
+   reader rather than the story. */
+.card__new {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* The same story in other languages (fifth pass F1) - the product's one
+   structural difference, as a quiet link under the byline. */
+.card__languages {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-meta);
+}
+
+.card__languages a {
+  color: var(--text-mid);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 0.2em;
+}
+
+.card__languages a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
+/* --- article page: filed under, read next --------------------------------- */
+
+.article-topics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-6) 0 0;
+}
+
+.article-topics__label {
+  font-size: var(--type-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* The same centred column as the article above it, so the page reads as
+   one piece that continues rather than a second page stuck underneath. */
+.read-next {
+  max-inline-size: var(--measure);
+  margin-inline: auto;
+  margin-block: var(--space-12) 0;
+}
+
+.read-next .home-tier a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.read-next .home-tier a:hover {
+  text-decoration: underline;
+}
+
+.story-header__actions {
+  margin-block-start: var(--space-4);
+}
+
+/* --- My Desk: followed stories (fifth pass F2) ----------------------------- */
+
+.followed-stories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.followed-stories li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.followed-stories li:first-child {
+  border-block-start: none;
+  padding-block-start: 0;
+}
+
+.followed-stories a {
+  font-family: var(--font-display);
+  font-size: var(--type-body-l);
+  font-weight: 600;
+}
+
+.followed-stories__count {
+  flex-shrink: 0;
+  font-size: var(--type-meta);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.followed-stories__count--new {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- keyboard shortcuts dialog (fifth pass F8) ----------------------------- */
+
+.shortcuts {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: var(--space-6);
+  inline-size: min(26rem, calc(100vw - 2rem));
+}
+
+.shortcuts::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.shortcuts h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin: 0 0 var(--space-4);
+}
+
+.shortcuts__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-6);
+}
+
+.shortcuts__list div {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  align-items: baseline;
+}
+
+.shortcuts__list dt,
+.shortcuts__list dd {
+  margin: 0;
+}
+
+.shortcuts kbd {
+  font-family: var(--font-ui, inherit);
+  font-size: var(--type-meta);
+  border: 1px solid var(--border-strong);
+  border-block-end-width: 2px;
+  border-radius: 4px;
+  padding: 0.1em 0.45em;
+  background: var(--ground);
+}
+
+/* --- how it works (fifth pass F9) ------------------------------------------- */
+
+.how__section {
+  margin-block: var(--space-8);
+}
+
+.how__section h2 {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin: 0 0 var(--space-2);
+}
+
+.how__section p {
+  margin: 0;
+  max-inline-size: var(--measure);
+  line-height: 1.7;
+}
+
+.how__more {
+  margin-block-start: var(--space-12);
+  color: var(--text-muted);
+}
+
+.auth-card__forgot {
+  justify-self: end;
+  margin-block-start: var(--space-2);
+  font-size: var(--type-meta);
+}
+
+/* --- display page (fifth pass F8) ------------------------------------------ */
+
+.display-form {
+  display: grid;
+  gap: var(--space-6);
+  justify-items: start;
+}
+
+.display-form__group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.display-form__group legend {
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  margin-block-end: var(--space-2);
+}
+
+.display-form__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 2.75rem;
+  cursor: pointer;
+}
+
+.display-form__option input {
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  accent-color: var(--accent);
+}
+
+/* --- publisher page -------------------------------------------------------- */
+
+.source-header__facts {
+  margin: var(--space-2) 0 0;
+  color: var(--text-mid);
+}
+
+.source-header__count {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.source-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
 /* --- lead ---------------------------------------------------------------- */
@@ -1696,7 +1984,7 @@ a.chip:active {
    pill, no bubble fill. Following is a rule under the word, the way an
    active section reads in a masthead nav, not a filled badge. */
 .topic-picker {
-  gap: var(--space-1) var(--space-5);
+  gap: var(--space-1) var(--space-4);
 }
 
 .topic-chip {
@@ -1819,12 +2107,22 @@ a.chip:active {
 
 /* --- notices ----------------------------------------------------------- */
 
+/* "Nothing here yet" is not a problem, so it gets no box and no danger rule -
+   a quiet line of type in the place the content would be (fifth pass §2.6).
+   `.notice` below stays for things that are actually wrong. */
+.empty-note {
+  margin: 0 0 var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+  font-style: italic;
+}
+
 /* Reserved for something being wrong - it carries the danger rule. Anything
    that is merely notable gets .callout instead. */
 .notice {
   border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--danger);
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-block-start: 2px solid var(--danger);
+  border-radius: 0 0 var(--radius) var(--radius);
   background: var(--surface);
   color: var(--text-mid);
   padding: var(--space-3) var(--space-4);
@@ -2264,11 +2562,8 @@ a.chip:active {
 /* --- blindspot rail ------------------------------------------------------ */
 
 .blindspot {
-  border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--accent);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: var(--surface);
-  padding: var(--space-4);
+  border-block-start: 2px solid var(--accent);
+  padding-block: var(--space-4) 0;
   margin-block-end: var(--space-8);
 }
 
@@ -2482,12 +2777,12 @@ a.chip:active {
    danger one. The cross-language coverage block was using .notice, which meant
    the one thing this product does that nobody else does was framed as a
    warning. */
+/* A rule above, not a bar down the side of a box: the same "rules and type,
+   not boxes" language as every other section heading on the page (§32), with
+   the accent carrying the emphasis (fifth pass, detector finding). */
 .callout {
-  border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--accent);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: var(--surface);
-  padding: var(--space-4) var(--space-6);
+  border-block-start: 2px solid var(--accent);
+  padding-block: var(--space-4) 0;
   margin-block: var(--space-8);
 }
 
@@ -2967,7 +3262,25 @@ a.chip:active {
      dominant without spending the page on it, and it is what a broadsheet
      does with a front-page photograph for the same reason. */
   .paper__body--front .paper__lead-image {
-    aspect-ratio: 8 / 3;
+    aspect-ratio: 3 / 1;
+  }
+
+  /* Fifth pass §2.2: a real three-line headline plus a four-line deck ran
+     past the sheet's fixed height and the deck was cut mid-sentence by the
+     clip. On the front page the deck gets two lines - an ellipsis is an
+     honest shortening, a sentence sliced by the page edge is not - and the
+     headline is held to three. */
+  .paper__body--front .paper__deck {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .paper__body--front .paper__lead-headline {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   /* The rail's one picture is a column-width thumbnail, not a second lead. */
@@ -3718,7 +4031,15 @@ span.paper__pageref {
     padding-inline-start: calc(var(--space-8) + var(--reader-edge));
     padding-inline-end: calc(var(--space-8) + var(--reader-edge));
   }
+}
 
+/* Fifth pass §2.2: the fixed landscape sheet starts at 80rem, not 64rem. At
+   1024x900 the 3:2 box resolved to 872x581, and a real front page - masthead,
+   a three-line lead, the rails, the lower row - needs roughly 800px, so the
+   clip cut the lead's own byline off. Between 64rem and 80rem the page reads
+   the way a tablet does: one sheet, full height, scrolling, with the page
+   turns intact. */
+@media (min-width: 80rem) {
   .aquila__sheet {
     /* Width-driven, not height-driven - the earlier height-first formula
        (`block-size: min(87dvh, 56.25rem)`, `inline-size: auto`) let the
@@ -3874,6 +4195,15 @@ span.paper__pageref {
   margin: 0 0 var(--space-6);
   padding-block-end: var(--space-3);
   border-block-end: 1px solid var(--border);
+}
+
+/* Only beside the icon rail, which carries a monogram and nothing else.
+   Below 56.25rem the top bar already prints the wordmark, and repeating it
+   one line lower read as a stutter (fifth pass §2.3). */
+@media (max-width: 56.1875rem) {
+  .home-greeting__standing {
+    display: none;
+  }
 }
 
 .home-greeting__mark {
@@ -4161,6 +4491,14 @@ span.paper__pageref {
    and because a third full-width single column after two other full-width
    single columns is the flat rhythm §31 is complaining about. */
 @media (min-width: 64rem) {
+  /* Fifth pass §2.3: at the base 16px column gap the left row's thumbnail sat
+     flush against the right row's headline, and read as belonging to it. A
+     gutter wider than the gap inside a row keeps each thumbnail with its own
+     headline. */
+  .home__feed .feed--list {
+    column-gap: var(--space-12);
+  }
+
   .home__feed .feed--list .card--list {
     grid-column: span 6;
   }
@@ -4224,6 +4562,68 @@ span.paper__pageref {
   margin: 0;
 }
 
+/* The type-ahead: a quiet row of direct links under the box (fifth pass F5). */
+.search-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  margin-block: var(--space-3) 0;
+}
+
+.search-suggest__label {
+  font-size: var(--type-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.search-suggest ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-suggest a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.search-suggest__kind {
+  font-family: var(--font-ui, inherit);
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+}
+
+/* Search's query words, marked in each headline - an accent underline rather
+   than the browser's yellow or a tint, which all but vanished on the warm
+   paper ground. Reads the same in both themes. */
+.card__title mark {
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.card__more-reports {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-meta);
+}
+
+.card__more-reports a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* --- search results ------------------------------------------------------ */
 
 /* §21's result grouping: a topic or source the query names, alongside the
@@ -4246,7 +4646,7 @@ span.paper__pageref {
 .search-group__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-5);
+  gap: var(--space-1) var(--space-4);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -4452,14 +4852,14 @@ span.paper__pageref {
    description. */
 .desk-example {
   max-inline-size: 58rem;
-  margin-block: var(--space-6) var(--space-10);
+  margin-block: var(--space-6) var(--space-12);
 }
 
 .desk-section--gate {
   max-inline-size: 58rem;
   border-block-start: 1px solid var(--border);
   padding-block-start: var(--space-6);
-  margin-block: 0 var(--space-10);
+  margin-block: 0 var(--space-12);
 }
 
 /* What changed: one development per followed topic. Rules and type, no cards
@@ -4605,6 +5005,47 @@ span.paper__pageref {
   margin: var(--space-1) 0 0;
   color: var(--text-muted);
   font-size: var(--type-meta);
+}
+
+/* The stand-ins for a topic with reporting but no stories yet (fifth pass
+   §2.1): the same rule-separated rows as the developments list, without the
+   rank column - newest-first is not an order worth numbering. */
+.understand__latest,
+.understand__outlets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.understand__latest li,
+.understand__outlets li {
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.understand__latest li:first-child,
+.understand__outlets li:first-child {
+  padding-block-start: 0;
+  border-block-start: none;
+}
+
+.understand__outlets li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.understand__outlets .understand__meta {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.understand__outlet {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .desk-tiles {

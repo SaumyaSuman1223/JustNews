@@ -142,7 +142,12 @@ class TestSearchGrouping:
 
         body = (await client.get("/v1/search?q=meridian")).json()
         assert body["matched_sources"] == [
-            {"id": source.id, "name": "Meridian Press", "homepage_url": source.homepage_url}
+            {
+                "id": source.id,
+                "name": "Meridian Press",
+                "slug": "meridian-press",
+                "homepage_url": source.homepage_url,
+            }
         ]
 
     async def test_a_later_page_does_not_regroup(

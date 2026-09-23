@@ -53,6 +53,8 @@ class UserDataExport:
     profile: dict[str, Any]
     saves: list[dict[str, Any]]
     follows: list[dict[str, Any]]
+    source_follows: list[dict[str, Any]]
+    story_follows: list[dict[str, Any]]
     history: list[dict[str, Any]]
 
 
@@ -65,6 +67,8 @@ async def export_user_data(session: AsyncSession, user_id: UUID) -> UserDataExpo
         session, user_id, limit=EXPORT_ROW_LIMIT, before_created_at=None, before_id=None
     )
     follows = await follows_repo.list_follows(session, user_id)
+    source_follows = await follows_repo.list_source_follows(session, user_id)
+    story_follows = await follows_repo.list_story_follows(session, user_id)
     history = await interactions_repo.list_history(
         session, user_id, limit=EXPORT_ROW_LIMIT, before_viewed_at=None, before_id=None
     )
@@ -78,6 +82,16 @@ async def export_user_data(session: AsyncSession, user_id: UUID) -> UserDataExpo
         saves=[{"article_id": row.article_id, "saved_at": _iso(row.created_at)} for row in saves],
         follows=[
             {"topic_id": row.topic_id, "followed_at": _iso(row.created_at)} for row in follows
+        ],
+        # Followed publishers were missing from the export until the fifth
+        # pass added followed stories beside them.
+        source_follows=[
+            {"source_id": row.source_id, "followed_at": _iso(row.created_at)}
+            for row in source_follows
+        ],
+        story_follows=[
+            {"story_id": row.story_id, "followed_at": _iso(row.followed_at)}
+            for row in story_follows
         ],
         history=[
             {"article_id": row.article_id, "viewed_at": _iso(row.viewed_at)} for row in history

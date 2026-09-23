@@ -26,6 +26,7 @@ import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -115,6 +116,24 @@ def assign_policy(user_id: UUID) -> str:
     return EXPERIMENT_POLICIES[digest[0] % len(EXPERIMENT_POLICIES)]
 
 
+#: Recent clicks an article needs before "Trending now" is a true thing to say
+#: about it - one or two clicks is noise, not a trend.
+TRENDING_MIN_CLICKS = 3
+
+
+@dataclass(frozen=True, slots=True)
+class RankReason:
+    """Why a card is on the reader's feed, in the one term that actually moved
+    it (design-system.md: "every ranked card can explain itself"). Only
+    factors the ranker really applied: a followed-topic boost, a popularity
+    signal strong enough to call a trend, or an exploration slot. A card the
+    ranker placed on recency and language alone carries no reason rather
+    than an invented one."""
+
+    kind: Literal["followed_topic", "trending", "exploration"]
+    topic_id: str | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class FeedItem:
     article: content_repo.ArticleRow
@@ -123,6 +142,7 @@ class FeedItem:
     # later: no impression row was written, so there is nothing an id could
     # ever point at.
     impression_id: int | None
+    reason: RankReason | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +163,9 @@ class _UnloggedPage:
     # one slot.
     propensities: list[float] | None = None
     ranking_policy_override: str | None = None
+    # Parallel to `articles` when set - see RankReason. The chronological
+    # control has nothing to explain and leaves it None.
+    reasons: list[RankReason | None] | None = None
 
 
 async def get_feed_page(
@@ -192,8 +215,12 @@ async def get_feed_page(
     if not unlogged.articles:
         return FeedPage(items=[], next_cursor=unlogged.next_cursor)
 
+    reasons: list[RankReason | None] = unlogged.reasons or [None] * len(unlogged.articles)
     if not log_impressions:
-        items = [FeedItem(article=article, impression_id=None) for article in unlogged.articles]
+        items = [
+            FeedItem(article=article, impression_id=None, reason=reason)
+            for article, reason in zip(unlogged.articles, reasons, strict=True)
+        ]
         return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
     impression_ids = await interactions_repo.log_impressions(
@@ -215,8 +242,10 @@ async def get_feed_page(
         ],
     )
     items = [
-        FeedItem(article=article, impression_id=impression_id)
-        for article, impression_id in zip(unlogged.articles, impression_ids, strict=True)
+        FeedItem(article=article, impression_id=impression_id, reason=reason)
+        for article, impression_id, reason in zip(
+            unlogged.articles, impression_ids, reasons, strict=True
+        )
     ]
     return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
@@ -285,22 +314,43 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
     has_more = len(ranked) > offset + page_size
     next_cursor = encode_rank_cursor(window_upper_bound, offset + page_size) if has_more else None
 
-    if not await flags_repo.is_enabled(session, EXPLORATION_DECK_FLAG):
-        return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+    def reason_for(article: content_repo.ArticleRow) -> RankReason | None:
+        # The same two terms score_candidates applied, checked the same way:
+        # a followed topic on the article (the FOLLOWED_TOPIC_BOOST), then a
+        # popularity count large enough to be a trend.
+        followed = sorted(set(topic_ids_by_article.get(article.id, ())) & followed_topic_ids)
+        if followed:
+            return RankReason(kind="followed_topic", topic_id=followed[0])
+        if click_counts.get(article.id, 0) >= TRENDING_MIN_CLICKS:
+            return RankReason(kind="trending")
+        return None
 
+    if not await flags_repo.is_enabled(session, EXPLORATION_DECK_FLAG):
+        return _UnloggedPage(
+            articles=articles,
+            next_cursor=next_cursor,
+            reasons=[reason_for(article) for article in articles],
+        )
+
+    ranked_ids = {article.id for article in articles}
     articles, propensities, mixed = await _mix_in_exploration(
         session,
         articles=articles,
         languages=languages,
         excluded=request.excluded,
     )
+    reasons = [
+        reason_for(article) if article.id in ranked_ids else RankReason(kind="exploration")
+        for article in articles
+    ]
     if not mixed:
-        return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+        return _UnloggedPage(articles=articles, next_cursor=next_cursor, reasons=reasons)
     return _UnloggedPage(
         articles=articles,
         next_cursor=next_cursor,
         propensities=propensities,
         ranking_policy_override=HEURISTIC_EXPLORE_MIX_POLICY,
+        reasons=reasons,
     )
 
 

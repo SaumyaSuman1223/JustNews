@@ -542,6 +542,34 @@ class UserSourceFollow(Base):
     )
 
 
+class UserStoryFollow(Base):
+    """A followed story (fifth pass F2) - one developing event, rather than a
+    whole topic or publisher. ``last_seen_at`` is when the reader last opened
+    the story page, which is what "N new reports since you looked" counts
+    from."""
+
+    __tablename__ = "user_story_follows"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[Any] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    story_cluster_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("story_clusters.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "story_cluster_id", name="uq_user_story_follows_user_story"),
+        Index("ix_user_story_follows_user", "user_id"),
+    )
+
+
 class Impression(Base):
     """One item shown to one reader. The propensity column is the whole point:
     the probability the serving policy had of showing this item, written at

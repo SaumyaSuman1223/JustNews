@@ -24,9 +24,10 @@ from justnews_ingestion import retention
 from justnews_ingestion.aquila import compose_issue, current_slot, repair_edition_times
 from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.content import repair_snippets
-from justnews_ingestion.dedup import repair_cluster_counts
+from justnews_ingestion.dedup import repair_cluster_counts, repair_programme_episodes
 from justnews_ingestion.gnews import get_quota, search
 from justnews_ingestion.pipeline import run_ingestion
+from justnews_ingestion.rss import PROGRAMME_PATH_MARKERS
 from justnews_ingestion.seed import retire_unshipped_languages, seed_all
 
 log = get_logger(__name__)
@@ -140,6 +141,16 @@ async def _cmd_repair_cluster_counts(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _cmd_repair_programme_episodes(args: argparse.Namespace) -> int:
+    async with session_scope() as session:
+        _print(
+            await repair_programme_episodes(
+                session, markers=PROGRAMME_PATH_MARKERS, dry_run=args.dry_run
+            )
+        )
+    return 0
+
+
 async def _cmd_stats(_: argparse.Namespace) -> int:
     from justnews_api.repositories.content import corpus_stats
 
@@ -241,6 +252,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="report how many rows would change, write nothing"
     )
 
+    repair_episodes = sub.add_parser(
+        "repair-programme-episodes",
+        help="hide broadcast/podcast episodes already stored and dissolve the stories they formed",
+    )
+    repair_episodes.add_argument(
+        "--dry-run", action="store_true", help="report how many rows would change, write nothing"
+    )
+
     sub.add_parser("prune", help="apply the retention window and report database size")
     sub.add_parser("stats", help="corpus size, language spread and quota usage")
 
@@ -262,6 +281,7 @@ _COMMANDS = {
     "repair-edition-times": _cmd_repair_edition_times,
     "repair-snippets": _cmd_repair_snippets,
     "repair-cluster-counts": _cmd_repair_cluster_counts,
+    "repair-programme-episodes": _cmd_repair_programme_episodes,
     "stats": _cmd_stats,
     "gnews": _cmd_gnews,
 }

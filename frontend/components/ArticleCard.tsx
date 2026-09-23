@@ -12,9 +12,12 @@ import {
   formatRelativeTime,
   locales,
   t,
+  tPlural,
   type LocaleCode,
 } from "@/lib/i18n";
 import { formatRankReason, type RankReason } from "@/lib/rankReason";
+import { usePreviousVisit } from "@/lib/lastVisit";
+import { useHydrated } from "@/lib/useHydrated";
 
 /** ADR 0013's roles, in the same order and under the same labels
  * `Perspectives.tsx` uses - "wire" is deliberately absent from both: a wire
@@ -110,6 +113,15 @@ export interface ArticleCardProps {
   revalidatePath: string;
   /** Extra context line under the metadata row, e.g. "Viewed 3 hours ago". */
   footnote?: string;
+  /** Search's grouped results (fifth pass §2.4): the other reports of this
+   * same story found on the page, collapsed under this one. */
+  moreReports?: { label: string; href: string };
+  /** Words to mark in the headline - search's own query. */
+  highlight?: string;
+  /** Mark the card when it was published after the reader's previous visit
+   * (fifth pass F6). Home only - on a topic page or search, "new to you"
+   * is not the question being asked. */
+  markNew?: boolean;
   /**
    * design-system.md's non-negotiable: "every ranked card can explain
    * itself." Undefined on every real route today - no surface has a reason
@@ -143,6 +155,9 @@ export function ArticleCard({
   saved = false,
   revalidatePath,
   footnote,
+  moreReports,
+  highlight,
+  markNew = false,
   why,
   variant = "secondary",
   priority = false,
@@ -155,6 +170,24 @@ export function ArticleCard({
   // earlier pass added.
   const [hidden, setHidden] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Relative times and the reader's local clock: re-rendered once after
+  // hydration with the browser's own values (see useHydrated).
+  useHydrated();
+  const previousVisit = usePreviousVisit();
+  const isNew =
+    markNew && previousVisit !== null && Date.parse(article.published_at) > previousVisit;
+  // The differentiator made visible (fifth pass F1): the same story is being
+  // reported in other languages too. A real count from the story cluster,
+  // linking to the story page that lists them - not on `cluster`/`timeline`
+  // cards, whose coverage line already says it.
+  const otherLanguages =
+    variant !== "cluster" &&
+    variant !== "timeline" &&
+    article.story_cluster_id !== null &&
+    article.coverage &&
+    article.coverage.languages > 1
+      ? article.coverage.languages - 1
+      : 0;
 
   function handleClick() {
     // Fire-and-forget: never block or delay the navigation this accompanies.
@@ -242,11 +275,15 @@ export function ArticleCard({
         </div>
       )}
       <div className="card__body">
+        {/* "New" means new since this reader's previous visit - see
+            usePreviousVisit. The kicker stays one word so a page of fresh
+            stories is not a column of repeated sentences. */}
+        {isNew && <span className="card__new">{t(locale, "card.new")}</span>}
         <h2 className="card__title">
           {/* The publisher link lives on the detail page, alongside related
               coverage - never fabricated full text, always a click away. */}
           <Link href={`/${locale}/a/${article.id}`} onClick={handleClick}>
-            {article.title}
+            {highlight ? <Highlighted text={article.title} query={highlight} /> : article.title}
           </Link>
         </h2>
         {showSnippet && <p className="card__snippet">{article.snippet}</p>}
@@ -254,7 +291,7 @@ export function ArticleCard({
           // A timeline card leads with when the story developed, not who
           // filed the article this card happens to link - the coverage line
           // right below it (same markup `cluster` uses) still says how widely.
-          <p className="card__developing">
+          <p className="card__developing" suppressHydrationWarning>
             {t(locale, "card.timeline.developing", { time: developingSince })}
           </p>
         )}
@@ -272,15 +309,25 @@ export function ArticleCard({
           // groups by.
           <p className="card__meta card__meta--role">
             <span className="card__role">{t(locale, roleLabelKey)}</span>
-            <span className="card__source">{article.source_name}</span>
-            <time dateTime={article.published_at}>
+            <Link
+              className="card__source"
+              href={`/${locale}/source/${encodeURIComponent(article.source_slug)}`}
+            >
+              {article.source_name}
+            </Link>
+            <time dateTime={article.published_at} suppressHydrationWarning>
               {formatRelativeTime(article.published_at, locale)}
             </time>
           </p>
         ) : (
           <p className="card__meta">
-            <span className="card__source">{article.source_name}</span>
-            <time dateTime={article.published_at}>
+            <Link
+              className="card__source"
+              href={`/${locale}/source/${encodeURIComponent(article.source_slug)}`}
+            >
+              {article.source_name}
+            </Link>
+            <time dateTime={article.published_at} suppressHydrationWarning>
               {formatRelativeTime(article.published_at, locale)}
             </time>
             {foreign && (
@@ -288,6 +335,13 @@ export function ArticleCard({
                 {foreign.label}
               </span>
             )}
+          </p>
+        )}
+        {otherLanguages > 0 && (
+          <p className="card__languages">
+            <Link href={`/${locale}/story/${article.story_cluster_id}`}>
+              {tPlural(locale, "article.otherLanguages", otherLanguages)}
+            </Link>
           </p>
         )}
         {showContextToggle && (
@@ -313,7 +367,7 @@ export function ArticleCard({
               inert={!expanded}
             >
               <div className="card__context-inner">
-                <p>
+                <p suppressHydrationWarning>
                   {t(locale, "home.lead.context.published", {
                     time: formatAbsoluteTime(article.published_at, locale),
                   })}
@@ -337,6 +391,11 @@ export function ArticleCard({
         )}
         {why && <p className="card__why">{formatRankReason(locale, why)}</p>}
         {footnote && <p className="card__footnote">{footnote}</p>}
+        {moreReports && (
+          <p className="card__more-reports">
+            <Link href={moreReports.href}>{moreReports.label}</Link>
+          </p>
+        )}
         {signedIn && (
           <ArticleActions
             articleId={article.id}
@@ -351,5 +410,30 @@ export function ArticleCard({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * The headline with each query word marked. Whole-word-agnostic on purpose:
+ * search stems ("elections" matches "election"), so marking the typed stem
+ * wherever it starts a word is closer to what matched than exact words would
+ * be. Case-insensitive and Unicode-aware, so it holds for Devanagari and
+ * accented Latin; query text is escaped before it becomes a pattern.
+ */
+function Highlighted({ text, query }: { text: string; query: string }) {
+  const words = query
+    .split(/\s+/)
+    .map((word) => word.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter((word) => word.length >= 2)
+    .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (words.length === 0) return <>{text}</>;
+  const pattern = new RegExp(`(${words.join("|")})`, "giu");
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, index) =>
+        index % 2 === 1 ? <mark key={index}>{part}</mark> : <span key={index}>{part}</span>,
+      )}
+    </>
   );
 }

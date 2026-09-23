@@ -94,6 +94,7 @@ export function ArticleActions({
       <button
         type="button"
         className="card__action"
+        data-shortcut="save"
         aria-pressed={saved}
         disabled={isPending}
         onClick={() =>

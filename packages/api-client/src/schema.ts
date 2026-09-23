@@ -398,6 +398,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/articles/top": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Top Articles
+         * @description What matters now, for a reader with no history to personalise from:
+         *     recency x breadth of coverage x source trust, one article per story.
+         *
+         *     Declared before ``/articles/{article_id}`` so "top" is never parsed as an
+         *     id. Cache: the same 60s the web tier applies to the article list.
+         */
+        get: operations["top_articles_v1_articles_top_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/articles/{article_id}": {
         parameters: {
             query?: never;
@@ -407,6 +431,27 @@ export interface paths {
         };
         /** Get Article */
         get: operations["get_article_v1_articles__article_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/articles/{article_id}/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Article Topics
+         * @description What an article is filed under, primary first - the article page's
+         *     topic links and its "more in this topic" (fifth pass F4). Cache: 120s.
+         */
+        get: operations["article_topics_v1_articles__article_id__topics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -603,6 +648,62 @@ export interface paths {
         post?: never;
         /** Delete Source Follow */
         delete: operations["delete_source_follow_v1_follows_sources__source_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/follows/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Story Follows
+         * @description Never cached: per-reader state.
+         */
+        get: operations["list_story_follows_v1_follows_stories_get"];
+        put?: never;
+        /** Create Story Follow */
+        post: operations["create_story_follow_v1_follows_stories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/follows/stories/{story_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Story Follow State */
+        get: operations["story_follow_state_v1_follows_stories__story_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Story Follow */
+        delete: operations["delete_story_follow_v1_follows_stories__story_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/follows/stories/{story_id}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Story Seen */
+        post: operations["mark_story_seen_v1_follows_stories__story_id__seen_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -929,6 +1030,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sources/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source Detail
+         * @description One publisher. Cache: the web tier's usual 120s for public metadata.
+         */
+        get: operations["source_detail_v1_sources__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/stats": {
         parameters: {
             query?: never;
@@ -1209,6 +1330,15 @@ export interface components {
              */
             next_cursor?: string | null;
         };
+        /** ArticleTopicLinkOut */
+        ArticleTopicLinkOut: {
+            /** Id */
+            id: string;
+            /** Is Primary */
+            is_primary: boolean;
+            /** Label */
+            label: string;
+        };
         /** ArticleTopicOut */
         ArticleTopicOut: {
             /** Id */
@@ -1377,6 +1507,7 @@ export interface components {
             article: components["schemas"]["ArticleOut"];
             /** Impression Id */
             impression_id: number | null;
+            reason?: components["schemas"]["RankReasonOut"] | null;
         };
         /** FeedPageOut */
         FeedPageOut: {
@@ -1634,6 +1765,14 @@ export interface components {
             saves: {
                 [key: string]: unknown;
             }[];
+            /** Source Follows */
+            source_follows: {
+                [key: string]: unknown;
+            }[];
+            /** Story Follows */
+            story_follows: {
+                [key: string]: unknown;
+            }[];
         };
         /** MeOut */
         MeOut: {
@@ -1699,6 +1838,20 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /**
+         * RankReasonOut
+         * @description Why this card is on the feed - only a factor the ranker actually
+         *     applied (see services.feed.RankReason).
+         */
+        RankReasonOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "followed_topic" | "trending" | "exploration";
+            /** Topic Id */
+            topic_id?: string | null;
         };
         /** RankingPolicyCtrOut */
         RankingPolicyCtrOut: {
@@ -1820,6 +1973,8 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+            /** Slug */
+            slug: string;
         };
         /** SearchTopicMatchOut */
         SearchTopicMatchOut: {
@@ -1862,6 +2017,25 @@ export interface components {
             position: number;
             /** Role */
             role: string;
+        };
+        /** SourceDetailOut */
+        SourceDetailOut: {
+            /** Article Count */
+            article_count: number;
+            /** Country */
+            country: string | null;
+            /** Homepage Url */
+            homepage_url: string;
+            /** Id */
+            id: number;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Source Role */
+            source_role: string | null;
         };
         /** SourceFollowIn */
         SourceFollowIn: {
@@ -1948,6 +2122,42 @@ export interface components {
              */
             perspectives: components["schemas"]["PerspectiveGroupOut"][];
             story: components["schemas"]["StoryOut"];
+        };
+        /** StoryFollowIn */
+        StoryFollowIn: {
+            /** Story Id */
+            story_id: number;
+        };
+        /** StoryFollowOut */
+        StoryFollowOut: {
+            /**
+             * Followed At
+             * Format: date-time
+             */
+            followed_at: string;
+            /** Language Count */
+            language_count: number;
+            /**
+             * New Reports
+             * @description Live reports that arrived after this reader last opened the story.
+             */
+            new_reports: number;
+            /** Source Count */
+            source_count: number;
+            /** Story Id */
+            story_id: number;
+            /**
+             * Story Last Seen At
+             * Format: date-time
+             */
+            story_last_seen_at: string;
+            /** Title */
+            title: string;
+        };
+        /** StoryFollowStateOut */
+        StoryFollowStateOut: {
+            /** Following */
+            following: boolean;
         };
         /** StoryOut */
         StoryOut: {
@@ -2829,6 +3039,8 @@ export interface operations {
                 topic?: string | null;
                 /** @description Publisher country - what makes an edition regional, not just a language. */
                 country?: string | null;
+                /** @description Filter to one publisher's own id. */
+                source?: number | null;
                 cursor?: string | null;
                 page_size?: number;
             };
@@ -2845,6 +3057,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticlePageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    top_articles_v1_articles_top_get: {
+        parameters: {
+            query?: {
+                languages?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleOut"][];
                 };
             };
             /** @description Validation Error */
@@ -2876,6 +3120,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    article_topics_v1_articles__article_id__topics_get: {
+        parameters: {
+            query?: {
+                /** @description Interface language, for the labels. */
+                language?: string;
+            };
+            header?: never;
+            path: {
+                article_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTopicLinkOut"][];
                 };
             };
             /** @description Validation Error */
@@ -3245,6 +3523,146 @@ export interface operations {
             header?: never;
             path: {
                 source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_story_follows_v1_follows_stories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryFollowOut"][];
+                };
+            };
+        };
+    };
+    create_story_follow_v1_follows_stories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryFollowIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    story_follow_state_v1_follows_stories__story_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryFollowStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_story_follow_v1_follows_stories__story_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_story_seen_v1_follows_stories__story_id__seen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: number;
             };
             cookie?: never;
         };
@@ -3902,6 +4320,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    source_detail_v1_sources__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDetailOut"];
                 };
             };
             /** @description Validation Error */

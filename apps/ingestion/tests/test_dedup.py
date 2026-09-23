@@ -13,7 +13,7 @@ from justnews_testing.factories import make_article, make_source
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.embedding import HashingEmbedder, embed_article_text
-from justnews_core.models import Article
+from justnews_core.models import Article, StoryCluster
 from justnews_core.settings import Settings
 from justnews_core.text import canonicalise_url, simhash64
 from justnews_ingestion import dedup
@@ -360,7 +360,7 @@ class TestRecentIndex:
         index = await dedup.RecentIndex.load(session, since=datetime.now(UTC) - timedelta(hours=72))
         assert len(index) == 1
 
-    async def test_holds_three_integers_not_articles(self, session: AsyncSession) -> None:
+    async def test_holds_scalars_not_articles(self, session: AsyncSession) -> None:
         # The point of this class: the window costs kilobytes, not megabytes of
         # vectors. Loading full rows per candidate is what made a pass overrun.
         source = await make_source(session)
@@ -368,23 +368,58 @@ class TestRecentIndex:
         await session.flush()
 
         index = await dedup.RecentIndex.load(session, since=datetime.now(UTC) - timedelta(hours=72))
-        assert all(len(row) == 3 for row in index.rows)
+        assert all(len(row) == 4 for row in index.rows)
 
     async def test_articles_added_during_a_run_are_matched(self, session: AsyncSession) -> None:
         # Two entries about the same event arriving in one pass must still
         # collapse, even though the second was never in the loaded window.
         index = dedup.RecentIndex()
+        now = datetime.now(UTC)
         title = "Central bank holds interest rates steady for a third meeting"
-        index.add(article_id=42, simhash=simhash64(title), cluster_id=None)
+        index.add(article_id=42, simhash=simhash64(title), cluster_id=None, published_at=now)
 
-        match = index.nearest(simhash64(title + "."), max_distance=3)
+        match = index.nearest(
+            simhash64(title + "."), max_distance=3, around=now, window=timedelta(hours=72)
+        )
         assert match is not None
         assert match[0] == 42
 
     async def test_unrelated_titles_do_not_match(self) -> None:
         index = dedup.RecentIndex()
-        index.add(article_id=1, simhash=simhash64("Volcano erupts in Iceland"), cluster_id=None)
-        assert index.nearest(simhash64("Barcelona sign a teenage striker"), 3) is None
+        now = datetime.now(UTC)
+        index.add(
+            article_id=1,
+            simhash=simhash64("Volcano erupts in Iceland"),
+            cluster_id=None,
+            published_at=now,
+        )
+        assert (
+            index.nearest(
+                simhash64("Barcelona sign a teenage striker"),
+                3,
+                around=now,
+                window=timedelta(hours=72),
+            )
+            is None
+        )
+
+    async def test_identical_titles_weeks_apart_do_not_match(self) -> None:
+        # A radio programme publishes every episode under the series name
+        # ("Tech Life"). The window has to hold between the two articles, not
+        # just between an article and the run clock, or three weeks of
+        # unrelated episodes collapse into one "story".
+        index = dedup.RecentIndex()
+        now = datetime.now(UTC)
+        index.add(article_id=7, simhash=simhash64("Tech Life"), cluster_id=None, published_at=now)
+        assert (
+            index.nearest(
+                simhash64("Tech Life"),
+                3,
+                around=now - timedelta(days=21),
+                window=timedelta(hours=72),
+            )
+            is None
+        )
 
 
 class TestEmbeddingLayerUsesTheIndex:
@@ -400,6 +435,7 @@ class TestEmbeddingLayerUsesTheIndex:
             session,
             embedding=embed_article_text(EMBEDDER, title, None),
             since=datetime.now(UTC) - timedelta(hours=72),
+            until=datetime.now(UTC) + timedelta(hours=72),
         )
         assert nearest is not None
         article, similarity = nearest
@@ -408,3 +444,70 @@ class TestEmbeddingLayerUsesTheIndex:
         # a similarity near 1, not near 0. Getting this backwards would merge
         # every unrelated pair in the corpus.
         assert similarity > 0.99
+
+
+class TestRepairProgrammeEpisodes:
+    MARKERS = ("/sounds/", "/audio/")
+
+    async def _cluster(self, session: AsyncSession, *articles: Article) -> StoryCluster:
+        cluster = StoryCluster(
+            title=articles[0].title,
+            first_seen_at=articles[0].published_at,
+            last_seen_at=articles[-1].published_at,
+            article_count=len(articles),
+            source_count=1,
+            language_count=1,
+        )
+        session.add(cluster)
+        await session.flush()
+        for article in articles:
+            article.story_cluster_id = cluster.id
+        await session.flush()
+        return cluster
+
+    async def test_hides_episodes_and_dissolves_their_story(self, session: AsyncSession) -> None:
+        source = await make_source(session)
+        episodes = [
+            await make_article(
+                session, source, title="Tech Life", url=f"https://bbc.co.uk/sounds/play/w{i}"
+            )
+            for i in range(3)
+        ]
+        cluster = await self._cluster(session, *episodes)
+        cluster_id = cluster.id
+
+        result = await dedup.repair_programme_episodes(session, markers=self.MARKERS)
+
+        assert result == {"episodes_removed": 3, "clusters_dissolved": 1, "dry_run": False}
+        for episode in episodes:
+            assert episode.removed_at is not None
+            assert episode.removed_reason == dedup.PROGRAMME_EPISODE_REMOVAL_REASON
+            assert episode.story_cluster_id is None
+        assert await session.get(StoryCluster, cluster_id) is None
+
+    async def test_a_story_with_two_real_reports_survives(self, session: AsyncSession) -> None:
+        source = await make_source(session)
+        report_a = await make_article(session, source, title="Diets", url="https://a.com/news/1")
+        report_b = await make_article(session, source, title="Diets", url="https://a.com/news/2")
+        podcast = await make_article(session, source, title="Diets", url="https://a.com/audio/3")
+        cluster = await self._cluster(session, report_a, report_b, podcast)
+
+        await dedup.repair_programme_episodes(session, markers=self.MARKERS)
+
+        assert report_a.story_cluster_id == cluster.id
+        assert report_b.story_cluster_id == cluster.id
+        assert cluster.article_count == 2
+
+    async def test_dry_run_writes_nothing(self, session: AsyncSession) -> None:
+        source = await make_source(session)
+        episode = await make_article(
+            session, source, title="Tech Now", url="https://bbc.co.uk/sounds/play/x"
+        )
+        report = await make_article(session, source, title="Tech Now", url="https://a.com/news/9")
+        await self._cluster(session, episode, report)
+
+        result = await dedup.repair_programme_episodes(session, markers=self.MARKERS, dry_run=True)
+
+        assert result == {"episodes_removed": 1, "clusters_dissolved": 1, "dry_run": True}
+        assert episode.removed_at is None
+        assert episode.story_cluster_id is not None
