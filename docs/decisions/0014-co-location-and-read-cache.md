@@ -1,7 +1,7 @@
 # 0014 — Co-locate with the database, and cache shared reads in Redis
 
 - **Date:** 2026-09-23
-- **Status:** accepted
+- **Status:** accepted; the region move is deferred (2026-09-23) - Render stays in `oregon` and Vercel on its default region until the move is done in one step. The cache, client dedupe and keep-warm ping are in effect.
 
 ## Context
 
