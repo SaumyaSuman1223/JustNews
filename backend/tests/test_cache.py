@@ -88,7 +88,7 @@ class TestReadThrough:
         loader = Loader({"n": 1})
         assert await _read(loader) == {"n": 1}
         assert loader.calls == 1
-        assert json.loads(redis.store["cache:v1:thing"])["value"] == {"n": 1}
+        assert json.loads(redis.store["cache:local:v1:thing"])["value"] == {"n": 1}
 
     async def test_a_fresh_hit_does_not_load(self, redis: FakeRedis) -> None:
         await _read(Loader({"n": 1}))
@@ -97,7 +97,7 @@ class TestReadThrough:
         assert second.calls == 0
 
     async def test_a_stale_hit_serves_stale_and_refreshes_once(self, redis: FakeRedis) -> None:
-        redis.store["cache:v1:thing"] = json.dumps(
+        redis.store["cache:local:v1:thing"] = json.dumps(
             {"value": {"n": 1}, "fresh_until": time.time() - 1}
         )
         refreshed = Loader({"n": 2})
@@ -106,7 +106,7 @@ class TestReadThrough:
         await cache.drain()
         # The lock let one of the two stale reads refresh, not both.
         assert refreshed.calls == 1
-        assert json.loads(redis.store["cache:v1:thing"])["value"] == {"n": 2}
+        assert json.loads(redis.store["cache:local:v1:thing"])["value"] == {"n": 2}
 
     async def test_redis_down_falls_back_to_the_loader(self, redis: FakeRedis) -> None:
         redis.broken = True
@@ -115,7 +115,7 @@ class TestReadThrough:
         assert loader.calls == 1
 
     async def test_an_unreadable_entry_is_reloaded(self, redis: FakeRedis) -> None:
-        redis.store["cache:v1:thing"] = "not json"
+        redis.store["cache:local:v1:thing"] = "not json"
         loader = Loader({"n": 1})
         assert await _read(loader) == {"n": 1}
         assert loader.calls == 1

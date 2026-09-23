@@ -45,8 +45,11 @@ Loader = Callable[[AsyncSession], Awaitable[Any]]
 _refreshes: set[asyncio.Task[None]] = set()
 
 
-def _key(name: str) -> str:
-    return f"cache:{KEY_VERSION}:{name}"
+def _key(settings: Settings, name: str) -> str:
+    # The environment is part of the key: a laptop or a staging deploy
+    # pointed at the same Upstash database must never read - or write - the
+    # entries production serves.
+    return f"cache:{settings.app_env}:{KEY_VERSION}:{name}"
 
 
 async def read_through(
@@ -69,7 +72,7 @@ async def read_through(
     if not upstash.is_configured(settings):
         return await load(session)
 
-    key = _key(name)
+    key = _key(settings, name)
     try:
         (raw,) = await upstash.pipeline(settings, [["GET", key]])
     except httpx.HTTPError as exc:
