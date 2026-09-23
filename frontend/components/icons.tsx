@@ -101,3 +101,116 @@ export function ProfileIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function DiscoverIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" />
+    </Icon>
+  );
+}
+
+export function HistoryIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+      <path d="M4 4.5v3.8h3.8" />
+      <path d="M12 8v4.2l2.8 1.8" />
+    </Icon>
+  );
+}
+
+/** The sidebar's own collapse control: a panel with its edge drawn in. */
+export function PanelIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M9 4.5v15" />
+    </Icon>
+  );
+}
+
+export function MenuIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </Icon>
+  );
+}
+
+export function HeartIcon(props: IconProps & { filled?: boolean }) {
+  const { filled, ...rest } = props;
+  return (
+    <Icon {...rest}>
+      <path
+        d="M12 19.5s-7-4.3-7-9.4A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.1c0 5.1-7 9.4-7 9.4z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </Icon>
+  );
+}
+
+export function MoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="6" cy="12" r="0.9" fill="currentColor" />
+      <circle cx="12" cy="12" r="0.9" fill="currentColor" />
+      <circle cx="18" cy="12" r="0.9" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function ShareIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 15V4" />
+      <path d="m8 7.5 4-3.5 4 3.5" />
+      <path d="M6 12v6.5h12V12" />
+    </Icon>
+  );
+}
+
+export function SlidersIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 4v5M6 13v7M12 4v9M12 17v3M18 4v3M18 11v9" />
+      <path d="M4 11h4M10 15h4M16 9h4" />
+    </Icon>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Icon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m7 10 5 5 5-5" />
+    </Icon>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Icon>
+  );
+}
+
+export function ExternalIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14 4h6v6" />
+      <path d="M20 4 11 13" />
+      <path d="M18 14v5.5H4.5V6H10" />
+    </Icon>
+  );
+}

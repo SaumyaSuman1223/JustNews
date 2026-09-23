@@ -1,16 +1,8 @@
 import Link from "next/link";
 
-import { AquilaIcon, DeskIcon, HomeIcon, SavedIcon, SearchIcon } from "@/components/icons";
+import { NAV_ICONS } from "@/components/navIcons";
 import { NAV_ITEMS, hrefFor, isActive } from "@/lib/navigation";
 import { t, type LocaleCode } from "@/lib/i18n";
-
-const ICONS = {
-  home: HomeIcon,
-  aquila: AquilaIcon,
-  desk: DeskIcon,
-  saved: SavedIcon,
-  search: SearchIcon,
-} as const;
 
 /**
  * The mobile bottom tab bar.
@@ -19,10 +11,9 @@ const ICONS = {
  * viewport, where a thumb reaches it - the design direction's rule that a
  * phone gets its own navigation rather than a shrunken desktop one.
  *
- * Four tabs, from the same model the rail reads. A signed-out reader has no
- * Saved, so Search takes the fourth slot rather than the bar rendering three
- * items and a gap: `inTabBar` marks the candidates and this takes the first
- * four that are actually visible.
+ * Up to four tabs, from the same model the sidebar reads; everything else -
+ * history, settings, the account - is in the sidebar, which opens as a
+ * drawer from the top bar on a phone.
  */
 export function MobileTabBar({
   locale,
@@ -34,14 +25,14 @@ export function MobileTabBar({
   signedIn: boolean;
 }) {
   const items = NAV_ITEMS.filter(
-    (item) => (item.inTabBar || item.id === "search") && (!item.requiresSession || signedIn),
+    (item) => item.inTabBar && (!item.requiresSession || signedIn),
   ).slice(0, 4);
 
   return (
     <nav className="tabbar" aria-label={t(locale, "nav.primary")}>
       <ul className="tabbar__list">
         {items.map((item) => {
-          const IconComponent = ICONS[item.id as keyof typeof ICONS];
+          const IconComponent = NAV_ICONS[item.id];
           const active = isActive(item, pathname, locale);
           return (
             <li key={item.id}>

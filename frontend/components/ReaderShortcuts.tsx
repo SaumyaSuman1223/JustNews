@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { t, type LocaleCode } from "@/lib/i18n";
 
 /** A story on the page: the card's own headline link. */
-const STORY_SELECTOR = ".card__title a";
+const STORY_SELECTOR = ".card__title a, .story__title a";
 
 /**
  * Keyboard shortcuts for reading (fifth pass F8), everywhere cards appear:
@@ -71,7 +71,7 @@ export function ReaderShortcuts({ locale }: { locale: LocaleCode }) {
 
       if (event.key === "s" && current >= 0) {
         const save = stories[current]
-          ?.closest(".card")
+          ?.closest(".card, .story")
           ?.querySelector<HTMLButtonElement>("[data-shortcut='save']");
         if (save && !save.disabled) {
           event.preventDefault();
