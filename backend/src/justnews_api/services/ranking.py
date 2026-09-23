@@ -151,9 +151,7 @@ def _similarity(a: ScoredCandidate, b: ScoredCandidate) -> float:
     return 0.0
 
 
-def diversify(
-    candidates: list[ScoredCandidate], *, limit: int | None = None
-) -> list[ArticleRow]:
+def diversify(candidates: list[ScoredCandidate], *, limit: int | None = None) -> list[ArticleRow]:
     """Greedy MMR over the whole scored pool, not just one page of it - the
     feed service slices pages out of this result, so the ordering has to be
     stable and complete across however many pages a reader scrolls.
