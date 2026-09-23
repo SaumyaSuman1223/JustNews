@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Discover, type DiscoverTopic } from "@/components/discover/Discover";
 import { DiscoverRail } from "@/components/rail/DiscoverRail";
 import { getMarketTiles, getTopics, getTrendingCompanies } from "@/lib/api";
-import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { curatedTopicLabel, curatedTopics } from "@/lib/curatedTopics";
 import { discoverReader, loadDiscoverPage, savedArticleIds } from "@/lib/discover";
 import { parseView } from "@/lib/discoverView";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
@@ -55,9 +55,17 @@ export default async function DiscoverRoute({
     getTrendingCompanies(),
     cookies(),
   ]);
-  const topics: DiscoverTopic[] = topicList.data
+  // The API's list when it has one; the curated ids otherwise, so the menu
+  // and "Make it yours" never render empty just because the API is down.
+  const source =
+    topicList.data.length > 0
+      ? topicList.data.map((topic) => ({
+          id: topic.id,
+          label: curatedTopicLabel(topic.id, topic.label, active.code),
+        }))
+      : curatedTopics(active.code);
+  const topics: DiscoverTopic[] = source
     .filter((topic) => MENU_TOPIC.test(topic.id))
-    .map((topic) => ({ id: topic.id, label: curatedTopicLabel(topic.id, topic.label, active.code) }))
     .sort((a, b) => a.label.localeCompare(b.label, active.code));
 
   return (
