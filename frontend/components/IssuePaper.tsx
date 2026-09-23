@@ -191,12 +191,10 @@ export function IssuePaper({
         // The front page (audit §8): a left rail carrying the standing quote
         // and IN FOCUS; the dominant lead; an editorial right rail of
         // secondary stories; and, under all three, a lower row of further
-        // major stories followed by TODAY'S HIGHLIGHTS. The page still has to
-        // *end* - §35's landscape sheet is capped to the viewport height and
-        // clips rather than scrolls (`.aquila__sheet { overflow: hidden }`) -
-        // so the lower band is deliberately the plainest thing on the page:
-        // no images, clamped to one line, the same restraint that already
-        // applied to the right rail's second and third entries.
+        // major stories followed by TODAY'S HIGHLIGHTS. The whole page is
+        // scaled to fit the screen rather than cut at its edge (IssueReader),
+        // so what keeps it one page is restraint, not a clip: the lower band
+        // is the plainest thing on it - no images, two lines at most.
         //
         // A section page is a simpler thing and says so: one lead and its
         // columns, no rails to fill and nothing to pad them with.
@@ -245,13 +243,10 @@ export function IssuePaper({
                 </>
               )}
 
-              {/* §8 draws TODAY'S HIGHLIGHTS as part of a lower row this page
-                  has no room for once a real lead is stretching the top row
-                  to its own full height (measured: the lead alone is 531px
-                  of a ~587px body budget at 1440x900, and the sheet clips
-                  rather than scrolls). It stays here, where it already fit
-                  before this chunk, and gains what §8 actually asked for
-                  underneath it - numbered stories with page references. */}
+              {/* §8 draws TODAY'S HIGHLIGHTS in a lower row; it lives in the
+                  left rail instead, which keeps the page short enough to be
+                  read whole once scaled to the screen, and carries what §8
+                  asked for - numbered stories with page references. */}
               {briefs.length > 0 && (
                 <>
                   <h2 className="paper__label">
