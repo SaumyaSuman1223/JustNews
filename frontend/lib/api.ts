@@ -107,6 +107,8 @@ async function get<T>(path: string, fallback: T, revalidate: number): Promise<De
 export function getArticles(params: {
   languages?: string;
   topic?: string;
+  /** Any of these topic ids - Discover's For You for a signed-out reader. */
+  topics?: string[];
   country?: string;
   source?: number;
   cursor?: string;
@@ -115,6 +117,7 @@ export function getArticles(params: {
   const query = new URLSearchParams();
   if (params.languages) query.set("languages", params.languages);
   if (params.topic) query.set("topic", params.topic);
+  if (params.topics?.length) query.set("topics", params.topics.join(","));
   if (params.country) query.set("country", params.country);
   if (params.source !== undefined) query.set("source", String(params.source));
   if (params.cursor) query.set("cursor", params.cursor);
@@ -226,8 +229,13 @@ export function getBlindspots(languages: string, limit = 4): Promise<Degradable<
 
 /** Signed-out "What matters": recency x breadth of coverage x source trust,
  * one article per story (see the API's `/v1/articles/top`). */
-export function getTopArticles(languages: string, limit = 14): Promise<Degradable<Article[]>> {
+export function getTopArticles(
+  languages: string,
+  limit = 14,
+  topics?: string[],
+): Promise<Degradable<Article[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });
+  if (topics?.length) query.set("topics", topics.join(","));
   return get<Article[]>(`/v1/articles/top?${query}`, [], 60);
 }
 
