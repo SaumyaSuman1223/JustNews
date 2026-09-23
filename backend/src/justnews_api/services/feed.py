@@ -215,11 +215,13 @@ async def get_feed_page(
     if not unlogged.articles:
         return FeedPage(items=[], next_cursor=unlogged.next_cursor)
 
+    articles = await content_repo.attach_outlets(session, unlogged.articles)
+
     reasons: list[RankReason | None] = unlogged.reasons or [None] * len(unlogged.articles)
     if not log_impressions:
         items = [
             FeedItem(article=article, impression_id=None, reason=reason)
-            for article, reason in zip(unlogged.articles, reasons, strict=True)
+            for article, reason in zip(articles, reasons, strict=True)
         ]
         return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
@@ -238,14 +240,12 @@ async def get_feed_page(
                     unlogged.propensities[position] if unlogged.propensities else PROPENSITY
                 ),
             )
-            for position, row in enumerate(unlogged.articles)
+            for position, row in enumerate(articles)
         ],
     )
     items = [
         FeedItem(article=article, impression_id=impression_id, reason=reason)
-        for article, impression_id, reason in zip(
-            unlogged.articles, impression_ids, reasons, strict=True
-        )
+        for article, impression_id, reason in zip(articles, impression_ids, reasons, strict=True)
     ]
     return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 

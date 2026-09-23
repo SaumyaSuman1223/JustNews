@@ -6,7 +6,7 @@ filtering policy and cursor semantics live in the service layer.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any
 
@@ -46,6 +46,10 @@ class ClusterCoverage:
     #: reader to need them; nothing new is fetched to carry them.
     first_seen_at: datetime
     last_seen_at: datetime
+    #: A few of the outlets covering the story, most trusted first - the
+    #: favicons on a Discover card's "26 sources" line. Empty until
+    #: `attach_outlets` fills it; `sources` is the full count either way.
+    outlets: tuple[Outlet, ...] = ()
 
     @classmethod
     def from_cluster(cls, cluster: StoryCluster) -> ClusterCoverage:
@@ -57,6 +61,13 @@ class ClusterCoverage:
             first_seen_at=cluster.first_seen_at,
             last_seen_at=cluster.last_seen_at,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class Outlet:
+    slug: str
+    name: str
+    homepage_url: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +158,7 @@ async def list_articles(
     before_id: int | None,
     exclude_article_ids: set[int] | None = None,
     topic_id: str | None = None,
+    topic_ids: list[str] | None = None,
     country: str | None = None,
     source_id: int | None = None,
 ) -> list[ArticleRow]:
@@ -164,6 +176,12 @@ async def list_articles(
     if topic_id:
         query = query.where(
             Article.id.in_(select(ArticleTopic.article_id).where(ArticleTopic.topic_id == topic_id))
+        )
+    if topic_ids:
+        query = query.where(
+            Article.id.in_(
+                select(ArticleTopic.article_id).where(ArticleTopic.topic_id.in_(topic_ids))
+            )
         )
     if country:
         # An edition is a language *and* a place; the place lives on the
@@ -197,6 +215,7 @@ async def list_articles_window(
     upper_bound: datetime,
     exclude_article_ids: set[int] | None,
     limit: int,
+    topic_ids: list[str] | None = None,
 ) -> list[ArticleRow]:
     """A bounded, reproducible candidate pool for the Stage 5 ranker:
     everything published at or before ``upper_bound``, most recent first.
@@ -221,6 +240,12 @@ async def list_articles_window(
         query = query.where(Article.language.in_(languages))
     if exclude_article_ids:
         query = query.where(Article.id.notin_(exclude_article_ids))
+    if topic_ids:
+        query = query.where(
+            Article.id.in_(
+                select(ArticleTopic.article_id).where(ArticleTopic.topic_id.in_(topic_ids))
+            )
+        )
 
     result = await session.execute(query)
     return [
@@ -718,3 +743,63 @@ async def list_all_sources(session: AsyncSession) -> list[Source]:
         select(Source).where(Source.active.is_(True)).order_by(Source.name)
     )
     return list(result.scalars().all())
+
+
+#: How many outlets a card shows as favicons beside its source count.
+OUTLETS_PER_STORY = 3
+
+
+async def attach_outlets(session: AsyncSession, rows: list[ArticleRow]) -> list[ArticleRow]:
+    """The same rows, each clustered one carrying up to three of its story's
+    outlets - one query for the whole page, not one per card.
+
+    Most trusted first, so the favicons a reader sees lead with the outlets
+    most likely to be recognised; ties broken by id so the order is stable
+    between requests.
+    """
+    cluster_ids = {row.story_cluster_id for row in rows if row.story_cluster_id is not None}
+    if not cluster_ids:
+        return rows
+    distinct = (
+        select(
+            Article.story_cluster_id.label("cluster_id"),
+            Source.id.label("source_id"),
+            Source.slug,
+            Source.name,
+            Source.homepage_url,
+            Source.trust_score,
+        )
+        .join(Source, Article.source_id == Source.id)
+        .where(Article.story_cluster_id.in_(cluster_ids), Article.removed_at.is_(None))
+        .distinct()
+        .subquery()
+    )
+    ranked = select(
+        distinct,
+        func.row_number()
+        .over(
+            partition_by=distinct.c.cluster_id,
+            order_by=(distinct.c.trust_score.desc(), distinct.c.source_id),
+        )
+        .label("rank"),
+    ).subquery()
+    result = await session.execute(
+        select(ranked.c.cluster_id, ranked.c.slug, ranked.c.name, ranked.c.homepage_url)
+        .where(ranked.c.rank <= OUTLETS_PER_STORY)
+        .order_by(ranked.c.cluster_id, ranked.c.rank)
+    )
+    by_cluster: dict[int, list[Outlet]] = {}
+    for cluster_id, slug, name, homepage_url in result.all():
+        by_cluster.setdefault(cluster_id, []).append(
+            Outlet(slug=slug, name=name, homepage_url=homepage_url)
+        )
+    return [
+        replace(
+            row, coverage=replace(row.coverage, outlets=tuple(by_cluster[row.story_cluster_id]))
+        )
+        if row.coverage is not None
+        and row.story_cluster_id is not None
+        and row.story_cluster_id in by_cluster
+        else row
+        for row in rows
+    ]

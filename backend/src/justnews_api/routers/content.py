@@ -26,6 +26,12 @@ from justnews_core.models import StoryCluster
 router = APIRouter(prefix="/v1", tags=["content"])
 
 
+class OutletOut(BaseModel):
+    slug: str
+    name: str
+    homepage_url: str
+
+
 class CoverageOut(BaseModel):
     """Third-pass audit §21: "7 sources / 4 countries / 2 languages" - how
     widely the story this article belongs to is being covered, as of the last
@@ -42,6 +48,13 @@ class CoverageOut(BaseModel):
     #: rather than only naming how many sources are on it.
     first_seen_at: datetime
     last_seen_at: datetime
+    outlets: list[OutletOut] = Field(
+        default_factory=list,
+        description=(
+            "Up to three of the outlets covering the story, most trusted first - "
+            "for a card's favicons. `sources` is the full count."
+        ),
+    )
 
 
 class ArticleOut(BaseModel):
@@ -79,6 +92,10 @@ class ArticleOut(BaseModel):
                 countries=row.coverage.countries,
                 first_seen_at=row.coverage.first_seen_at,
                 last_seen_at=row.coverage.last_seen_at,
+                outlets=[
+                    OutletOut(slug=o.slug, name=o.name, homepage_url=o.homepage_url)
+                    for o in row.coverage.outlets
+                ],
             )
             if row.coverage is not None
             else None
@@ -195,6 +212,11 @@ async def list_articles(
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["en,es"]),
     topic: str | None = Query(default=None, examples=["medtop:20000724"]),
+    topics: str | None = Query(
+        default=None,
+        examples=["medtop:11000000,medtop:15000000"],
+        description="Any of these topics - Discover's For You for a signed-out reader.",
+    ),
     country: str | None = Query(
         default=None,
         max_length=2,
@@ -208,6 +230,7 @@ async def list_articles(
     """Cache: the first page of each filter combination, 60s fresh + 300s
     stale (ADR 0014). Later pages are read through: a cursor is one reader's
     position, and caching every one would fill Redis with keys read once."""
+    topic_ids = service.parse_topics(topics)
 
     async def load(s: AsyncSession) -> dict[str, Any]:
         page = await service.get_article_page(
@@ -216,6 +239,7 @@ async def list_articles(
             cursor=cursor,
             page_size=page_size,
             topic=topic,
+            topics=topic_ids,
             country=country,
             source=source,
         )
@@ -226,7 +250,10 @@ async def list_articles(
 
     if cursor is not None:
         return ArticlePageOut.model_validate(await load(session))
-    key = f"articles:{languages or ''}:{topic or ''}:{country or ''}:{source or ''}:{page_size}"
+    key = (
+        f"articles:{languages or ''}:{topic or ''}:{','.join(topic_ids or [])}:"
+        f"{country or ''}:{source or ''}:{page_size}"
+    )
     return ArticlePageOut.model_validate(
         await cache.read_through(key, ttl=60, stale=300, session=session, load=load)
     )
@@ -236,6 +263,7 @@ async def list_articles(
 async def top_articles(
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["en,es"]),
+    topics: str | None = Query(default=None, examples=["medtop:11000000,medtop:15000000"]),
     limit: int = Query(default=14, ge=1, le=30),
 ) -> list[ArticleOut]:
     """What matters now, for a reader with no history to personalise from:
@@ -245,14 +273,20 @@ async def top_articles(
     id. Cache: 60s fresh + 300s stale (ADR 0014).
     """
 
+    topic_ids = service.parse_topics(topics)
+
     async def load(s: AsyncSession) -> list[dict[str, Any]]:
         rows = await service.get_top_articles(
-            s, languages=service.parse_languages(languages), limit=limit
+            s, languages=service.parse_languages(languages), limit=limit, topics=topic_ids
         )
         return [ArticleOut.from_row(row).model_dump(mode="json") for row in rows]
 
     payload = await cache.read_through(
-        f"top:{languages or ''}:{limit}", ttl=60, stale=300, session=session, load=load
+        f"top:{languages or ''}:{','.join(topic_ids or [])}:{limit}",
+        ttl=60,
+        stale=300,
+        session=session,
+        load=load,
     )
     return [ArticleOut.model_validate(item) for item in payload]
 
