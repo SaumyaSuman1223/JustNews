@@ -98,6 +98,10 @@ class Settings(BaseSettings):
     ingest_max_enrich_concurrency: int = 6
 
     gnews_api_key: str | None = None
+    # Discover's Market Outlook and Trending Companies (docs/DISCOVER_PLAN.md).
+    # Free Finnhub key; without it the markets job still records Bitcoin
+    # (CoinGecko needs no key) and skips the stock quotes.
+    finnhub_api_key: str | None = None
     ingest_max_gnews_calls_per_day: int = 100
     # `run` fires ~96 times/day; reserve_call's per-day cap is the real
     # backstop regardless, but spending only this many calls per pass keeps

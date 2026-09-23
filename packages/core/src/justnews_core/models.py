@@ -882,3 +882,45 @@ class IssueSlot(Base):
             "role in ('lead', 'focus', 'secondary', 'brief')", name="ck_issue_slots_role"
         ),
     )
+
+
+class MarketSnapshot(Base):
+    """One quote for one instrument, as the markets job saw it.
+
+    A row per snapshot, not one row per symbol updated in place: the Market
+    Outlook's sparkline is the day's snapshots in order, so history is the
+    point. Written only by `justnews-ingest markets`; pruned after a few days.
+    """
+
+    __tablename__ = "market_snapshots"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(16), nullable=False)
+    label: Mapped[str] = mapped_column(String(60), nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    change: Mapped[float] = mapped_column(Float, nullable=False)
+    change_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (Index("ix_market_snapshots_symbol_as_of", "symbol", "as_of"),)
+
+
+class CompanyMention(Base):
+    """Trending Companies: the companies most named in the last day's
+    headlines, as of one run of the markets job - a count of real articles,
+    with the company's quote at that moment. Each run replaces the last."""
+
+    __tablename__ = "company_mentions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    ticker: Mapped[str] = mapped_column(String(16), nullable=False)
+    exchange: Mapped[str] = mapped_column(String(16), nullable=False)
+    domain: Mapped[str] = mapped_column(String(80), nullable=False)
+    mentions: Mapped[int] = mapped_column(Integer, nullable=False)
+    price: Mapped[float | None] = mapped_column(Float)
+    change_pct: Mapped[float | None] = mapped_column(Float)
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
