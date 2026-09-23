@@ -65,6 +65,10 @@ Option 2:
 | `GET /v1/issues/{id}` | 600s | 3600s | A published issue never changes |
 | `GET /v1/issues/{id}/pages/{n}` (unconsented) | 300s | 3600s | Frozen content; short enough that a takedown clears within minutes |
 | `GET /v1/issues/{id}/pages/{n}` (consented) | not cached | — | It writes impressions whose ids the client reports clicks against |
+| `GET /v1/widgets/markets` | 120s | 600s | The job that writes it runs every 15 minutes |
+| `GET /v1/widgets/companies` | 300s | 1800s | Replaced once per job run |
+| web `GET /api/widgets/weather` (Open-Meteo, Next fetch cache + CDN) | 1800s | 3600s | The forecast updates hourly; keyed by coordinates rounded to ~1 km |
+| web `GET /api/widgets/places` (Open-Meteo geocoding) | 86400s | — | A city does not move |
 | `GET /v1/feed`, `/v1/explore`, anything authenticated | not cached | — | Personal, and logs propensity at serve time; a cached ranking would log a decision no policy made |
 
 "Stale" is how long an expired entry may still be served while a single

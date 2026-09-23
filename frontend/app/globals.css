@@ -47,6 +47,10 @@
      against each other, not each against the page ground. */
   --accent-soft: #f0e9dc;
   --danger: #9a3b2e;
+  /* Market moves: semantic, separate from the accent, and never the only
+     signal - every change also carries its sign and an arrow. */
+  --gain: #1d7048;
+  --loss: #a8322a;
 
   /* Aquila's immersive ground. Fixed in both themes - it is a route-level
      surface treatment, not the application's dark mode (ADR 0011 / the design
@@ -171,6 +175,8 @@
     --accent: #c9ae83;
     --accent-soft: #33301f;
     --danger: #e39385;
+    --gain: #5cc48f;
+    --loss: #ef8a80;
   }
 }
 
@@ -192,6 +198,8 @@
   --accent: #c9ae83;
   --accent-soft: #33301f;
   --danger: #e39385;
+  --gain: #5cc48f;
+  --loss: #ef8a80;
 }
 
 *,
@@ -6078,6 +6086,9 @@ html[data-drawer-open] {
   display: grid;
   gap: var(--space-8);
   padding-block-start: var(--space-6);
+}
+
+.discover__feed--enter {
   animation: discover-in var(--dur-editorial) var(--ease);
 }
 
@@ -6602,7 +6613,7 @@ html[data-drawer-open] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .discover__feed,
+  .discover__feed--enter,
   .discover__topic-list,
   .story__popover,
   .drawer-scrim {
@@ -6616,5 +6627,622 @@ html[data-drawer-open] {
 
   .story:hover .story__media img {
     transform: none;
+  }
+}
+
+/* --- Discover's bar tools -------------------------------------------------- */
+
+.discover__tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.discover__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  block-size: 2.25rem;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  font-weight: 500;
+  color: var(--text-mid);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.discover__tool:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.discover__tool--customize {
+  inline-size: 2.25rem;
+  padding: 0;
+  justify-content: center;
+}
+
+@media (max-width: 56.1875rem) {
+  .discover__tools {
+    display: none;
+  }
+}
+
+@media (max-width: 74.9375rem) {
+  .discover__tool--customize {
+    display: none;
+  }
+}
+
+/* --- the rail -------------------------------------------------------------- */
+
+.discover-rail {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+/* Wide: beside the feed, following the reader down the page. */
+@media (min-width: 75rem) {
+  .discover-rail {
+    position: sticky;
+    inset-block-start: calc(var(--space-16) + var(--space-2));
+    max-block-size: calc(100dvh - var(--space-16) - var(--space-6));
+    overflow-y: auto;
+    padding-block-start: var(--space-6);
+    scrollbar-width: thin;
+  }
+}
+
+/* Narrow: the feed never ends, so a rail below it would never be seen. The
+   interests card moves above the feed; the widgets wait for a wide screen. */
+@media (max-width: 74.9375rem) {
+  .discover-page {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .discover-rail {
+    order: -1;
+  }
+
+  .discover-rail > :not(.interests) {
+    display: none;
+  }
+
+  .discover-rail:not(:has(.interests)) {
+    display: none;
+  }
+}
+
+.rail-widget,
+.interests,
+.rail-customize {
+  position: relative;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.rail-widget__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--type-body-m);
+  font-weight: 600;
+}
+
+.rail-widget__sub {
+  margin: calc(var(--space-2) * -1) 0 var(--space-3);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.rail-widget__empty {
+  margin: 0;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+}
+
+.rail-widget__source {
+  margin: var(--space-3) 0 0;
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+}
+
+.rail-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  font: inherit;
+  font-size: var(--type-body-s);
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.rail-link-button:hover {
+  text-decoration: underline;
+}
+
+.rail__customize {
+  justify-self: center;
+  color: var(--text-muted);
+  padding-block: var(--space-2);
+}
+
+/* --- Make it yours --------------------------------------------------------- */
+
+.interests {
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%);
+}
+
+.interests__close {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.interests__close:hover {
+  background: var(--surface-sub);
+  color: var(--text);
+}
+
+.interests__title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.interests__body {
+  margin: 0 0 var(--space-4);
+  padding-inline-end: var(--space-8);
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+}
+
+.interests__chips {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.interests__chip {
+  cursor: pointer;
+}
+
+.interests__chip[aria-pressed="true"] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+.interests__save {
+  inline-size: 100%;
+}
+
+/* --- weather --------------------------------------------------------------- */
+
+.weather__now {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.weather__temp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.9rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.weather__icon {
+  color: var(--accent);
+}
+
+.weather__unit {
+  align-self: flex-start;
+  padding: 0.1rem 0.2rem;
+  font: inherit;
+  font-size: var(--type-label);
+  font-weight: 600;
+  color: var(--text-mid);
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.weather__unit:hover {
+  background: var(--surface-sub);
+}
+
+.weather__unit-alt {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.weather__sky {
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+}
+
+.weather__place {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block: var(--space-2) var(--space-4);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather__change {
+  padding: 0;
+  font: inherit;
+  color: var(--text-mid);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}
+
+.weather__days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  text-align: center;
+}
+
+.weather__days li {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  font-size: var(--type-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather__day-icon {
+  color: var(--text-mid);
+}
+
+.weather__day-name {
+  color: var(--text-muted);
+}
+
+.weather__loading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.weather__prompt {
+  margin: 0 0 var(--space-3);
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+}
+
+.weather__search {
+  inline-size: 100%;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  color: var(--text);
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.weather__results {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.weather__results button {
+  display: grid;
+  inline-size: 100%;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: var(--type-body-s);
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.weather__results button:hover {
+  background: var(--surface-sub);
+}
+
+.weather__results span {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.weather__picker-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: var(--space-3);
+}
+
+/* --- markets ----------------------------------------------------------------- */
+
+.markets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.markets__tile {
+  display: grid;
+  gap: 0.15rem;
+  padding: var(--space-3) var(--space-3) 0;
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.markets__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  font-size: var(--type-label);
+}
+
+.markets__label {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.markets__symbol {
+  margin-inline-start: 0.3rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.markets__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.markets__change--up {
+  color: var(--gain);
+}
+
+.markets__change--down {
+  color: var(--loss);
+}
+
+.markets__change--flat {
+  color: var(--text-muted);
+}
+
+.markets__price {
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+}
+
+.spark {
+  display: block;
+  inline-size: calc(100% + var(--space-3) * 2);
+  block-size: 2.4rem;
+  margin-inline: calc(var(--space-3) * -1);
+  color: var(--text-muted);
+}
+
+.spark--up {
+  color: var(--gain);
+}
+
+.spark--down {
+  color: var(--loss);
+}
+
+.spark__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.spark__area {
+  fill: currentColor;
+  opacity: 0.12;
+}
+
+/* --- companies ------------------------------------------------------------- */
+
+.companies {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.companies__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.companies__row:hover {
+  background: var(--surface-sub);
+}
+
+.companies__mark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 8px;
+  background: var(--surface-sub);
+  overflow: hidden;
+}
+
+.companies__initial {
+  font-weight: 700;
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
+}
+
+.companies__logo {
+  position: absolute;
+  inset: 0.2rem;
+  inline-size: calc(100% - 0.4rem);
+  block-size: calc(100% - 0.4rem);
+  object-fit: contain;
+  background: var(--surface);
+  border-radius: 4px;
+}
+
+.companies__name {
+  display: grid;
+  font-size: var(--type-body-s);
+  font-weight: 600;
+  min-inline-size: 0;
+}
+
+.companies__meta {
+  font-size: var(--type-label);
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.companies__quote {
+  display: grid;
+  justify-items: end;
+  font-size: var(--type-body-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.companies__quote .markets__change {
+  font-size: var(--type-label);
+}
+
+.companies__quote--none {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+/* --- customize ------------------------------------------------------------- */
+
+.rail-customize {
+  display: grid;
+  gap: var(--space-3);
+  border-color: var(--border-strong);
+  animation: pop-in var(--dur-micro) var(--ease);
+}
+
+.rail-customize .rail-widget__title:focus {
+  outline: none;
+}
+
+.rail-customize__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.rail-customize__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.rail-customize__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-body-s);
+  cursor: pointer;
+}
+
+.rail-customize__moves {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rail-customize__moves button {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.9rem;
+  block-size: 1.9rem;
+  padding: 0;
+  color: var(--text-mid);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rail-customize__moves button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.rail-customize__up {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-customize {
+    animation: none;
   }
 }

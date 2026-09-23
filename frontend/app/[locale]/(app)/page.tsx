@@ -1,12 +1,22 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { Discover, type DiscoverTopic } from "@/components/discover/Discover";
-import { getTopics } from "@/lib/api";
+import { DiscoverRail } from "@/components/rail/DiscoverRail";
+import { getMarketTiles, getTopics, getTrendingCompanies } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { discoverReader, loadDiscoverPage, savedArticleIds } from "@/lib/discover";
 import { parseView } from "@/lib/discoverView";
 import { getLocale, isLocaleCode, t } from "@/lib/i18n";
+import { INTERESTS_DISMISSED_COOKIE } from "@/lib/interests";
+import {
+  RAIL_COOKIE,
+  TEMP_UNIT_COOKIE,
+  WEATHER_COOKIE,
+  parseRailPrefs,
+  parseWeatherPlace,
+} from "@/lib/railPrefs";
 
 export const metadata: Metadata = { description: null };
 
@@ -35,10 +45,15 @@ export default async function DiscoverRoute({
   const view = parseView(await searchParams);
   const reader = await discoverReader(active.code);
 
-  const [page, topicList, saved] = await Promise.all([
+  const [page, topicList, saved, markets, companies, cookieStore] = await Promise.all([
     loadDiscoverPage(reader, view, active.code),
     getTopics(active.code),
     savedArticleIds(reader),
+    // Both served from the API's Redis cache (ADR 0014) - fast enough to
+    // render with the page rather than pop in after it.
+    getMarketTiles(),
+    getTrendingCompanies(),
+    cookies(),
   ]);
   const topics: DiscoverTopic[] = topicList.data
     .filter((topic) => MENU_TOPIC.test(topic.id))
@@ -69,6 +84,21 @@ export default async function DiscoverRoute({
           initialSaved={saved}
         />
       </div>
+      <DiscoverRail
+        data={{
+          locale: active.code,
+          markets: markets.data,
+          companies: companies.data,
+          weatherPlace: parseWeatherPlace(cookieStore.get(WEATHER_COOKIE)?.value),
+          tempUnit: cookieStore.get(TEMP_UNIT_COOKIE)?.value === "f" ? "f" : "c",
+        }}
+        initialPrefs={parseRailPrefs(cookieStore.get(RAIL_COOKIE)?.value)}
+        // Asked until the reader answers - by choosing, or by closing it.
+        askInterests={
+          reader.interests.length === 0 && !cookieStore.get(INTERESTS_DISMISSED_COOKIE)
+        }
+        interestTopics={topics}
+      />
     </div>
   );
 }

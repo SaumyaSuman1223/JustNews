@@ -148,7 +148,11 @@ Each part ships green on its own.
 - For You / Top / Topic data wiring.
 - Remove Home's tiers and My Desk, with redirects.
 
-**Part D: Make it yours + widget rail**
+**Part D: Make it yours + widget rail** (built, 2026-09-23. Rail order and
+visibility are a cookie for every reader for now, not a `user_preferences`
+column: the cookie already renders server-side with no flash, and a synced
+per-account preference is a later migration once readers ask for it on a
+second device.)
 - Interest chips and the cookie → follows bridge.
 - The widget registry and the customise panel.
 - Order and visibility stored in a cookie when signed out; signed in, a new

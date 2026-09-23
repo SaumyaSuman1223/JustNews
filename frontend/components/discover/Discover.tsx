@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StoryCard, type StoryVariant } from "@/components/discover/StoryCard";
-import { ChevronDownIcon } from "@/components/icons";
+import { ChevronDownIcon, ShareIcon, SlidersIcon } from "@/components/icons";
+import { CUSTOMIZE_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
 import {
   parseView,
   viewHref,
@@ -141,8 +142,27 @@ export function Discover({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, load]);
 
+  // "Make it yours" saved new interests: For You is a different feed now.
+  const current = useRef(view);
+  useEffect(() => {
+    current.current = view;
+  });
+  useEffect(() => {
+    function refresh() {
+      cache.clear();
+      void load(current.current);
+    }
+    window.addEventListener(REFRESH_EVENT, refresh);
+    return () => window.removeEventListener(REFRESH_EVENT, refresh);
+  }, [load]);
+
+  // The feed fades in only when the reader changes view - never on the
+  // server-rendered first page, which should simply be there.
+  const [switched, setSwitched] = useState(false);
+
   function go(next: DiscoverView) {
     if (viewKey(next) === key) return;
+    setSwitched(true);
     window.history.pushState(null, "", viewHref(locale, next));
     window.scrollTo({ top: 0 });
   }
@@ -180,7 +200,11 @@ export function Discover({
     <div className="discover">
       <DiscoverTabs locale={locale} view={view} topics={topics} onChange={go} />
 
-      <div className="discover__feed" key={key} aria-busy={!entry || undefined}>
+      <div
+        className={switched ? "discover__feed discover__feed--enter" : "discover__feed"}
+        key={key}
+        aria-busy={!entry || undefined}
+      >
         {!entry ? (
           <FeedSkeleton />
         ) : entry.items.length === 0 ? (
@@ -366,7 +390,43 @@ function DiscoverTabs({
           )}
         </div>
       </nav>
+      <div className="discover__tools">
+        <button
+          type="button"
+          className="discover__tool discover__tool--customize"
+          onClick={() => window.dispatchEvent(new Event(CUSTOMIZE_EVENT))}
+          aria-label={t(locale, "rail.customize")}
+          title={t(locale, "rail.customize")}
+        >
+          <SlidersIcon />
+        </button>
+        <SharePage locale={locale} />
+      </div>
     </div>
+  );
+}
+
+function SharePage({ locale }: { locale: LocaleCode }) {
+  const [copied, setCopied] = useState(false);
+  async function share() {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: document.title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // Closed the share sheet.
+    }
+  }
+  return (
+    <button type="button" className="discover__tool discover__share" onClick={share}>
+      <ShareIcon />
+      <span>{t(locale, copied ? "discover.copied" : "discover.sharePage")}</span>
+    </button>
   );
 }
 

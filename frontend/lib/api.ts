@@ -43,6 +43,8 @@ export type ArticlePage = components["schemas"]["ArticlePageOut"];
 export type SearchPage = components["schemas"]["SearchPageOut"];
 export type CorpusStats = components["schemas"]["StatsOut"];
 export type Topic = components["schemas"]["TopicOut"];
+export type MarketTile = components["schemas"]["MarketTileOut"];
+export type TrendingCompany = components["schemas"]["CompanyOut"];
 export type Story = components["schemas"]["StoryOut"];
 export type StoryDetail = components["schemas"]["StoryDetailOut"];
 export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
@@ -237,6 +239,16 @@ export function getTopArticles(
   const query = new URLSearchParams({ languages, limit: String(limit) });
   if (topics?.length) query.set("topics", topics.join(","));
   return get<Article[]>(`/v1/articles/top?${query}`, [], 60);
+}
+
+/** Discover's Market Outlook. The job behind it runs every 15 minutes. */
+export function getMarketTiles(): Promise<Degradable<MarketTile[]>> {
+  return get<MarketTile[]>("/v1/widgets/markets", [], 120);
+}
+
+/** Discover's Trending Companies: the most named in the last day's news. */
+export function getTrendingCompanies(): Promise<Degradable<TrendingCompany[]>> {
+  return get<TrendingCompany[]>("/v1/widgets/companies", [], 300);
 }
 
 /** What readers are actually clicking. Behaviour, not recency. */
