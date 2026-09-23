@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from justnews_api.core import cache, upstash
 from justnews_api.core.errors import install_error_handlers
 from justnews_api.core.middleware import RequestContextMiddleware
 from justnews_api.core.ratelimit import RateLimitMiddleware
@@ -45,6 +46,8 @@ def _lifespan(settings: Settings):  # type: ignore[no-untyped-def]
         try:
             yield
         finally:
+            await cache.drain()
+            await upstash.close()
             await dispose_engine()
             log.info("api_stopped")
 

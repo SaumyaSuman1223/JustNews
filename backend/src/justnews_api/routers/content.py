@@ -8,11 +8,13 @@ reads over the corpus. The personalised, logged surface is ``/v1/feed``
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from justnews_api.core import cache
 from justnews_api.core.db import get_session
 from justnews_api.repositories import content as repo
 from justnews_api.services import content as service
@@ -203,18 +205,30 @@ async def list_articles(
     cursor: str | None = Query(default=None),
     page_size: int = Query(default=service.DEFAULT_PAGE_SIZE, ge=1, le=service.MAX_PAGE_SIZE),
 ) -> ArticlePageOut:
-    page = await service.get_article_page(
-        session,
-        languages=languages,
-        cursor=cursor,
-        page_size=page_size,
-        topic=topic,
-        country=country,
-        source=source,
-    )
-    return ArticlePageOut(
-        items=[ArticleOut.from_row(row) for row in page.items],
-        next_cursor=page.next_cursor,
+    """Cache: the first page of each filter combination, 60s fresh + 300s
+    stale (ADR 0014). Later pages are read through: a cursor is one reader's
+    position, and caching every one would fill Redis with keys read once."""
+
+    async def load(s: AsyncSession) -> dict[str, Any]:
+        page = await service.get_article_page(
+            s,
+            languages=languages,
+            cursor=cursor,
+            page_size=page_size,
+            topic=topic,
+            country=country,
+            source=source,
+        )
+        return ArticlePageOut(
+            items=[ArticleOut.from_row(row) for row in page.items],
+            next_cursor=page.next_cursor,
+        ).model_dump(mode="json")
+
+    if cursor is not None:
+        return ArticlePageOut.model_validate(await load(session))
+    key = f"articles:{languages or ''}:{topic or ''}:{country or ''}:{source or ''}:{page_size}"
+    return ArticlePageOut.model_validate(
+        await cache.read_through(key, ttl=60, stale=300, session=session, load=load)
     )
 
 
@@ -228,12 +242,19 @@ async def top_articles(
     recency x breadth of coverage x source trust, one article per story.
 
     Declared before ``/articles/{article_id}`` so "top" is never parsed as an
-    id. Cache: the same 60s the web tier applies to the article list.
+    id. Cache: 60s fresh + 300s stale (ADR 0014).
     """
-    rows = await service.get_top_articles(
-        session, languages=service.parse_languages(languages), limit=limit
+
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        rows = await service.get_top_articles(
+            s, languages=service.parse_languages(languages), limit=limit
+        )
+        return [ArticleOut.from_row(row).model_dump(mode="json") for row in rows]
+
+    payload = await cache.read_through(
+        f"top:{languages or ''}:{limit}", ttl=60, stale=300, session=session, load=load
     )
-    return [ArticleOut.from_row(row) for row in rows]
+    return [ArticleOut.model_validate(item) for item in payload]
 
 
 @router.get("/articles/{article_id}", response_model=ArticleOut)
@@ -283,9 +304,23 @@ async def get_story(
     session: AsyncSession = Depends(get_session),
     language: str = Query(default="en"),
 ) -> StoryDetailOut:
+    """Cache: 60s fresh + 300s stale (ADR 0014) - a developing story gains
+    reports by the minute, so this stays short."""
     code = normalise_language_code(language)
     if code is None:
         raise ValidationError(f"Not a language code: {language!r}")
+
+    async def load(s: AsyncSession) -> dict[str, Any]:
+        return (await _story_out(s, story_id, code)).model_dump(mode="json")
+
+    return StoryDetailOut.model_validate(
+        await cache.read_through(
+            f"story:{story_id}:{code}", ttl=60, stale=300, session=session, load=load
+        )
+    )
+
+
+async def _story_out(session: AsyncSession, story_id: int, code: str) -> StoryDetailOut:
     detail = await service.get_story(session, story_id)
     return StoryDetailOut(
         story=StoryOut.from_cluster(detail.cluster),
@@ -356,12 +391,19 @@ async def trending(
 
     Ranked on behaviour rather than recency - a rail that repeated the feed's
     own ordering would be decoration. Built from the interaction log that
-    already exists for Stage 6's benefit.
+    already exists for Stage 6's benefit. Cache: 60s fresh + 300s stale.
     """
-    rows = await service.get_trending(
-        session, languages=service.parse_languages(languages), limit=limit
+
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        rows = await service.get_trending(
+            s, languages=service.parse_languages(languages), limit=limit
+        )
+        return [ArticleOut.from_row(row).model_dump(mode="json") for row in rows]
+
+    payload = await cache.read_through(
+        f"trending:{languages or ''}:{limit}", ttl=60, stale=300, session=session, load=load
     )
-    return [ArticleOut.from_row(row) for row in rows]
+    return [ArticleOut.model_validate(item) for item in payload]
 
 
 class EditionOut(BaseModel):
@@ -436,21 +478,34 @@ class SourceDetailOut(BaseModel):
 
 @router.get("/sources/{slug}", response_model=SourceDetailOut)
 async def source_detail(slug: str, session: AsyncSession = Depends(get_session)) -> SourceDetailOut:
-    """One publisher. Cache: the web tier's usual 120s for public metadata."""
-    detail = await service.get_source(session, slug)
-    source = detail.source
-    return SourceDetailOut(
-        id=source.id,
-        name=source.name,
-        slug=source.slug,
-        homepage_url=source.homepage_url,
-        country=source.country,
-        language=source.language,
-        source_role=source.source_role,
-        article_count=detail.article_count,
+    """One publisher. Cache: 300s fresh + 900s stale (ADR 0014)."""
+
+    async def load(s: AsyncSession) -> dict[str, Any]:
+        detail = await service.get_source(s, slug)
+        source = detail.source
+        return SourceDetailOut(
+            id=source.id,
+            name=source.name,
+            slug=source.slug,
+            homepage_url=source.homepage_url,
+            country=source.country,
+            language=source.language,
+            source_role=source.source_role,
+            article_count=detail.article_count,
+        ).model_dump(mode="json")
+
+    return SourceDetailOut.model_validate(
+        await cache.read_through(f"source:{slug}", ttl=300, stale=900, session=session, load=load)
     )
 
 
 @router.get("/stats", response_model=StatsOut)
 async def stats(session: AsyncSession = Depends(get_session)) -> StatsOut:
-    return StatsOut(**await repo.corpus_stats(session))
+    """Cache: 300s fresh + 900s stale (ADR 0014) - a count, not a headline."""
+
+    async def load(s: AsyncSession) -> dict[str, Any]:
+        return StatsOut(**await repo.corpus_stats(s)).model_dump(mode="json")
+
+    return StatsOut.model_validate(
+        await cache.read_through("stats", ttl=300, stale=900, session=session, load=load)
+    )
