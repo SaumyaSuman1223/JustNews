@@ -35,10 +35,10 @@ export function AquilaSidebar({ locale }: { locale: LocaleCode }) {
   }, [open]);
 
   const links: { href: string; label: string }[] = [
-    { href: `/${locale}`, label: t(locale, "nav.home") },
-    { href: `/${locale}/desk`, label: t(locale, "nav.desk") },
+    { href: `/${locale}`, label: t(locale, "nav.discover") },
     { href: `/${locale}/search`, label: t(locale, "nav.search") },
     { href: `/${locale}/saved`, label: t(locale, "nav.saved") },
+    { href: `/${locale}/following`, label: t(locale, "nav.following") },
   ];
 
   return (

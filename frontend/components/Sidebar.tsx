@@ -91,6 +91,7 @@ export function Sidebar({
                     href={hrefFor(item, locale)}
                     className="sidebar__link"
                     aria-current={isActive(item, pathname, locale) ? "page" : undefined}
+                    data-label={label}
                     title={collapsed ? label : undefined}
                   >
                     <Icon className="sidebar__icon" />

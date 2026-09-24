@@ -37,3 +37,6 @@ services:
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
+      # The web app's API_PROXY_SECRET - see core/ratelimit.py.
+      - key: WEB_PROXY_SECRET
+        sync: false

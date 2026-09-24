@@ -95,22 +95,16 @@ const en = {
   "skip.toContent": "Skip to content",
 
   "nav.primary": "Primary",
+  "error.rateLimited": "Too many requests. Try again in a minute.",
   "nav.language": "Language",
-  "nav.home": "Home",
-  "nav.home.subtitle": "What matters right now.",
   "nav.aquila": "Aquila",
-  "nav.aquila.subtitle": "The world in context.",
   "nav.desk": "My Desk",
-  "nav.desk.subtitle": "Your topics, in depth.",
   "nav.search": "Search",
   "nav.settings": "Settings",
-  "nav.explore": "Explore",
-  "nav.topics": "Topics",
   "nav.saved": "Saved",
   "nav.privacy": "Privacy",
   "nav.feedback": "Send feedback",
 
-  "search.label": "Search headlines",
   "search.placeholder": "Search headlines",
   "search.submit": "Search",
 
@@ -128,48 +122,32 @@ const en = {
   "beta.enterCode": "Enter your code",
 
   "signIn.title": "Sign in to see this",
-  "signIn.body":
-    "This page shows things tied to your account, so it needs you signed in first.",
+  "signIn.body": "This page shows things tied to your account, so it needs you signed in first.",
 
-  "feed.heading": "Feed",
+  "signIn.saved.body":
+    "Save a story from any card with the heart, and it waits here on every device you sign in on.",
+  "signIn.following.body":
+    "Follow a story and this page counts the new reports each time you come back.",
+  "signIn.history.body":
+    "Stories you open while signed in are listed here, so you can find one again.",
+
   "feed.degraded.personal":
     "Your feed is unavailable right now, so this page may be out of date. Everything else still works.",
   "feed.degraded.anonymous":
     "Live headlines are unavailable right now, so this page may be out of date. Everything else still works.",
-  "feed.empty.title": "No headlines in your languages right now",
-  "feed.empty.body":
-    "We are still gathering today’s coverage. Explore is the same news without the personalisation, and it is worth a look in the meantime.",
   "feed.empty.action": "Go to Explore",
 
   "stats.articles.one": "article",
   "stats.articles.other": "articles",
   "stats.sources.one": "source",
   "stats.sources.other": "sources",
-  "stats.languages.one": "language",
-  "stats.languages.other": "languages",
   "stats.stories.one": "story",
   "stats.stories.other": "stories",
 
-  "home.greeting.morning": "Good morning",
-  "home.greeting.afternoon": "Good afternoon",
-  "home.greeting.evening": "Good evening",
-  "home.greeting.subtitle": "Here’s what matters today.",
-  "home.tier.matters": "What matters",
-  "home.tier.shouldKnow": "What you should know",
-  "home.tier.world": "More from the world",
-  "home.glance.heading": "Today at a glance",
-  "home.brief.heading": "The Daily Brief",
-  "home.brief.tagline": "The world in five minutes",
-  "home.brief.cta": "Read today’s issue",
   "home.lead.context.show": "More about this story",
   "home.lead.context.hide": "Less",
   "home.lead.context.published": "Published {time}",
   "home.lead.context.coverage": "See full coverage",
-  "home.tabs.label": "Feed",
-  "home.tabs.forYou": "For You",
-  "home.tabs.trending": "Trending",
-  "home.tabs.history": "Continue Reading",
-  "home.tabs.saved": "Saved",
 
   "aquila.title": "Aquila Tribune",
   "aquila.strap": "The world in context",
@@ -182,9 +160,7 @@ const en = {
   "aquila.moreSections.one": "+ {count} more section",
   "aquila.moreSections.other": "+ {count} more sections",
   "aquila.editions": "Today’s editions",
-  "aquila.pages": "Pages",
   "aquila.frontPage": "Front page",
-  "aquila.brief": "The brief",
   "aquila.motto": "Better information builds a better tomorrow.",
   "aquila.mottoAttribution": "JustNews",
   "aquila.moreNews": "Also today",
@@ -210,22 +186,6 @@ const en = {
   "aquila.none.body":
     "The Tribune is composed three times a day, at 6am, 2pm and 10pm. The next edition will appear here.",
   "aquila.none.action": "Go to Home",
-  "explore.heading": "Aquila",
-  "explore.intro":
-    "The world in context — the latest across every source we follow, spread across topics and the same for every reader, whether or not you are signed in.",
-  "explore.standfirst": "The Aquila Tribune",
-  "explore.degraded": "Live headlines are unavailable right now, so this page may be out of date.",
-  "explore.editions": "Editions",
-  "explore.empty.title": "Nothing to explore in your languages yet",
-  "explore.empty.body":
-    "No sources we follow have published in these languages recently. Changing your languages in Settings will show you what is running elsewhere.",
-  "explore.empty.action": "Browse topics",
-
-  "trending.heading": "Most read",
-
-  "blindspot.heading": "Not covered in your languages",
-  "blindspot.note":
-    "Being reported elsewhere right now, by outlets writing in a language you have not selected.",
 
   "coverage.label": "Languages covering this story",
 
@@ -248,10 +208,6 @@ const en = {
   "source.empty.body": "Their reporting appears here as soon as it is published.",
   "source.articleCount.one": "{count} article on JustNews",
   "source.articleCount.other": "{count} articles on JustNews",
-
-  "story.coveredBy.one": "Covered by {count} source.",
-  "story.coveredBy.other": "Covered by {count} sources.",
-  "story.reportedIn": "Reported in {count} languages.",
   "story.reports.one": "{count} report",
   "story.reports.other": "{count} reports",
   "story.firstReported": "First reported {time}",
@@ -282,7 +238,8 @@ const en = {
   "onboarding.languages.note": "Choose at least one.",
   "onboarding.deck.heading": "What are you interested in?",
   "onboarding.deck.intro": "Tap what catches your eye, skip what doesn't — no checkboxes.",
-  "onboarding.deck.empty": "Nothing to sample right now — you can always shape this later from Settings.",
+  "onboarding.deck.empty":
+    "Nothing to sample right now — you can always shape this later from Settings.",
   "onboarding.categories.label": "Or pick categories directly",
   "onboarding.categories.note": "Optional — tap any that interest you.",
   "onboarding.continue": "Continue",
@@ -313,7 +270,8 @@ const en = {
     "Confirm your email first — check your inbox for the link we sent when you signed up.",
   "login.error.registered": "There is already an account with that email. Sign in instead.",
   "login.error.rateLimit": "Too many attempts just now. Wait a minute and try again.",
-  "login.error.network": "We could not reach the sign-in service. Check your connection and try again.",
+  "login.error.network":
+    "We could not reach the sign-in service. Check your connection and try again.",
 
   "invite.title": "Redeem your invite",
   "invite.heading": "You’re invited",
@@ -340,10 +298,6 @@ const en = {
   "history.empty.body": "Articles you open appear here, most recent first. Only you can see this.",
   "history.viewed": "Viewed {time}",
 
-  "topics.heading": "Topics",
-  "topics.intro": "Browse headlines by subject, using the IPTC Media Topics taxonomy.",
-  "topics.degraded": "Topics are unavailable right now.",
-  "topics.allTopics": "All topics",
   "topics.empty.title": "Nothing tagged {topic} yet",
   "topics.empty.body":
     "Coverage of this topic in your languages is still thin. It fills in as sources publish through the day.",
@@ -434,20 +388,8 @@ const en = {
   "account.menu": "Account",
 
   "site.description": "Personalised, multilingual news.",
-  "site.tagline": "A clearer tomorrow",
-  "site.sign": "Same world. More clarity.",
   "topics.fallbackTitle": "Topic",
 
-  "desk.preview.heading": "What you can follow",
-  "desk.preview.body": "Pick topics after signing in and this becomes your desk. Every topic below is readable right now.",
-  "desk.empty.title": "Your desk is empty",
-  "desk.empty.body": "Choose a few topics to follow, and they’ll show up here.",
-  "desk.addTopic": "+ Add Topic",
-  "desk.addTopic.done": "Done",
-  "desk.moveUp": "Move up",
-  "desk.moveDown": "Move down",
-  "desk.remove": "Remove",
-  "desk.actionFailed": "That didn’t go through. Try again.",
   "desk.tabs.label": "Topic sections",
   "desk.tabs.latest": "Latest",
   "desk.tabs.perspectives": "Perspectives",
@@ -479,22 +421,6 @@ const en = {
   "desk.perspectives.role.investor": "Investor press",
   "desk.perspectives.role.consumer": "Consumer press",
   "desk.perspectives.role.public": "Public sources",
-  "desk.subtitle": "Your topics. Deeper understanding.",
-  "desk.pitch.heading": "What a desk gives you",
-  "desk.pitch.follow": "Follow subjects, not just headlines.",
-  "desk.pitch.changed": "See what changed since you last checked.",
-  "desk.pitch.perspectives": "Compare who is covering it, not just what they say.",
-  "desk.pitch.track": "Track how a story develops over time.",
-  "desk.example.note": "One topic, in full — this is what following it looks like.",
-  "desk.gate.title": "Build your own desk",
-  "desk.gate.body":
-    "Sign in to follow the topics you care about. Your desk then shows what changed in each of them since you last looked.",
-  "desk.yourTopics": "Your topics",
-  "desk.whatChanged": "What changed",
-  "desk.whatChanged.note": "The most recent development in each topic you follow.",
-  "desk.whatChanged.previewNote": "The most recent development in a few topics you could follow.",
-  "desk.whatChanged.empty": "Nothing has moved in your topics yet.",
-  "desk.whatChanged.updated": "Updated {time}",
   "desk.tabs.understand": "Understand",
   "desk.understand.heading": "Understand {topic}",
   "desk.understand.happening": "What\u2019s happening",
@@ -532,19 +458,26 @@ const en = {
   "nav.display": "Display",
   "nav.howItWorks": "How it works",
   "how.heading": "How JustNews works",
-  "how.intro": "A news reader built around one idea: the same event, reported by many newsrooms in many languages, is one story.",
+  "how.intro":
+    "A news reader built around one idea: the same event, reported by many newsrooms in many languages, is one story.",
   "how.stories.title": "Stories, not duplicates",
-  "how.stories.body": "Every headline is compared with what has already arrived. When several outlets report the same event, their articles are grouped into one story, so you see it once - with how many outlets, countries and languages are carrying it.",
+  "how.stories.body":
+    "Every headline is compared with what has already arrived. When several outlets report the same event, their articles are grouped into one story, so you see it once - with how many outlets, countries and languages are carrying it.",
   "how.languages.title": "Across languages",
-  "how.languages.body": "The grouping works across languages: a story reported in English, Spanish and Hindi is one story. When coverage exists in languages other than the one you are reading, the story says so and shows you where.",
+  "how.languages.body":
+    "The grouping works across languages: a story reported in English, Spanish and Hindi is one story. When coverage exists in languages other than the one you are reading, the story says so and shows you where.",
   "how.perspectives.title": "Perspectives",
-  "how.perspectives.body": "Perspectives group coverage by who published it - industry press, government sources, academic sources and others. It is a fact about the publisher, not a guess about what an article thinks, and every source listed is a link you can check.",
+  "how.perspectives.body":
+    "Perspectives group coverage by who published it - industry press, government sources, academic sources and others. It is a fact about the publisher, not a guess about what an article thinks, and every source listed is a link you can check.",
   "how.aquila.title": "The Aquila Tribune",
-  "how.aquila.body": "Aquila is a newspaper published three times a day - morning, midday and evening. Each edition is composed once and then fixed, so an old edition reads exactly as it did on the day.",
+  "how.aquila.body":
+    "Aquila is a newspaper published three times a day - morning, midday and evening. Each edition is composed once and then fixed, so an old edition reads exactly as it did on the day.",
   "how.ranking.title": "How your feed is ordered",
-  "how.ranking.body": "When you are signed in, your feed weighs how recent a story is, the topics you follow, what other readers are reading, the source, and your languages - and keeps a small share of slots for something outside your usual interests. Where a card says why it is there, that is the reason the ranker actually used.",
+  "how.ranking.body":
+    "When you are signed in, your feed weighs how recent a story is, the topics you follow, what other readers are reading, the source, and your languages - and keeps a small share of slots for something outside your usual interests. Where a card says why it is there, that is the reason the ranker actually used.",
   "how.data.title": "What we keep",
-  "how.data.body": "JustNews stores a headline, a short snippet, an image link, the source and the link to the original - never the full article. Reading always happens on the publisher's own site. You can export or delete your account data at any time from Settings.",
+  "how.data.body":
+    "JustNews stores a headline, a short snippet, an image link, the source and the link to the original - never the full article. Reading always happens on the publisher's own site. You can export or delete your account data at any time from Settings.",
   "shortcuts.heading": "Keyboard shortcuts",
   "shortcuts.next": "Next story",
   "shortcuts.previous": "Previous story",
@@ -557,7 +490,8 @@ const en = {
   "login.reset.heading": "Reset your password",
   "login.reset.intro": "We will email you a link to choose a new one.",
   "login.reset.submit": "Send a reset link",
-  "login.reset.sent": "If an account uses that address, a reset link is on its way. Check your inbox.",
+  "login.reset.sent":
+    "If an account uses that address, a reset link is on its way. Check your inbox.",
   "login.reset.back": "Back to sign in",
   "login.reset.newHeading": "Choose a new password",
   "login.reset.newPassword": "New password",
@@ -565,13 +499,17 @@ const en = {
   "login.reset.done": "Your password is changed.",
   "story.follow": "Follow this story",
   "story.following": "Following this story",
-  "desk.followedStories": "Stories you follow",
-  "desk.followedStories.note": "New reports since you last opened each one.",
-  "desk.followedStories.new.one": "{count} new report",
-  "desk.followedStories.new.other": "{count} new reports",
-  "desk.followedStories.upToDate": "Up to date",
+  "following.heading": "Stories you follow",
+  "following.note": "New reports since you last opened each one.",
+  "following.new.one": "{count} new report",
+  "following.new.other": "{count} new reports",
+  "following.upToDate": "Up to date",
   "nav.discover": "Discover",
   "nav.history": "History",
+  "nav.following": "Following",
+  "following.empty.title": "You are not following any stories",
+  "following.empty.body":
+    "Follow a story from its page and it appears here, with a count of the new reports each time you come back.",
   "sidebar.label": "Main menu",
   "sidebar.collapse": "Collapse sidebar",
   "sidebar.expand": "Expand sidebar",
@@ -583,6 +521,8 @@ const en = {
   "discover.tab.forYou": "For You",
   "discover.tab.top": "Top",
   "discover.tab.topics": "Topics",
+  "discover.forYouIsTop": "For You shows Top stories until you choose some interests.",
+  "discover.chooseInterests": "Choose interests",
   "discover.published": "Published {time}",
   "discover.save": "Save",
   "discover.unsave": "Remove from saved",
@@ -604,7 +544,6 @@ const en = {
   "rail.label": "Your Discover rail",
   "rail.customize": "Customize",
   "rail.customize.title": "Customize your rail",
-  "rail.customize.show": "Show {widget}",
   "rail.customize.up": "Move {widget} up",
   "rail.customize.down": "Move {widget} down",
   "rail.customize.done": "Done",
@@ -654,22 +593,16 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "skip.toContent": "Saltar al contenido",
 
     "nav.primary": "Principal",
+    "error.rateLimited": "Demasiadas solicitudes. Inténtalo de nuevo en un minuto.",
     "nav.language": "Idioma",
-    "nav.home": "Inicio",
-    "nav.home.subtitle": "Lo que importa ahora mismo.",
     "nav.aquila": "Aquila",
-    "nav.aquila.subtitle": "El mundo en contexto.",
     "nav.desk": "Mi Escritorio",
-    "nav.desk.subtitle": "Tus temas, a fondo.",
     "nav.search": "Buscar",
     "nav.settings": "Ajustes",
-    "nav.explore": "Explorar",
-    "nav.topics": "Temas",
     "nav.saved": "Guardados",
     "nav.privacy": "Privacidad",
     "nav.feedback": "Enviar comentarios",
 
-    "search.label": "Buscar titulares",
     "search.placeholder": "Buscar titulares",
     "search.submit": "Buscar",
 
@@ -690,45 +623,30 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "signIn.body":
       "Esta página muestra cosas vinculadas a tu cuenta, así que primero tienes que iniciar sesión.",
 
-    "feed.heading": "Portada",
+    "signIn.saved.body":
+      "Guarda una historia desde cualquier tarjeta con el corazón y te esperará aquí en todos los dispositivos donde inicies sesión.",
+    "signIn.following.body":
+      "Sigue una historia y esta página contará las informaciones nuevas cada vez que vuelvas.",
+    "signIn.history.body":
+      "Las historias que abras con la sesión iniciada aparecen aquí para que puedas volver a encontrarlas.",
+
     "feed.degraded.personal":
       "Tu feed no está disponible ahora mismo, así que esta página puede estar desactualizada. Todo lo demás sigue funcionando.",
     "feed.degraded.anonymous":
       "Los titulares en directo no están disponibles ahora mismo, así que esta página puede estar desactualizada. Todo lo demás sigue funcionando.",
-    "feed.empty.title": "Ahora mismo no hay titulares en tus idiomas",
-    "feed.empty.body":
-      "Todavía estamos reuniendo la cobertura de hoy. Explorar son las mismas noticias sin la personalización, y merece la pena echarle un vistazo mientras tanto.",
     "feed.empty.action": "Ir a Explorar",
 
     "stats.articles.one": "artículo",
     "stats.articles.other": "artículos",
     "stats.sources.one": "fuente",
     "stats.sources.other": "fuentes",
-    "stats.languages.one": "idioma",
-    "stats.languages.other": "idiomas",
     "stats.stories.one": "historia",
     "stats.stories.other": "historias",
 
-    "home.greeting.morning": "Buenos días",
-    "home.greeting.afternoon": "Buenas tardes",
-    "home.greeting.evening": "Buenas noches",
-    "home.greeting.subtitle": "Esto es lo que importa hoy.",
-    "home.tier.matters": "Lo que importa",
-    "home.tier.shouldKnow": "Lo que deberías saber",
-    "home.tier.world": "Más del mundo",
-    "home.glance.heading": "Hoy de un vistazo",
-    "home.brief.heading": "El resumen diario",
-    "home.brief.tagline": "El mundo en cinco minutos",
-    "home.brief.cta": "Leer la edición de hoy",
     "home.lead.context.show": "Más sobre esta historia",
     "home.lead.context.hide": "Menos",
     "home.lead.context.published": "Publicado {time}",
     "home.lead.context.coverage": "Ver cobertura completa",
-    "home.tabs.label": "Feed",
-    "home.tabs.forYou": "Para ti",
-    "home.tabs.trending": "Tendencias",
-    "home.tabs.history": "Sigue leyendo",
-    "home.tabs.saved": "Guardados",
 
     "aquila.title": "Aquila Tribune",
     "aquila.strap": "El mundo en contexto",
@@ -741,9 +659,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.moreSections.one": "+ {count} sección más",
     "aquila.moreSections.other": "+ {count} secciones más",
     "aquila.editions": "Ediciones de hoy",
-    "aquila.pages": "Páginas",
     "aquila.frontPage": "Portada",
-    "aquila.brief": "En breve",
     "aquila.motto": "Mejor información construye un mañana mejor.",
     "aquila.mottoAttribution": "JustNews",
     "aquila.moreNews": "También hoy",
@@ -769,23 +685,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.none.body":
       "El Tribune se compone tres veces al día: a las 6:00, las 14:00 y las 22:00. La próxima edición aparecerá aquí.",
     "aquila.none.action": "Ir a Inicio",
-    "explore.heading": "Aquila",
-    "explore.intro":
-      "El mundo en contexto: lo último de todas las fuentes que seguimos, repartido entre temas e igual para cada lector, hayas iniciado sesión o no.",
-    "explore.standfirst": "The Aquila Tribune",
-    "explore.degraded":
-      "Los titulares en directo no están disponibles ahora mismo, así que esta página puede estar desactualizada.",
-    "explore.editions": "Ediciones",
-    "explore.empty.title": "Todavía no hay nada que explorar en tus idiomas",
-    "explore.empty.body":
-      "Ninguna de las fuentes que seguimos ha publicado en estos idiomas recientemente. Si cambias tus idiomas en Ajustes verás lo que está pasando en otros sitios.",
-    "explore.empty.action": "Explorar temas",
-
-    "trending.heading": "Lo más leído",
-
-    "blindspot.heading": "Sin cobertura en tus idiomas",
-    "blindspot.note":
-      "Se está informando de esto ahora mismo, por medios que escriben en un idioma que no has seleccionado.",
 
     "coverage.label": "Idiomas que cubren esta historia",
 
@@ -808,10 +707,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "source.empty.body": "Sus informaciones aparecen aquí en cuanto se publican.",
     "source.articleCount.one": "{count} artículo en JustNews",
     "source.articleCount.other": "{count} artículos en JustNews",
-
-    "story.coveredBy.one": "Cubierto por {count} fuente.",
-    "story.coveredBy.other": "Cubierto por {count} fuentes.",
-    "story.reportedIn": "Informado en {count} idiomas.",
     "story.reports.one": "{count} información",
     "story.reports.other": "{count} informaciones",
     "story.firstReported": "Primer informe {time}",
@@ -842,7 +737,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "onboarding.languages.note": "Elige al menos uno.",
     "onboarding.deck.heading": "¿Qué te interesa?",
     "onboarding.deck.intro": "Toca lo que te llame la atención, omite lo demás — sin casillas.",
-    "onboarding.deck.empty": "Nada que probar ahora mismo — siempre puedes ajustarlo luego en Ajustes.",
+    "onboarding.deck.empty":
+      "Nada que probar ahora mismo — siempre puedes ajustarlo luego en Ajustes.",
     "onboarding.categories.label": "O elige categorías directamente",
     "onboarding.categories.note": "Opcional — toca las que te interesen.",
     "onboarding.continue": "Continuar",
@@ -902,10 +798,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "Los artículos que abras aparecen aquí, del más reciente al más antiguo. Solo tú puedes ver esto.",
     "history.viewed": "Visto {time}",
 
-    "topics.heading": "Temas",
-    "topics.intro": "Explora titulares por materia, con la taxonomía IPTC Media Topics.",
-    "topics.degraded": "Los temas no están disponibles ahora mismo.",
-    "topics.allTopics": "Todos los temas",
     "topics.empty.title": "Todavía no hay nada etiquetado como {topic}",
     "topics.empty.body":
       "La cobertura de este tema en tus idiomas todavía es escasa. Se va llenando a medida que las fuentes publican durante el día.",
@@ -998,20 +890,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.menu": "Cuenta",
 
     "site.description": "Noticias personalizadas y multilingües.",
-    "site.tagline": "Un mañana más claro",
-    "site.sign": "El mismo mundo. Más claridad.",
     "topics.fallbackTitle": "Tema",
 
-    "desk.preview.heading": "Lo que puedes seguir",
-    "desk.preview.body": "Elige temas al iniciar sesión y esto se convertirá en tu escritorio. Todos los temas de abajo ya se pueden leer.",
-    "desk.empty.title": "Tu escritorio está vacío",
-    "desk.empty.body": "Elige algunos temas para seguir y aparecerán aquí.",
-    "desk.addTopic": "+ Añadir tema",
-    "desk.addTopic.done": "Listo",
-    "desk.moveUp": "Subir",
-    "desk.moveDown": "Bajar",
-    "desk.remove": "Quitar",
-    "desk.actionFailed": "Eso no funcionó. Inténtalo de nuevo.",
     "desk.tabs.label": "Secciones del tema",
     "desk.tabs.latest": "Lo último",
     "desk.tabs.perspectives": "Perspectivas",
@@ -1038,22 +918,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.perspectives.role.investor": "Prensa de inversión",
     "desk.perspectives.role.consumer": "Prensa de consumo",
     "desk.perspectives.role.public": "Fuentes públicas",
-    "desk.subtitle": "Tus temas. Mayor comprensión.",
-    "desk.pitch.heading": "Qué te da un escritorio",
-    "desk.pitch.follow": "Sigue temas, no solo titulares.",
-    "desk.pitch.changed": "Ve qué ha cambiado desde tu última visita.",
-    "desk.pitch.perspectives": "Compara quién lo cubre, no solo qué dicen.",
-    "desk.pitch.track": "Sigue cómo evoluciona una historia con el tiempo.",
-    "desk.example.note": "Un tema, completo — así es seguirlo.",
-    "desk.gate.title": "Crea tu propio escritorio",
-    "desk.gate.body":
-      "Inicia sesión para seguir los temas que te importan. Tu escritorio te mostrará qué ha cambiado en cada uno desde tu última visita.",
-    "desk.yourTopics": "Tus temas",
-    "desk.whatChanged": "Qué ha cambiado",
-    "desk.whatChanged.note": "El desarrollo más reciente de cada tema que sigues.",
-    "desk.whatChanged.previewNote": "El desarrollo más reciente de algunos temas que podrías seguir.",
-    "desk.whatChanged.empty": "Todavía no se ha movido nada en tus temas.",
-    "desk.whatChanged.updated": "Actualizado {time}",
     "desk.tabs.understand": "Entender",
     "desk.understand.heading": "Entender {topic}",
     "desk.understand.happening": "Qué está pasando",
@@ -1062,13 +926,15 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "Ninguna historia ha sido recogida todavía por más de un medio. Lo más reciente:",
     "desk.understand.saying": "Quién dice qué",
     "desk.understand.saying.note": "Qué tipos de medio lo están cubriendo, y cuáles son.",
-    "desk.understand.saying.fallbackNote": "Los medios que han informado sobre esto más recientemente.",
+    "desk.understand.saying.fallbackNote":
+      "Los medios que han informado sobre esto más recientemente.",
     "desk.understand.changing": "Qué está cambiando",
     "desk.understand.changing.note": "Cómo se ha desarrollado la cobertura, lo más nuevo primero.",
 
     "profile.languageMix.heading": "Lo que realmente lees",
     "profile.languageMix.body": "Según tus últimos {count} artículos abiertos.",
-    "profile.languageMix.empty": "Todavía no hay nada que mostrar — esto se llena a medida que lees.",
+    "profile.languageMix.empty":
+      "Todavía no hay nada que mostrar — esto se llena a medida que lees.",
     "profile.languageMix.count": "{count} leídos",
     "profile.byLanguage": "Por idioma",
     "profile.byTopic": "Por tema",
@@ -1091,19 +957,26 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "nav.display": "Pantalla",
     "nav.howItWorks": "Cómo funciona",
     "how.heading": "Cómo funciona JustNews",
-    "how.intro": "Un lector de noticias construido sobre una idea: el mismo acontecimiento, contado por muchas redacciones en muchos idiomas, es una sola historia.",
+    "how.intro":
+      "Un lector de noticias construido sobre una idea: el mismo acontecimiento, contado por muchas redacciones en muchos idiomas, es una sola historia.",
     "how.stories.title": "Historias, no duplicados",
-    "how.stories.body": "Cada titular se compara con lo que ya ha llegado. Cuando varios medios informan del mismo hecho, sus artículos se agrupan en una historia, así que la ves una vez, junto con cuántos medios, países e idiomas la cubren.",
+    "how.stories.body":
+      "Cada titular se compara con lo que ya ha llegado. Cuando varios medios informan del mismo hecho, sus artículos se agrupan en una historia, así que la ves una vez, junto con cuántos medios, países e idiomas la cubren.",
     "how.languages.title": "Entre idiomas",
-    "how.languages.body": "La agrupación funciona entre idiomas: una historia publicada en inglés, español e hindi es una sola. Cuando hay cobertura en otros idiomas además del que lees, la historia lo indica y te muestra dónde.",
+    "how.languages.body":
+      "La agrupación funciona entre idiomas: una historia publicada en inglés, español e hindi es una sola. Cuando hay cobertura en otros idiomas además del que lees, la historia lo indica y te muestra dónde.",
     "how.perspectives.title": "Perspectivas",
-    "how.perspectives.body": "Las perspectivas agrupan la cobertura según quién la publica: prensa especializada, fuentes gubernamentales, fuentes académicas y otras. Es un dato sobre el medio, no una suposición sobre lo que opina un artículo, y cada fuente es un enlace que puedes comprobar.",
+    "how.perspectives.body":
+      "Las perspectivas agrupan la cobertura según quién la publica: prensa especializada, fuentes gubernamentales, fuentes académicas y otras. Es un dato sobre el medio, no una suposición sobre lo que opina un artículo, y cada fuente es un enlace que puedes comprobar.",
     "how.aquila.title": "The Aquila Tribune",
-    "how.aquila.body": "Aquila es un periódico que se publica tres veces al día: mañana, mediodía y noche. Cada edición se compone una vez y queda fija, así que una edición antigua se lee exactamente como aquel día.",
+    "how.aquila.body":
+      "Aquila es un periódico que se publica tres veces al día: mañana, mediodía y noche. Cada edición se compone una vez y queda fija, así que una edición antigua se lee exactamente como aquel día.",
     "how.ranking.title": "Cómo se ordena tu portada",
-    "how.ranking.body": "Con la sesión iniciada, tu portada tiene en cuenta lo reciente que es una historia, los temas que sigues, lo que leen otros lectores, la fuente y tus idiomas, y reserva unos pocos espacios para algo fuera de tus intereses habituales. Cuando una tarjeta dice por qué está ahí, es la razón que el sistema usó de verdad.",
+    "how.ranking.body":
+      "Con la sesión iniciada, tu portada tiene en cuenta lo reciente que es una historia, los temas que sigues, lo que leen otros lectores, la fuente y tus idiomas, y reserva unos pocos espacios para algo fuera de tus intereses habituales. Cuando una tarjeta dice por qué está ahí, es la razón que el sistema usó de verdad.",
     "how.data.title": "Qué guardamos",
-    "how.data.body": "JustNews guarda un titular, un fragmento breve, un enlace a la imagen, la fuente y el enlace al original, nunca el artículo completo. La lectura siempre ocurre en la web del medio. Puedes exportar o borrar los datos de tu cuenta cuando quieras desde Ajustes.",
+    "how.data.body":
+      "JustNews guarda un titular, un fragmento breve, un enlace a la imagen, la fuente y el enlace al original, nunca el artículo completo. La lectura siempre ocurre en la web del medio. Puedes exportar o borrar los datos de tu cuenta cuando quieras desde Ajustes.",
     "shortcuts.heading": "Atajos de teclado",
     "shortcuts.next": "Siguiente historia",
     "shortcuts.previous": "Historia anterior",
@@ -1116,7 +989,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "login.reset.heading": "Restablece tu contraseña",
     "login.reset.intro": "Te enviaremos un enlace para elegir una nueva.",
     "login.reset.submit": "Enviar un enlace",
-    "login.reset.sent": "Si hay una cuenta con esa dirección, te llegará un enlace. Revisa tu correo.",
+    "login.reset.sent":
+      "Si hay una cuenta con esa dirección, te llegará un enlace. Revisa tu correo.",
     "login.reset.back": "Volver a iniciar sesión",
     "login.reset.newHeading": "Elige una contraseña nueva",
     "login.reset.newPassword": "Contraseña nueva",
@@ -1124,13 +998,17 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "login.reset.done": "Tu contraseña ha cambiado.",
     "story.follow": "Seguir esta historia",
     "story.following": "Siguiendo esta historia",
-    "desk.followedStories": "Historias que sigues",
-    "desk.followedStories.note": "Informaciones nuevas desde la última vez que abriste cada una.",
-    "desk.followedStories.new.one": "{count} información nueva",
-    "desk.followedStories.new.other": "{count} informaciones nuevas",
-    "desk.followedStories.upToDate": "Al día",
+    "following.heading": "Historias que sigues",
+    "following.note": "Informaciones nuevas desde la última vez que abriste cada una.",
+    "following.new.one": "{count} información nueva",
+    "following.new.other": "{count} informaciones nuevas",
+    "following.upToDate": "Al día",
     "nav.discover": "Descubrir",
     "nav.history": "Historial",
+    "nav.following": "Siguiendo",
+    "following.empty.title": "No sigues ninguna historia",
+    "following.empty.body":
+      "Sigue una historia desde su página y aparecerá aquí, con el número de informaciones nuevas cada vez que vuelvas.",
     "sidebar.label": "Menú principal",
     "sidebar.collapse": "Contraer barra lateral",
     "sidebar.expand": "Expandir barra lateral",
@@ -1142,6 +1020,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "discover.tab.forYou": "Para ti",
     "discover.tab.top": "Destacadas",
     "discover.tab.topics": "Temas",
+    "discover.forYouIsTop": "Para ti muestra las destacadas hasta que elijas algunos intereses.",
+    "discover.chooseInterests": "Elegir intereses",
     "discover.published": "Publicado {time}",
     "discover.save": "Guardar",
     "discover.unsave": "Quitar de guardados",
@@ -1163,7 +1043,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "rail.label": "Tu panel de Descubrir",
     "rail.customize": "Personalizar",
     "rail.customize.title": "Personaliza tu panel",
-    "rail.customize.show": "Mostrar {widget}",
     "rail.customize.up": "Subir {widget}",
     "rail.customize.down": "Bajar {widget}",
     "rail.customize.done": "Listo",
@@ -1208,22 +1087,16 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "skip.toContent": "सामग्री पर जाएँ",
 
     "nav.primary": "मुख्य",
+    "error.rateLimited": "बहुत ज़्यादा अनुरोध। एक मिनट बाद फिर कोशिश करें।",
     "nav.language": "भाषा",
-    "nav.home": "होम",
-    "nav.home.subtitle": "अभी जो मायने रखता है।",
     "nav.aquila": "अक्विला",
-    "nav.aquila.subtitle": "दुनिया, सन्दर्भ के साथ।",
     "nav.desk": "मेरा डेस्क",
-    "nav.desk.subtitle": "आपके विषय, गहराई से।",
     "nav.search": "खोजें",
     "nav.settings": "सेटिंग्स",
-    "nav.explore": "एक्सप्लोर",
-    "nav.topics": "विषय",
     "nav.saved": "सहेजे गए",
     "nav.privacy": "निजता",
     "nav.feedback": "प्रतिक्रिया भेजें",
 
-    "search.label": "सुर्ख़ियाँ खोजें",
     "search.placeholder": "सुर्ख़ियाँ खोजें",
     "search.submit": "खोजें",
 
@@ -1241,48 +1114,31 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "beta.enterCode": "अपना कोड डालें",
 
     "signIn.title": "इसे देखने के लिए साइन इन करें",
-    "signIn.body":
-      "यह पेज आपके खाते से जुड़ी चीज़ें दिखाता है, इसलिए पहले साइन इन करना ज़रूरी है।",
+    "signIn.body": "यह पेज आपके खाते से जुड़ी चीज़ें दिखाता है, इसलिए पहले साइन इन करना ज़रूरी है।",
 
-    "feed.heading": "मुख्य पृष्ठ",
+    "signIn.saved.body":
+      "किसी भी कार्ड के दिल से ख़बर सहेजें, और वह हर उस डिवाइस पर यहाँ मिलेगी जहाँ आप साइन इन करते हैं।",
+    "signIn.following.body": "कोई ख़बर फ़ॉलो करें, और हर बार लौटने पर यह पेज नई रिपोर्टें गिनेगा।",
+    "signIn.history.body":
+      "साइन इन रहते हुए खोली गई ख़बरें यहाँ दिखती हैं, ताकि आप उन्हें फिर ढूँढ सकें।",
+
     "feed.degraded.personal":
       "आपकी फ़ीड अभी उपलब्ध नहीं है, इसलिए यह पेज पुराना हो सकता है। बाकी सब कुछ काम कर रहा है।",
     "feed.degraded.anonymous":
       "ताज़ा सुर्ख़ियाँ अभी उपलब्ध नहीं हैं, इसलिए यह पेज पुराना हो सकता है। बाकी सब कुछ काम कर रहा है।",
-    "feed.empty.title": "अभी आपकी भाषाओं में कोई सुर्ख़ी नहीं है",
-    "feed.empty.body":
-      "हम आज की कवरेज अब भी जुटा रहे हैं। एक्सप्लोर पर वही ख़बरें बिना वैयक्तिकरण के मिलती हैं, और तब तक देखने लायक है।",
     "feed.empty.action": "एक्सप्लोर पर जाएँ",
 
     "stats.articles.one": "लेख",
     "stats.articles.other": "लेख",
     "stats.sources.one": "स्रोत",
     "stats.sources.other": "स्रोत",
-    "stats.languages.one": "भाषा",
-    "stats.languages.other": "भाषाएँ",
     "stats.stories.one": "कहानी",
     "stats.stories.other": "कहानियाँ",
 
-    "home.greeting.morning": "सुप्रभात",
-    "home.greeting.afternoon": "नमस्कार",
-    "home.greeting.evening": "शुभ संध्या",
-    "home.greeting.subtitle": "आज जो मायने रखता है।",
-    "home.tier.matters": "जो मायने रखता है",
-    "home.tier.shouldKnow": "जो आपको जानना चाहिए",
-    "home.tier.world": "दुनिया से और",
-    "home.glance.heading": "आज एक नज़र में",
-    "home.brief.heading": "दैनिक सार",
-    "home.brief.tagline": "पाँच मिनट में दुनिया",
-    "home.brief.cta": "आज का अंक पढ़ें",
     "home.lead.context.show": "इस कहानी के बारे में और",
     "home.lead.context.hide": "कम करें",
     "home.lead.context.published": "प्रकाशित {time}",
     "home.lead.context.coverage": "पूरी कवरेज देखें",
-    "home.tabs.label": "फ़ीड",
-    "home.tabs.forYou": "आपके लिए",
-    "home.tabs.trending": "ट्रेंडिंग",
-    "home.tabs.history": "पढ़ना जारी रखें",
-    "home.tabs.saved": "सहेजे गए",
 
     "aquila.title": "Aquila Tribune",
     "aquila.strap": "दुनिया, सन्दर्भ के साथ",
@@ -1295,9 +1151,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.moreSections.one": "+ {count} और खंड",
     "aquila.moreSections.other": "+ {count} और खंड",
     "aquila.editions": "आज के संस्करण",
-    "aquila.pages": "पृष्ठ",
     "aquila.frontPage": "मुखपृष्ठ",
-    "aquila.brief": "संक्षेप में",
     "aquila.motto": "बेहतर जानकारी बेहतर कल बनाती है।",
     "aquila.mottoAttribution": "JustNews",
     "aquila.moreNews": "आज और भी",
@@ -1323,23 +1177,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.none.body":
       "ट्रिब्यून दिन में तीन बार तैयार होता है — सुबह 6, दोपहर 2 और रात 10 बजे। अगला संस्करण यहाँ दिखेगा।",
     "aquila.none.action": "होम पर जाएँ",
-    "explore.heading": "अक्विला",
-    "explore.intro":
-      "दुनिया, सन्दर्भ के साथ — हमारे स्रोतों की ताज़ा ख़बरें, विषयों में फैलाकर और हर पाठक के लिए एक जैसी, चाहे आप साइन इन हों या नहीं।",
-    "explore.standfirst": "The Aquila Tribune",
-    "explore.degraded":
-      "ताज़ा सुर्ख़ियाँ अभी उपलब्ध नहीं हैं, इसलिए यह पेज पुराना हो सकता है।",
-    "explore.editions": "संस्करण",
-    "explore.empty.title": "आपकी भाषाओं में एक्सप्लोर करने के लिए अभी कुछ नहीं है",
-    "explore.empty.body":
-      "हम जिन स्रोतों को फ़ॉलो करते हैं, उनमें से किसी ने हाल में इन भाषाओं में कुछ नहीं छापा। सेटिंग्स में अपनी भाषाएँ बदलकर देखिए और कहाँ क्या चल रहा है।",
-    "explore.empty.action": "विषय देखें",
-
-    "trending.heading": "सबसे ज़्यादा पढ़े गए",
-
-    "blindspot.heading": "आपकी भाषाओं में कवर नहीं हुआ",
-    "blindspot.note":
-      "यह अभी कहीं और छप रहा है, ऐसे संस्थानों में जो उस भाषा में लिखते हैं जो आपने नहीं चुनी।",
 
     "coverage.label": "इस कहानी को कवर करने वाली भाषाएँ",
 
@@ -1362,10 +1199,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "source.empty.body": "इनकी रिपोर्टिंग प्रकाशित होते ही यहाँ दिखेगी।",
     "source.articleCount.one": "JustNews पर {count} लेख",
     "source.articleCount.other": "JustNews पर {count} लेख",
-
-    "story.coveredBy.one": "{count} स्रोत ने कवर किया।",
-    "story.coveredBy.other": "{count} स्रोतों ने कवर किया।",
-    "story.reportedIn": "{count} भाषाओं में ख़बर दी गई।",
     "story.reports.one": "{count} रिपोर्ट",
     "story.reports.other": "{count} रिपोर्ट",
     "story.firstReported": "पहली बार रिपोर्ट {time}",
@@ -1401,14 +1234,16 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "onboarding.categories.note": "वैकल्पिक — जो दिलचस्प लगे उन्हें चुनें।",
     "onboarding.continue": "आगे बढ़ें",
     "onboarding.skip": "अभी नहीं",
-    "onboarding.shapesFeed": "तीनों अभी से आपकी सुर्ख़ियों को आकार देते हैं — सिर्फ़ बाद के लिए सहेजे नहीं गए।",
+    "onboarding.shapesFeed":
+      "तीनों अभी से आपकी सुर्ख़ियों को आकार देते हैं — सिर्फ़ बाद के लिए सहेजे नहीं गए।",
     "onboarding.sources.label": "जिन स्रोतों पर आप पहले से भरोसा करते हैं",
     "onboarding.sources.note": "वैकल्पिक — जो पहले से पढ़ते हैं उन्हें चुनें।",
 
     "login.title": "साइन इन",
     "login.createHeading": "खाता बनाएँ",
     "login.createSubmit": "खाता बनाएँ",
-    "login.intro": "वापसी पर स्वागत है। लेख सहेजने और अपनी फ़ीड को अपने अनुसार ढालने के लिए साइन इन करें।",
+    "login.intro":
+      "वापसी पर स्वागत है। लेख सहेजने और अपनी फ़ीड को अपने अनुसार ढालने के लिए साइन इन करें।",
     "login.google": "Google से जारी रखें",
     "login.or": "या",
     "login.newHere": "यहाँ नए हैं?",
@@ -1456,10 +1291,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "आप जो लेख खोलते हैं वे यहाँ दिखते हैं, सबसे नए पहले। यह सिर्फ़ आपको दिखता है।",
     "history.viewed": "{time} देखा",
 
-    "topics.heading": "विषय",
-    "topics.intro": "IPTC मीडिया टॉपिक्स वर्गीकरण की मदद से विषय के हिसाब से सुर्ख़ियाँ देखें।",
-    "topics.degraded": "विषय अभी उपलब्ध नहीं हैं।",
-    "topics.allTopics": "सभी विषय",
     "topics.empty.title": "{topic} के साथ अभी कुछ नहीं है",
     "topics.empty.body":
       "आपकी भाषाओं में इस विषय की कवरेज अभी कम है। दिन भर में जैसे-जैसे स्रोत छापेंगे, यह भरता जाएगा।",
@@ -1513,13 +1344,15 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "consent.accept": "स्वीकार करें",
     "consent.decline": "अस्वीकार करें",
     "consent.settings.label": "एनालिटिक्स",
-    "consent.settings.currentlyOn": "चालू — हम साइट के इस्तेमाल को मापने के लिए आपकी विज़िट याद रखते हैं।",
+    "consent.settings.currentlyOn":
+      "चालू — हम साइट के इस्तेमाल को मापने के लिए आपकी विज़िट याद रखते हैं।",
     "consent.settings.currentlyOff": "बंद — आपकी विज़िट दर्ज नहीं की जातीं।",
     "consent.settings.turnOn": "चालू करें",
     "consent.settings.turnOff": "बंद करें",
 
     "feedback.heading": "प्रतिक्रिया भेजें",
-    "feedback.body": "बताएं कि क्या ठीक काम कर रहा है, क्या नहीं, या JustNews में आप क्या चाहते हैं।",
+    "feedback.body":
+      "बताएं कि क्या ठीक काम कर रहा है, क्या नहीं, या JustNews में आप क्या चाहते हैं।",
     "feedback.placeholder": "आपके मन में क्या है?",
     "feedback.submit": "भेजें",
     "feedback.thanks": "धन्यवाद — हम हर प्रतिक्रिया पढ़ते हैं।",
@@ -1550,20 +1383,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.menu": "खाता",
 
     "site.description": "वैयक्तिकृत, बहुभाषी ख़बरें।",
-    "site.tagline": "एक स्पष्ट कल",
-    "site.sign": "वही दुनिया। ज़्यादा स्पष्टता।",
     "topics.fallbackTitle": "विषय",
 
-    "desk.preview.heading": "आप क्या फ़ॉलो कर सकते हैं",
-    "desk.preview.body": "साइन इन करने के बाद विषय चुनें और यह आपका डेस्क बन जाएगा। नीचे दिए सभी विषय अभी पढ़े जा सकते हैं।",
-    "desk.empty.title": "आपका डेस्क खाली है",
-    "desk.empty.body": "कुछ विषय फ़ॉलो करें, वे यहाँ दिखने लगेंगे।",
-    "desk.addTopic": "+ विषय जोड़ें",
-    "desk.addTopic.done": "हो गया",
-    "desk.moveUp": "ऊपर ले जाएँ",
-    "desk.moveDown": "नीचे ले जाएँ",
-    "desk.remove": "हटाएँ",
-    "desk.actionFailed": "यह पूरा नहीं हुआ। फिर कोशिश करें।",
     "desk.tabs.label": "विषय अनुभाग",
     "desk.tabs.latest": "ताज़ा",
     "desk.tabs.perspectives": "दृष्टिकोण",
@@ -1590,22 +1411,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.perspectives.role.investor": "निवेशक प्रेस",
     "desk.perspectives.role.consumer": "उपभोक्ता प्रेस",
     "desk.perspectives.role.public": "सार्वजनिक स्रोत",
-    "desk.subtitle": "आपके विषय। गहरी समझ।",
-    "desk.pitch.heading": "डेस्क आपको क्या देता है",
-    "desk.pitch.follow": "सिर्फ़ सुर्खियाँ नहीं, विषयों को फ़ॉलो करें।",
-    "desk.pitch.changed": "पिछली बार देखने के बाद क्या बदला, देखें।",
-    "desk.pitch.perspectives": "कौन इसे कवर कर रहा है, यह देखें — सिर्फ़ वे क्या कहते हैं नहीं।",
-    "desk.pitch.track": "समय के साथ कोई ख़बर कैसे विकसित होती है, ट्रैक करें।",
-    "desk.example.note": "एक विषय, पूरी तरह — इसे फ़ॉलो करना ऐसा दिखता है।",
-    "desk.gate.title": "अपना डेस्क बनाएँ",
-    "desk.gate.body":
-      "जिन विषयों की आपको परवाह है, उन्हें फ़ॉलो करने के लिए साइन इन करें। फिर आपका डेस्क दिखाएगा कि पिछली बार के बाद हर विषय में क्या बदला।",
-    "desk.yourTopics": "आपके विषय",
-    "desk.whatChanged": "क्या बदला",
-    "desk.whatChanged.note": "आप जिन विषयों को फ़ॉलो करते हैं, उनमें से हर एक का सबसे नया घटनाक्रम।",
-    "desk.whatChanged.previewNote": "कुछ ऐसे विषयों का सबसे नया घटनाक्रम जिन्हें आप फ़ॉलो कर सकते हैं।",
-    "desk.whatChanged.empty": "आपके विषयों में अभी कुछ नया नहीं है।",
-    "desk.whatChanged.updated": "{time} अपडेट हुआ",
     "desk.tabs.understand": "समझें",
     "desk.understand.heading": "{topic} को समझें",
     "desk.understand.happening": "क्या हो रहा है",
@@ -1643,19 +1448,26 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "nav.display": "डिस्प्ले",
     "nav.howItWorks": "यह कैसे काम करता है",
     "how.heading": "JustNews कैसे काम करता है",
-    "how.intro": "एक समाचार रीडर जो एक विचार पर बना है: एक ही घटना, जिसे कई भाषाओं में कई न्यूज़रूम रिपोर्ट करते हैं, एक ही ख़बर है।",
+    "how.intro":
+      "एक समाचार रीडर जो एक विचार पर बना है: एक ही घटना, जिसे कई भाषाओं में कई न्यूज़रूम रिपोर्ट करते हैं, एक ही ख़बर है।",
     "how.stories.title": "ख़बरें, दोहराव नहीं",
-    "how.stories.body": "हर सुर्ख़ी की तुलना पहले आई ख़बरों से की जाती है। जब कई प्रकाशक एक ही घटना की रिपोर्ट करते हैं, तो उनके लेख एक ख़बर में जुड़ जाते हैं - आप उसे एक बार देखते हैं, साथ में यह भी कि कितने प्रकाशक, देश और भाषाएँ उसे कवर कर रहे हैं।",
+    "how.stories.body":
+      "हर सुर्ख़ी की तुलना पहले आई ख़बरों से की जाती है। जब कई प्रकाशक एक ही घटना की रिपोर्ट करते हैं, तो उनके लेख एक ख़बर में जुड़ जाते हैं - आप उसे एक बार देखते हैं, साथ में यह भी कि कितने प्रकाशक, देश और भाषाएँ उसे कवर कर रहे हैं।",
     "how.languages.title": "भाषाओं के पार",
-    "how.languages.body": "यह जोड़ना भाषाओं के पार काम करता है: अंग्रेज़ी, स्पैनिश और हिंदी में रिपोर्ट की गई ख़बर एक ही ख़बर है। जब आपकी पढ़ी जा रही भाषा के अलावा दूसरी भाषाओं में कवरेज हो, तो ख़बर यह बताती है और दिखाती है कहाँ।",
+    "how.languages.body":
+      "यह जोड़ना भाषाओं के पार काम करता है: अंग्रेज़ी, स्पैनिश और हिंदी में रिपोर्ट की गई ख़बर एक ही ख़बर है। जब आपकी पढ़ी जा रही भाषा के अलावा दूसरी भाषाओं में कवरेज हो, तो ख़बर यह बताती है और दिखाती है कहाँ।",
     "how.perspectives.title": "दृष्टिकोण",
-    "how.perspectives.body": "दृष्टिकोण कवरेज को इस आधार पर समूहित करते हैं कि उसे किसने प्रकाशित किया - उद्योग प्रेस, सरकारी स्रोत, शैक्षणिक स्रोत और अन्य। यह प्रकाशक के बारे में एक तथ्य है, किसी लेख की राय का अनुमान नहीं, और हर स्रोत एक लिंक है जिसे आप जाँच सकते हैं।",
+    "how.perspectives.body":
+      "दृष्टिकोण कवरेज को इस आधार पर समूहित करते हैं कि उसे किसने प्रकाशित किया - उद्योग प्रेस, सरकारी स्रोत, शैक्षणिक स्रोत और अन्य। यह प्रकाशक के बारे में एक तथ्य है, किसी लेख की राय का अनुमान नहीं, और हर स्रोत एक लिंक है जिसे आप जाँच सकते हैं।",
     "how.aquila.title": "The Aquila Tribune",
-    "how.aquila.body": "Aquila एक अख़बार है जो दिन में तीन बार छपता है - सुबह, दोपहर और शाम। हर संस्करण एक बार तैयार होकर तय हो जाता है, इसलिए पुराना संस्करण ठीक वैसा ही पढ़ा जाता है जैसा उस दिन था।",
+    "how.aquila.body":
+      "Aquila एक अख़बार है जो दिन में तीन बार छपता है - सुबह, दोपहर और शाम। हर संस्करण एक बार तैयार होकर तय हो जाता है, इसलिए पुराना संस्करण ठीक वैसा ही पढ़ा जाता है जैसा उस दिन था।",
     "how.ranking.title": "आपकी फ़ीड का क्रम कैसे तय होता है",
-    "how.ranking.body": "साइन इन होने पर आपकी फ़ीड देखती है कि ख़बर कितनी ताज़ा है, आप कौन-से विषय फ़ॉलो करते हैं, दूसरे पाठक क्या पढ़ रहे हैं, स्रोत कौन है और आपकी भाषाएँ क्या हैं - और कुछ जगहें आपकी सामान्य रुचियों से बाहर की चीज़ों के लिए रखती है। जहाँ कार्ड बताता है कि वह वहाँ क्यों है, वही असली कारण है।",
+    "how.ranking.body":
+      "साइन इन होने पर आपकी फ़ीड देखती है कि ख़बर कितनी ताज़ा है, आप कौन-से विषय फ़ॉलो करते हैं, दूसरे पाठक क्या पढ़ रहे हैं, स्रोत कौन है और आपकी भाषाएँ क्या हैं - और कुछ जगहें आपकी सामान्य रुचियों से बाहर की चीज़ों के लिए रखती है। जहाँ कार्ड बताता है कि वह वहाँ क्यों है, वही असली कारण है।",
     "how.data.title": "हम क्या रखते हैं",
-    "how.data.body": "JustNews एक सुर्ख़ी, छोटा अंश, तस्वीर का लिंक, स्रोत और मूल लेख का लिंक रखता है - पूरा लेख कभी नहीं। पढ़ना हमेशा प्रकाशक की अपनी साइट पर होता है। आप कभी भी सेटिंग्स से अपने खाते का डेटा निर्यात या हटा सकते हैं।",
+    "how.data.body":
+      "JustNews एक सुर्ख़ी, छोटा अंश, तस्वीर का लिंक, स्रोत और मूल लेख का लिंक रखता है - पूरा लेख कभी नहीं। पढ़ना हमेशा प्रकाशक की अपनी साइट पर होता है। आप कभी भी सेटिंग्स से अपने खाते का डेटा निर्यात या हटा सकते हैं।",
     "shortcuts.heading": "कीबोर्ड शॉर्टकट",
     "shortcuts.next": "अगली ख़बर",
     "shortcuts.previous": "पिछली ख़बर",
@@ -1676,13 +1488,17 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "login.reset.done": "आपका पासवर्ड बदल गया है।",
     "story.follow": "यह ख़बर फ़ॉलो करें",
     "story.following": "यह ख़बर फ़ॉलो कर रहे हैं",
-    "desk.followedStories": "आपकी फ़ॉलो की हुई ख़बरें",
-    "desk.followedStories.note": "पिछली बार खोलने के बाद आई नई रिपोर्ट।",
-    "desk.followedStories.new.one": "{count} नई रिपोर्ट",
-    "desk.followedStories.new.other": "{count} नई रिपोर्ट",
-    "desk.followedStories.upToDate": "कुछ नया नहीं",
+    "following.heading": "आपकी फ़ॉलो की हुई ख़बरें",
+    "following.note": "पिछली बार खोलने के बाद आई नई रिपोर्ट।",
+    "following.new.one": "{count} नई रिपोर्ट",
+    "following.new.other": "{count} नई रिपोर्ट",
+    "following.upToDate": "कुछ नया नहीं",
     "nav.discover": "डिस्कवर",
     "nav.history": "इतिहास",
+    "nav.following": "फ़ॉलो की हुई",
+    "following.empty.title": "आप कोई ख़बर फ़ॉलो नहीं कर रहे",
+    "following.empty.body":
+      "किसी ख़बर को उसके पेज से फ़ॉलो करें। हर बार लौटने पर वह यहाँ नई रिपोर्टों की गिनती के साथ दिखेगी।",
     "sidebar.label": "मुख्य मेनू",
     "sidebar.collapse": "साइडबार छोटा करें",
     "sidebar.expand": "साइडबार बड़ा करें",
@@ -1694,6 +1510,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "discover.tab.forYou": "आपके लिए",
     "discover.tab.top": "शीर्ष",
     "discover.tab.topics": "विषय",
+    "discover.forYouIsTop":
+      "जब तक आप कुछ रुचियाँ नहीं चुनते, आपके लिए में प्रमुख ख़बरें दिखती हैं।",
+    "discover.chooseInterests": "रुचियाँ चुनें",
     "discover.published": "प्रकाशित {time}",
     "discover.save": "सहेजें",
     "discover.unsave": "सहेजे गए से हटाएँ",
@@ -1715,7 +1534,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "rail.label": "आपका डिस्कवर पैनल",
     "rail.customize": "अनुकूलित करें",
     "rail.customize.title": "अपना पैनल अनुकूलित करें",
-    "rail.customize.show": "{widget} दिखाएँ",
     "rail.customize.up": "{widget} ऊपर ले जाएँ",
     "rail.customize.down": "{widget} नीचे ले जाएँ",
     "rail.customize.done": "हो गया",
@@ -1799,12 +1617,10 @@ type PluralBase =
   | "search.moreReports"
   | "search.resultCount"
   | "source.articleCount"
-  | "desk.followedStories.new"
+  | "following.new"
   | "stats.articles"
-  | "stats.languages"
   | "stats.sources"
   | "stats.stories"
-  | "story.coveredBy"
   | "story.reports";
 
 const pluralRules = new Map<LocaleCode, Intl.PluralRules>();
@@ -1847,11 +1663,7 @@ export function tPlural(
  * lookups joined here is the smallest honest fix: a single template cannot
  * carry two independent plural categories in any language.
  */
-export function formatCoverage(
-  locale: LocaleCode,
-  sources: number,
-  languages: number,
-): string {
+export function formatCoverage(locale: LocaleCode, sources: number, languages: number): string {
   return [
     tPlural(locale, "desk.coverage.sources", sources),
     tPlural(locale, "desk.coverage.languages", languages),

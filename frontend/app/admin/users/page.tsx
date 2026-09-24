@@ -16,8 +16,8 @@ export default async function AdminUsersPage() {
     <>
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>Users</h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        No email is shown - this table never stores one, only Supabase&rsquo;s own auth.users
-        does. A reader is identified here by id, role and invite status.
+        No email is shown - this table never stores one, only Supabase&rsquo;s own auth.users does.
+        A reader is identified here by id, role and invite status.
       </p>
       <div className="admin-table-wrap">
         <table className="admin-table">

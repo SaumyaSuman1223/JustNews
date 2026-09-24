@@ -21,7 +21,13 @@ export async function POST(request: Request): Promise<Response> {
   const body: unknown = await request.json().catch(() => null);
   const fields = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
 
-  const cookieOptions = { maxAge: YEAR, sameSite: "lax" as const, path: "/", httpOnly: true };
+  const cookieOptions = {
+    maxAge: YEAR,
+    sameSite: "lax" as const,
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  };
   if (fields.dismiss === true) {
     const response = NextResponse.json({ ok: true });
     response.cookies.set(INTERESTS_DISMISSED_COOKIE, "1", cookieOptions);

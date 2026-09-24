@@ -17,7 +17,7 @@ export type NavGroup = "primary" | "secondary" | "tertiary";
 
 export type NavItem = {
   /** Stable key, also the icon lookup and the i18n key suffix. */
-  id: "home" | "aquila" | "saved" | "history" | "search" | "settings";
+  id: "home" | "aquila" | "saved" | "following" | "history" | "search" | "settings";
   group: NavGroup;
   /** Path after the locale prefix. Empty string is the locale root (Home). */
   path: string;
@@ -42,6 +42,13 @@ export const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.saved",
     requiresSession: true,
     inTabBar: true,
+  },
+  {
+    id: "following",
+    group: "secondary",
+    path: "/following",
+    labelKey: "nav.following",
+    requiresSession: true,
   },
   {
     id: "history",

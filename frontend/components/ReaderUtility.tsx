@@ -97,12 +97,7 @@ export function ReaderUtility({
         onFocus={() => onOpenChange(true)}
       >
         <span className="visually-hidden">{t(locale, "aquila.contents")}</span>
-        <svg
-          viewBox="0 0 24 24"
-          width="1.2em"
-          height="1.2em"
-          aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" width="1.2em" height="1.2em" aria-hidden="true">
           <path
             d="M5 7h14M5 12h14M5 17h9"
             stroke="currentColor"
@@ -119,9 +114,7 @@ export function ReaderUtility({
         className="reader-utility__panel"
         aria-label={t(locale, "aquila.contents")}
       >
-        <h2 className="reader-utility__heading">
-          {t(locale, "aquila.contents")}
-        </h2>
+        <h2 className="reader-utility__heading">{t(locale, "aquila.contents")}</h2>
         <ol className="reader-utility__pages">
           {issue.sections.map((section) => (
             <li key={section.page_no}>
@@ -144,9 +137,7 @@ export function ReaderUtility({
           ))}
         </ol>
 
-        <h2 className="reader-utility__heading">
-          {t(locale, "aquila.editions")}
-        </h2>
+        <h2 className="reader-utility__heading">{t(locale, "aquila.editions")}</h2>
         <ul className="reader-utility__editions">
           {editions.map((edition) => (
             <li key={edition.id}>
@@ -159,10 +150,7 @@ export function ReaderUtility({
                 tabIndex={open ? undefined : -1}
               >
                 <span>
-                  {t(
-                    locale,
-                    `aquila.edition.${edition.edition_slot}` as "aquila.edition.morning",
-                  )}
+                  {t(locale, `aquila.edition.${edition.edition_slot}` as "aquila.edition.morning")}
                 </span>
                 {/* The reader's own timezone, like the masthead's edition time -
                     a fixed UTC here printed a UTC hour with no label saying

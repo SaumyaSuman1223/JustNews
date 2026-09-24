@@ -17,12 +17,18 @@ export default async function AdminArticlesPage() {
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>Moderation</h1>
 
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Take an article down by id. There is no title search here yet - the article id shows in
-        its URL (<code>/a/&#123;id&#125;</code>) on the public site.
+        Take an article down by id. There is no title search here yet - the article id shows in its
+        URL (<code>/a/&#123;id&#125;</code>) on the public site.
       </p>
       <form action={takedownArticleAction} className="inline-form">
         <input type="number" name="articleId" placeholder="Article id" required />
-        <input type="text" name="reason" placeholder="Reason" required style={{ minWidth: "16rem" }} />
+        <input
+          type="text"
+          name="reason"
+          placeholder="Reason"
+          required
+          style={{ minWidth: "16rem" }}
+        />
         <button type="submit" className="button button--secondary">
           Take down
         </button>

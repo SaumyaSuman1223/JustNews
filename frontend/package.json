@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:structured-data": "playwright test --config=playwright.structured-data.config.ts"
@@ -28,6 +30,7 @@
     "@types/react-dom": "^19.0.2",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.3",
+    "prettier": "3.9.9",
     "typescript": "^5.7.2"
   }
 }

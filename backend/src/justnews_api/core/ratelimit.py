@@ -13,6 +13,7 @@ be its own kind of bug.
 
 from __future__ import annotations
 
+import hmac
 import time
 from collections.abc import Awaitable, Callable
 
@@ -43,6 +44,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         if not self._enabled or request.url.path in _EXEMPT_PATHS:
             return await call_next(request)
+        if self._is_web_tier(request):
+            return await call_next(request)
 
         identity = _client_identity(request)
         window = int(time.time() // 60)
@@ -71,6 +74,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 },
             )
         return await call_next(request)
+
+    def _is_web_tier(self, request: Request) -> bool:
+        """The web server's own anonymous reads, identified by the shared key.
+
+        Only anonymous ones: a request with a bearer token is still limited
+        by its token, whoever forwarded it.
+        """
+        secret = self._settings.web_proxy_secret
+        offered = request.headers.get("x-web-proxy-key")
+        if not secret or not offered or request.headers.get("authorization"):
+            return False
+        return hmac.compare_digest(offered.encode(), secret.encode())
 
     async def _increment(self, key: str) -> int:
         results = await upstash.pipeline(self._settings, [["INCR", key], ["EXPIRE", key, "60"]])

@@ -8,6 +8,9 @@ export interface ApiClientOptions {
   accessToken?: string;
   /** Groups impressions and interaction events into one browsing session. */
   sessionId?: string;
+  /** The web tier's shared key, so the API does not limit every reader as
+   * one address (API_PROXY_SECRET; see the API's core/ratelimit.py). */
+  proxyKey?: string;
 }
 
 /**
@@ -24,6 +27,9 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions = {})
   }
   if (options.sessionId) {
     headers["x-session-id"] = options.sessionId;
+  }
+  if (options.proxyKey) {
+    headers["x-web-proxy-key"] = options.proxyKey;
   }
   return createClient<paths>({ baseUrl, headers });
 }

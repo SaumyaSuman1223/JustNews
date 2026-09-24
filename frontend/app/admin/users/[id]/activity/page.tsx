@@ -20,9 +20,8 @@ export default async function AdminUserActivityPage({
         Activity — <code>{id}</code>
       </h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Every impression and interaction this reader has, merged and ordered most recent
-        first. Not a session replay - only what this system already logs for the Stage 6
-        offline evaluators.
+        Every impression and interaction this reader has, merged and ordered most recent first. Not
+        a session replay - only what this system already logs for the Stage 6 offline evaluators.
       </p>
       <div className="admin-table-wrap">
         <table className="admin-table">
@@ -40,7 +39,9 @@ export default async function AdminUserActivityPage({
               <tr key={`${entry.kind}-${entry.article_id}-${entry.occurred_at}-${index}`}>
                 <td>{new Date(entry.occurred_at).toLocaleString("en")}</td>
                 <td>
-                  <span className={`pill ${entry.kind === "impression" ? "pill--ok" : "pill--warn"}`}>
+                  <span
+                    className={`pill ${entry.kind === "impression" ? "pill--ok" : "pill--warn"}`}
+                  >
                     {entry.kind}
                   </span>
                 </td>

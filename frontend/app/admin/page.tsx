@@ -35,9 +35,8 @@ export default async function AdminOverviewPage() {
         <Link href="/admin/analytics">Full analytics</Link> ·{" "}
         <Link href="/admin/sources">Source health</Link> ·{" "}
         <Link href="/admin/ingest-runs">Ingestion runs</Link> ·{" "}
-        <Link href="/admin/articles">Moderation</Link> ·{" "}
-        <Link href="/admin/users">Users</Link> · <Link href="/admin/invites">Invites</Link> ·{" "}
-        <Link href="/admin/audit-log">Audit log</Link>
+        <Link href="/admin/articles">Moderation</Link> · <Link href="/admin/users">Users</Link> ·{" "}
+        <Link href="/admin/invites">Invites</Link> · <Link href="/admin/audit-log">Audit log</Link>
       </p>
     </>
   );

@@ -70,9 +70,7 @@ export function IssuePaper({
         ? curatedTopicLabel(section.topic_id, section.title, locale)
         : section.title;
   const coveredSections = Array.from(
-    new Set(
-      issue.sections.map(labelFor).filter((title): title is string => title != null),
-    ),
+    new Set(issue.sections.map(labelFor).filter((title): title is string => title != null)),
   );
   const mastheadSections = coveredSections.slice(0, MASTHEAD_SECTIONS);
   const moreSections = coveredSections.length - mastheadSections.length;
@@ -111,16 +109,10 @@ export function IssuePaper({
     minute: "2-digit",
     hour12: false,
   }).format(published);
-  const editionName = t(
-    locale,
-    `aquila.edition.${issue.edition_slot}` as "aquila.edition.morning",
-  );
+  const editionName = t(locale, `aquila.edition.${issue.edition_slot}` as "aquila.edition.morning");
 
   return (
-    <article
-      className="paper"
-      aria-label={t(locale, "aquila.pageLabel", { page: page.page_no })}
-    >
+    <article className="paper" aria-label={t(locale, "aquila.pageLabel", { page: page.page_no })}>
       {isFront ? (
         // Three columns on a full-width sheet, stacked on a narrow one:
         // edition identity, wordmark, what the paper covers. The coverage
@@ -176,9 +168,7 @@ export function IssuePaper({
           </span>
         )}
         <span suppressHydrationWarning>
-          {city
-            ? t(locale, "aquila.dateline", { city, date: dateLine })
-            : dateLine}
+          {city ? t(locale, "aquila.dateline", { city, date: dateLine }) : dateLine}
         </span>
         <span suppressHydrationWarning>
           {t(locale, "aquila.editionTime", { time: editionTime })}
@@ -198,9 +188,7 @@ export function IssuePaper({
         //
         // A section page is a simpler thing and says so: one lead and its
         // columns, no rails to fill and nothing to pad them with.
-        <div
-          className={isFront ? "paper__body paper__body--front" : "paper__body"}
-        >
+        <div className={isFront ? "paper__body paper__body--front" : "paper__body"}>
           {isFront && (focus || briefs.length > 0) && (
             <section className="paper__focus">
               {/* §11's standing line. The paper's own motto, set as a
@@ -213,9 +201,7 @@ export function IssuePaper({
 
               {focus && (
                 <>
-                  <h2 className="paper__label">
-                    {t(locale, "aquila.inFocus")}
-                  </h2>
+                  <h2 className="paper__label">{t(locale, "aquila.inFocus")}</h2>
                   {focus.article.image_url && (
                     <HalftoneImage
                       className="paper__focus-image"
@@ -227,9 +213,7 @@ export function IssuePaper({
                     />
                   )}
                   <h3 className="paper__focus-headline">
-                    <Link href={`/${locale}/a/${focus.article.id}`}>
-                      {focus.article.title}
-                    </Link>
+                    <Link href={`/${locale}/a/${focus.article.id}`}>{focus.article.title}</Link>
                   </h3>
                   <p className="paper__byline">
                     {focus.article.source_name}
@@ -249,9 +233,7 @@ export function IssuePaper({
                   asked for - numbered stories with page references. */}
               {briefs.length > 0 && (
                 <>
-                  <h2 className="paper__label">
-                    {t(locale, "aquila.highlights")}
-                  </h2>
+                  <h2 className="paper__label">{t(locale, "aquila.highlights")}</h2>
                   <ol className="paper__brief-list">
                     {briefs.map((slot, index) => (
                       <li key={slot.position}>
@@ -266,9 +248,7 @@ export function IssuePaper({
                             wrap onto its own row instead of sitting beside
                             the headline it belongs to. */}
                         <span className="paper__brief-text">
-                          <Link href={`/${locale}/a/${slot.article.id}`}>
-                            {slot.article.title}
-                          </Link>
+                          <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
                           <PageRefTag
                             pageRef={slot.page_ref}
                             sectionTitle={sectionTitle(slot.page_ref)}
@@ -298,13 +278,9 @@ export function IssuePaper({
               )}
               <div className="paper__lead-text">
                 <h2 className="paper__lead-headline">
-                  <Link href={`/${locale}/a/${lead.article.id}`}>
-                    {lead.article.title}
-                  </Link>
+                  <Link href={`/${locale}/a/${lead.article.id}`}>{lead.article.title}</Link>
                 </h2>
-                {lead.article.snippet && (
-                  <p className="paper__deck">{lead.article.snippet}</p>
-                )}
+                {lead.article.snippet && <p className="paper__deck">{lead.article.snippet}</p>}
                 <p className="paper__byline">{lead.article.source_name}</p>
               </div>
             </section>
@@ -312,9 +288,7 @@ export function IssuePaper({
 
           {(isFront ? rail : secondaries).length > 0 && (
             <section className="paper__highlights">
-              {isFront && (
-                <h2 className="paper__label">{t(locale, "aquila.moreNews")}</h2>
-              )}
+              {isFront && <h2 className="paper__label">{t(locale, "aquila.moreNews")}</h2>}
               <div className="paper__columns">
                 {(isFront ? rail : secondaries).map((slot) => (
                   <div className="paper__column" key={slot.position}>
@@ -333,18 +307,14 @@ export function IssuePaper({
                       />
                     )}
                     <h3 className="paper__column-headline">
-                      <Link href={`/${locale}/a/${slot.article.id}`}>
-                        {slot.article.title}
-                      </Link>
+                      <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
                     </h3>
                     {/* On the front page these are highlights - picture,
                         headline, outlet. The deck belongs to a section page,
                         where a column is the whole story rather than a
                         pointer to it, and where the page has the room. */}
                     {!isFront && slot.article.snippet && (
-                      <p className="paper__column-deck">
-                        {slot.article.snippet}
-                      </p>
+                      <p className="paper__column-deck">{slot.article.snippet}</p>
                     )}
                     <p className="paper__byline">{slot.article.source_name}</p>
                   </div>
@@ -365,9 +335,7 @@ export function IssuePaper({
               <div className="paper__lower-stories">
                 {lower.map((slot) => (
                   <p className="paper__lower-story" key={slot.position}>
-                    <Link href={`/${locale}/a/${slot.article.id}`}>
-                      {slot.article.title}
-                    </Link>
+                    <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
                     <PageRefTag
                       pageRef={slot.page_ref}
                       sectionTitle={sectionTitle(slot.page_ref)}

@@ -1,4 +1,5 @@
 import type { Article } from "@/lib/api";
+import { t, type LocaleCode } from "@/lib/i18n";
 import type { RankReason } from "@/lib/rankReason";
 
 /**
@@ -12,9 +13,7 @@ import type { RankReason } from "@/lib/rankReason";
  * - A topic: `/{locale}?topic=medtop:...`.
  */
 export type DiscoverView =
-  | { kind: "for-you" }
-  | { kind: "top" }
-  | { kind: "topic"; topicId: string };
+  { kind: "for-you" } | { kind: "top" } | { kind: "topic"; topicId: string };
 
 export interface DiscoverItem {
   article: Article;
@@ -33,10 +32,7 @@ export interface DiscoverPage {
 /** Topic ids are IPTC concept ids; anything else is not a topic. */
 const TOPIC_ID = /^medtop:\d{8}$/;
 
-export function parseView(params: {
-  view?: string | null;
-  topic?: string | null;
-}): DiscoverView {
+export function parseView(params: { view?: string | null; topic?: string | null }): DiscoverView {
   if (params.topic && TOPIC_ID.test(params.topic)) {
     return { kind: "topic", topicId: params.topic };
   }
@@ -59,4 +55,21 @@ export function viewQuery(view: DiscoverView): URLSearchParams {
   if (view.kind === "top") query.set("view", "top");
   if (view.kind === "topic") query.set("topic", view.topicId);
   return query;
+}
+
+/**
+ * The page title for a view: "Top · JustNews", "Politics · JustNews". For
+ * You is the front door and keeps the site's own name. The server's metadata
+ * and the client's view switch both use this, so a tab, a bookmark and a
+ * search result all name the same thing.
+ */
+export function viewTitle(
+  locale: LocaleCode,
+  view: DiscoverView,
+  topicLabel: string | undefined,
+): string {
+  const site = "JustNews";
+  if (view.kind === "top") return `${t(locale, "discover.tab.top")} · ${site}`;
+  if (view.kind === "topic" && topicLabel) return `${topicLabel} · ${site}`;
+  return site;
 }

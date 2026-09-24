@@ -23,7 +23,11 @@ export function DeleteAccountButton({ locale }: { locale: LocaleCode }) {
 
   if (!confirming) {
     return (
-      <button type="button" className="button button--secondary" onClick={() => setConfirming(true)}>
+      <button
+        type="button"
+        className="button button--secondary"
+        onClick={() => setConfirming(true)}
+      >
         {t(locale, "account.delete")}
       </button>
     );
@@ -33,7 +37,12 @@ export function DeleteAccountButton({ locale }: { locale: LocaleCode }) {
     <div className="notice" role="alertdialog">
       <p style={{ marginBlockStart: 0 }}>{t(locale, "account.delete.warning")}</p>
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button type="button" className="button button--primary" disabled={pending} onClick={handleDelete}>
+        <button
+          type="button"
+          className="button button--primary"
+          disabled={pending}
+          onClick={handleDelete}
+        >
           {pending ? t(locale, "account.delete.pending") : t(locale, "account.delete.confirm")}
         </button>
         <button

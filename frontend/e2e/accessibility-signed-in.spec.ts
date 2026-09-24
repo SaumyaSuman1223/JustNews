@@ -96,9 +96,7 @@ async function signIn(page: Page): Promise<void> {
     body: JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }),
   });
   if (!response.ok) {
-    throw new Error(
-      `E2E_TEST_EMAIL sign-in failed (${response.status}): ${await response.text()}`,
-    );
+    throw new Error(`E2E_TEST_EMAIL sign-in failed (${response.status}): ${await response.text()}`);
   }
   const token = (await response.json()) as SupabaseTokenResponse;
 

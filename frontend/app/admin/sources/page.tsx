@@ -28,9 +28,9 @@ export default async function AdminSourcesPage() {
     <>
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>Source health</h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Perspective role is editorially assigned, never inferred (ADR 0013) - leave it unset
-        rather than guess. Unset sources still appear in a story&rsquo;s coverage; they just
-        don&rsquo;t contribute to a perspective group.
+        Perspective role is editorially assigned, never inferred (ADR 0013) - leave it unset rather
+        than guess. Unset sources still appear in a story&rsquo;s coverage; they just don&rsquo;t
+        contribute to a perspective group.
       </p>
       <div className="admin-table-wrap">
         <table className="admin-table">

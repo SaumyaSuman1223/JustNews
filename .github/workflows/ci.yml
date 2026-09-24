@@ -89,6 +89,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter @justnews/web lint
+      - run: pnpm --filter @justnews/web format:check
       - run: pnpm --filter @justnews/web typecheck
       - run: pnpm --filter @justnews/web build
 

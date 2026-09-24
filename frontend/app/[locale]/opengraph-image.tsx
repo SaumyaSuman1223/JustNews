@@ -10,44 +10,42 @@ export const contentType = "image/png";
 
 export default function Image() {
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f7f8f7",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f7f8f7",
+          fontFamily: "serif",
+          fontWeight: 700,
+          fontSize: 120,
+          lineHeight: 1,
+          letterSpacing: "-0.02em",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            fontFamily: "serif",
-            fontWeight: 700,
-            fontSize: 120,
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          <span style={{ color: "#121614" }}>Just</span>
-          <span style={{ color: "#0f6b53" }}>News</span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            marginTop: 28,
-            fontFamily: "sans-serif",
-            fontSize: 32,
-            color: "#66746f",
-          }}
-        >
-          Personalised, multilingual news.
-        </div>
+        <span style={{ color: "#121614" }}>Just</span>
+        <span style={{ color: "#0f6b53" }}>News</span>
       </div>
-    ),
+      <div
+        style={{
+          display: "flex",
+          marginTop: 28,
+          fontFamily: "sans-serif",
+          fontSize: 32,
+          color: "#66746f",
+        }}
+      >
+        Personalised, multilingual news.
+      </div>
+    </div>,
     { ...size },
   );
 }

@@ -10,11 +10,7 @@ interface RouteParams {
   id: string;
 }
 
-export default async function AdminArticleTopicsPage({
-  params,
-}: {
-  params: Promise<RouteParams>;
-}) {
+export default async function AdminArticleTopicsPage({ params }: { params: Promise<RouteParams> }) {
   const access = await requireAdmin();
   if (!access.ok) return access.element;
 

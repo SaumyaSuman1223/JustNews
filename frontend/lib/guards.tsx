@@ -18,8 +18,7 @@ export type BetaAccessResult =
   // for it, and every gated page needs `preferred_languages` off it. Fetching
   // it twice would be a second transcontinental round trip for a value we are
   // holding.
-  | { ok: true; auth: AuthContext; profile: MeProfile }
-  | { ok: false; element: ReactElement };
+  { ok: true; auth: AuthContext; profile: MeProfile } | { ok: false; element: ReactElement };
 
 /**
  * The gate every page behind ``/v1/feed``, ``/v1/saves``, ``/v1/follows`` or

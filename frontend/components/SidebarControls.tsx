@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CloseIcon, MenuIcon, PanelIcon } from "@/components/icons";
 import { t, type LocaleCode } from "@/lib/i18n";
+import { secureFlag } from "@/lib/railPrefs";
 import { SIDEBAR_COOKIE } from "@/lib/sidebarCookie";
 
 /** A year: the sidebar's width is a preference, not a session. */
@@ -34,8 +35,14 @@ export function SidebarCollapse({
     if (!element) return;
     const next = !collapsed;
     element.toggleAttribute("data-collapsed", next);
+    // Collapsed, a link is an icon and its tooltip is its only visible name;
+    // expanded, the label is on screen and a tooltip would repeat it.
+    for (const link of element.querySelectorAll<HTMLElement>("[data-label]")) {
+      if (next) link.title = link.dataset.label ?? "";
+      else link.removeAttribute("title");
+    }
     setCollapsed(next);
-    document.cookie = `${SIDEBAR_COOKIE}=${next ? "collapsed" : "open"}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`;
+    document.cookie = `${SIDEBAR_COOKIE}=${next ? "collapsed" : "open"}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax${secureFlag()}`;
   }
 
   const label = t(locale, collapsed ? "sidebar.expand" : "sidebar.collapse");
@@ -70,10 +77,32 @@ export function MobileTopBar({ locale }: { locale: LocaleCode }) {
     setOpen(false);
   }
 
+  const button = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+
   useEffect(() => {
     const element = sidebar();
     element?.toggleAttribute("data-open", open);
     document.documentElement.toggleAttribute("data-drawer-open", open);
+    // Behind an open drawer the page is out of reach: `inert` takes it out
+    // of the tab order and the accessibility tree, so Tab walks the drawer
+    // and the button that closes it, not the feed under the scrim.
+    for (const behind of document.querySelectorAll<HTMLElement>("#main, .tabbar")) {
+      behind.inert = open;
+    }
+    if (open) {
+      wasOpen.current = true;
+      // The first control the drawer actually shows - the collapse button
+      // is in the markup but hidden on a phone, and focusing it does nothing.
+      const controls = element?.querySelectorAll<HTMLElement>("a[href], button, input") ?? [];
+      Array.from(controls)
+        .find((control) => control.offsetParent !== null)
+        ?.focus();
+    } else if (wasOpen.current) {
+      // Back where the reader opened it from, rather than lost at the top.
+      wasOpen.current = false;
+      button.current?.focus();
+    }
     if (!open) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -86,6 +115,7 @@ export function MobileTopBar({ locale }: { locale: LocaleCode }) {
     <>
       <header className="topbar">
         <button
+          ref={button}
           type="button"
           className="topbar__menu"
           onClick={() => setOpen((value) => !value)}

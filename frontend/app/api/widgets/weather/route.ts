@@ -13,7 +13,9 @@ export async function GET(request: Request): Promise<Response> {
   }
   try {
     return NextResponse.json(await forecast(lat, lon), {
-      headers: { "Cache-Control": "public, max-age=600, s-maxage=1800, stale-while-revalidate=3600" },
+      headers: {
+        "Cache-Control": "public, max-age=600, s-maxage=1800, stale-while-revalidate=3600",
+      },
     });
   } catch {
     return NextResponse.json({ error: "forecast unavailable" }, { status: 502 });

@@ -48,8 +48,7 @@ function Arrow({ pct }: { pct: number }) {
 /** The day's prices as a line with a faint area under it, drawn to its own
  * range so a quiet day still shows its shape. */
 function Sparkline({ series, pct }: { series: number[]; pct: number }) {
-  if (series.length < 2)
-    return <div className="spark spark--empty" aria-hidden="true" />;
+  if (series.length < 2) return <div className="spark spark--empty" aria-hidden="true" />;
   const min = Math.min(...series);
   const max = Math.max(...series);
   const span = max - min || 1;
@@ -65,10 +64,7 @@ function Sparkline({ series, pct }: { series: number[]; pct: number }) {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <path
-        className="spark__area"
-        d={`M0,32 L${points.join(" L")} L100,32 Z`}
-      />
+      <path className="spark__area" d={`M0,32 L${points.join(" L")} L100,32 Z`} />
       <polyline
         className="spark__line"
         points={points.join(" ")}
@@ -79,15 +75,8 @@ function Sparkline({ series, pct }: { series: number[]; pct: number }) {
 }
 
 /** Market Outlook: four tiles, each a price, the day's move and its line. */
-export function MarketsWidget({
-  locale,
-  tiles,
-}: {
-  locale: LocaleCode;
-  tiles: MarketTile[];
-}) {
-  if (tiles.length === 0)
-    return <p className="rail-widget__empty">{t(locale, "markets.empty")}</p>;
+export function MarketsWidget({ locale, tiles }: { locale: LocaleCode; tiles: MarketTile[] }) {
+  if (tiles.length === 0) return <p className="rail-widget__empty">{t(locale, "markets.empty")}</p>;
   return (
     <>
       <ul className="markets">
@@ -104,13 +93,9 @@ export function MarketsWidget({
             <div className="markets__head" aria-hidden="true">
               <span className="markets__label">
                 {tile.label}
-                {tile.symbol !== "BTC" && (
-                  <span className="markets__symbol">{tile.symbol}</span>
-                )}
+                {tile.symbol !== "BTC" && <span className="markets__symbol">{tile.symbol}</span>}
               </span>
-              <span
-                className={`markets__change markets__change--${direction(tile.change_pct)}`}
-              >
+              <span className={`markets__change markets__change--${direction(tile.change_pct)}`}>
                 <Arrow pct={tile.change_pct} />
                 {formatChange(tile.change_pct, locale)}
               </span>
@@ -153,8 +138,7 @@ export function CompaniesWidget({
               <span className="companies__name">
                 {company.name}
                 <span className="companies__meta">
-                  {company.ticker} ·{" "}
-                  {tPlural(locale, "companies.stories", company.mentions)}
+                  {company.ticker} · {tPlural(locale, "companies.stories", company.mentions)}
                 </span>
               </span>
               {company.price !== null && company.change_pct !== null ? (
@@ -168,9 +152,7 @@ export function CompaniesWidget({
                   </span>
                 </span>
               ) : (
-                <span className="companies__quote companies__quote--none">
-                  {company.exchange}
-                </span>
+                <span className="companies__quote companies__quote--none">{company.exchange}</span>
               )}
             </Link>
           </li>

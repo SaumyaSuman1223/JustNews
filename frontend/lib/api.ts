@@ -27,6 +27,10 @@ import type { components } from "@justnews/api-client";
 import { hasAnalyticsConsent } from "@/lib/consent";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
+/** Server-only (no NEXT_PUBLIC_ prefix): identifies this server to the API's
+ * rate limiter. Readers are limited here instead - lib/rateLimit.ts. */
+const PROXY_KEY = process.env.API_PROXY_SECRET;
+const PROXY_HEADERS: Record<string, string> = PROXY_KEY ? { "x-web-proxy-key": PROXY_KEY } : {};
 // Render's free tier spins the API down after 15 minutes idle and cold-starts
 // on the next request - measured around 22s. Nothing pings it to stay warm
 // (ingestion talks to Supabase directly, never through the API - ADR 0010),
@@ -92,6 +96,7 @@ export interface Degradable<T> {
 async function get<T>(path: string, fallback: T, revalidate: number): Promise<Degradable<T>> {
   try {
     const response = await fetch(`${API_URL}${path}`, {
+      headers: PROXY_HEADERS,
       signal: AbortSignal.timeout(TIMEOUT_MS),
       next: { revalidate },
     });
@@ -181,11 +186,7 @@ export function getStory(id: number, language: string): Promise<Degradable<Story
 
 /** My Desk's Topic Overview panel - real counts, no pagination needed. */
 export function getTopicOverview(topicId: string): Promise<Degradable<TopicOverview | null>> {
-  return get<TopicOverview | null>(
-    `/v1/topics/${encodeURIComponent(topicId)}/overview`,
-    null,
-    120,
-  );
+  return get<TopicOverview | null>(`/v1/topics/${encodeURIComponent(topicId)}/overview`, null, 120);
 }
 
 /** My Desk's Timeline and Key Developments tabs both read this same list -
@@ -212,11 +213,7 @@ export function getRelatedTopics(
 /** My Desk's Perspectives tab (ADR 0013) - real groups only, so an empty
  * array here is a real "not enough roled coverage yet", not a loading gap. */
 export function getTopicPerspectives(topicId: string): Promise<Degradable<PerspectiveGroup[]>> {
-  return get<PerspectiveGroup[]>(
-    `/v1/topics/${encodeURIComponent(topicId)}/perspectives`,
-    [],
-    120,
-  );
+  return get<PerspectiveGroup[]>(`/v1/topics/${encodeURIComponent(topicId)}/perspectives`, [], 120);
 }
 
 /**
@@ -300,7 +297,11 @@ interface AuthContext {
 }
 
 function authedClient({ accessToken, sessionId }: AuthContext) {
-  return createApiClient(API_URL, { accessToken, sessionId: sessionId ?? undefined });
+  return createApiClient(API_URL, {
+    accessToken,
+    sessionId: sessionId ?? undefined,
+    proxyKey: PROXY_KEY,
+  });
 }
 
 const EMPTY_FEED: FeedPage = { items: [], next_cursor: null };
@@ -372,6 +373,7 @@ export async function getLatestIssue(
   params: { locale: string },
 ): Promise<Issue | null> {
   const client = createApiClient(API_URL, {
+    proxyKey: PROXY_KEY,
     accessToken: auth?.accessToken,
     sessionId: auth?.sessionId ?? undefined,
   });
@@ -392,6 +394,7 @@ export async function getIssue(
   params: { issueId: number; locale: string },
 ): Promise<Issue | null> {
   const client = createApiClient(API_URL, {
+    proxyKey: PROXY_KEY,
     accessToken: auth?.accessToken,
     sessionId: auth?.sessionId ?? undefined,
   });
@@ -413,6 +416,7 @@ export async function getIssuePage(
   params: { issueId: number; pageNo: number; locale: string },
 ): Promise<IssuePageContent | null> {
   const client = createApiClient(API_URL, {
+    proxyKey: PROXY_KEY,
     accessToken: auth?.accessToken,
     sessionId: auth?.sessionId ?? undefined,
   });
@@ -437,6 +441,7 @@ export async function getIssueEditions(
   params: { locale: string },
 ): Promise<IssueEdition[]> {
   const client = createApiClient(API_URL, {
+    proxyKey: PROXY_KEY,
     accessToken: auth?.accessToken,
     sessionId: auth?.sessionId ?? undefined,
   });
@@ -467,6 +472,7 @@ export async function getExplore(
   params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
 ): Promise<Degradable<FeedPage>> {
   const client = createApiClient(API_URL, {
+    proxyKey: PROXY_KEY,
     accessToken: auth?.accessToken,
     sessionId: auth?.sessionId ?? undefined,
   });
@@ -634,10 +640,7 @@ export async function deleteMe(auth: AuthContext): Promise<boolean> {
   return !error;
 }
 
-export async function getSaves(
-  auth: AuthContext,
-  cursor?: string,
-): Promise<Degradable<SavePage>> {
+export async function getSaves(auth: AuthContext, cursor?: string): Promise<Degradable<SavePage>> {
   const { data, error } = await authedClient(auth).GET("/v1/saves", {
     params: { query: { cursor } },
     signal: AbortSignal.timeout(TIMEOUT_MS),

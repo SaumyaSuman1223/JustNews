@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from justnews_testing.factories import make_article, make_source
+from justnews_testing.factories import make_article, make_source, make_topic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_core.models import CompanyMention, MarketSnapshot
+from justnews_core.models import ArticleTopic, CompanyMention, MarketSnapshot, Topic
 from justnews_core.settings import Settings
 from justnews_ingestion import markets
 
@@ -36,18 +36,38 @@ def _client(*, finnhub_status: int = 200) -> httpx.AsyncClient:
 
 class TestCountMentions:
     def test_counts_each_article_once(self) -> None:
-        counts = markets.count_mentions(["Tesla, Tesla, Tesla everywhere", "Tesla recalls cars"])
+        counts = markets.count_mentions(
+            [("Tesla, Tesla, Tesla everywhere", False), ("Tesla recalls cars", False)]
+        )
         tesla = next(c for c in markets.COMPANIES if c.ticker == "TSLA")
         assert counts[tesla] == 2
 
     def test_matches_whole_words_and_case(self) -> None:
         # "apple" the fruit and "Metaverse" are not Apple and Meta.
-        counts = markets.count_mentions(["An apple a day", "The Metaverse is back"])
+        counts = markets.count_mentions([("An apple a day", True), ("The Metaverse is back", True)])
         assert counts == {}
 
     def test_an_alias_counts_for_its_company(self) -> None:
-        counts = markets.count_mentions(["WhatsApp outage hits millions"])
+        counts = markets.count_mentions([("WhatsApp outage hits millions", False)])
         assert {c.ticker for c in counts} == {"META"}
+
+    def test_an_ambiguous_name_counts_only_in_a_business_story(self) -> None:
+        # Shell shock, high BP, the Amazon basin, US intel: not the companies.
+        outside = markets.count_mentions(
+            [
+                ("Shell shock after the vote", False),
+                ("High BP in young adults", False),
+                ("Fires spread across the Amazon", False),
+                ("Intel suggests a second attack", False),
+            ]
+        )
+        assert outside == {}
+        inside = markets.count_mentions([("Shell and BP raise dividends", True)])
+        assert {c.ticker for c in inside} == {"SHEL", "BP"}
+
+    def test_an_unambiguous_alias_needs_no_business_context(self) -> None:
+        counts = markets.count_mentions([("New iPhone goes on sale", False)])
+        assert {c.ticker for c in counts} == {"AAPL"}
 
 
 class TestRefreshMarkets:
@@ -105,10 +125,17 @@ class TestRefreshCompanies:
         self, session: AsyncSession
     ) -> None:
         source = await make_source(session)
+        business = await session.get(Topic, markets.BUSINESS_TOPIC) or await make_topic(
+            session, markets.BUSINESS_TOPIC, slug="economy-business-finance"
+        )
         for index in range(3):
             await make_article(session, source, title=f"Tesla story {index}")
         for index in range(2):
-            await make_article(session, source, title=f"Reliance story {index}")
+            article = await make_article(session, source, title=f"Reliance profit {index}")
+            session.add(ArticleTopic(article_id=article.id, topic_id=business.id))
+        # Not filed under business, so "Shell" is not the company here.
+        for index in range(2):
+            await make_article(session, source, title=f"Shell shock {index}")
         await make_article(session, source, title="Boeing once")
         session.add(
             CompanyMention(

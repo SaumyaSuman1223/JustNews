@@ -65,7 +65,13 @@ export function serializeWeatherPlace(place: WeatherPlace): string {
   return `${place.lat},${place.lon},${encodeURIComponent(place.name)}`;
 }
 
+/** `; secure` over HTTPS, so a preference never travels in the clear; left
+ * off on plain-HTTP local development, where the browser would drop it. */
+export function secureFlag(): string {
+  return window.location.protocol === "https:" ? "; secure" : "";
+}
+
 /** Client-side cookie write for a preference: a year, lax, whole site. */
 export function writePreferenceCookie(name: string, value: string): void {
-  document.cookie = `${name}=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  document.cookie = `${name}=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax${secureFlag()}`;
 }

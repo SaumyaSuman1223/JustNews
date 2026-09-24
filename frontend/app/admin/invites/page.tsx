@@ -41,7 +41,11 @@ export default async function AdminInvitesPage() {
                 <td>
                   {invite.uses} / {invite.max_uses}
                 </td>
-                <td>{invite.expires_at ? new Date(invite.expires_at).toLocaleDateString("en") : "never"}</td>
+                <td>
+                  {invite.expires_at
+                    ? new Date(invite.expires_at).toLocaleDateString("en")
+                    : "never"}
+                </td>
                 <td>{new Date(invite.created_at).toLocaleDateString("en")}</td>
               </tr>
             ))}

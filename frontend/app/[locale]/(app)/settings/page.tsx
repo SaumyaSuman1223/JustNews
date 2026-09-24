@@ -68,8 +68,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   // axis's count): not every read article carries an assigned primary
   // topic, so the two axes can sum to different totals, and each needs its
   // own denominator.
-  const topicTotal =
-    readingProfile?.topics.reduce((sum, entry) => sum + entry.count, 0) ?? 0;
+  const topicTotal = readingProfile?.topics.reduce((sum, entry) => sum + entry.count, 0) ?? 0;
 
   return (
     <div className="narrow">
@@ -77,9 +76,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         <h1>{t(active.code, "settings.heading")}</h1>
         {/* A session without an email is possible on paper; the old copy
             rendered "Signed in as ." when it happened. */}
-        {session.email && (
-          <p>{t(active.code, "settings.signedInAs", { email: session.email })}</p>
-        )}
+        {session.email && <p>{t(active.code, "settings.signedInAs", { email: session.email })}</p>}
       </div>
 
       <form action={updateLanguagesFormAction}>
@@ -116,9 +113,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           </h2>
           {readingProfile.sampled > 0 ? (
             <>
-              <p>
-                {t(active.code, "profile.languageMix.body", { count: readingProfile.sampled })}
-              </p>
+              <p>{t(active.code, "profile.languageMix.body", { count: readingProfile.sampled })}</p>
 
               <h3 className="reading-mix__subheading">{t(active.code, "profile.byLanguage")}</h3>
               <ul className="reading-mix">
@@ -182,13 +177,18 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         <p className="form-note" style={{ marginBlockStart: 0 }}>
           {t(
             active.code,
-            consent === "granted" ? "consent.settings.currentlyOn" : "consent.settings.currentlyOff",
+            consent === "granted"
+              ? "consent.settings.currentlyOn"
+              : "consent.settings.currentlyOff",
           )}
         </p>
       </div>
       <form action={setConsentAction.bind(null, consent === "granted" ? "denied" : "granted")}>
         <button type="submit" className="button button--secondary">
-          {t(active.code, consent === "granted" ? "consent.settings.turnOff" : "consent.settings.turnOn")}
+          {t(
+            active.code,
+            consent === "granted" ? "consent.settings.turnOff" : "consent.settings.turnOn",
+          )}
         </button>
       </form>
 

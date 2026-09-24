@@ -51,7 +51,12 @@ async function HistoryBody({
   locale: ReturnType<typeof getLocale>["code"];
   cursor?: string;
 }) {
-  const access = await requireBetaAccess(locale, `/${locale}/history`);
+  const access = await requireBetaAccess(locale, `/${locale}/history`, {
+    // The page's own h1 already names it; the prompt says what it holds.
+    title: t(locale, "account.signIn"),
+    body: t(locale, "signIn.history.body"),
+    embedded: true,
+  });
   if (!access.ok) return access.element;
 
   const { auth } = access;

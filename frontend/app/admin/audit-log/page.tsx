@@ -31,9 +31,7 @@ export default async function AdminAuditLogPage() {
                   {entry.admin_user_id.slice(0, 8)}
                 </td>
                 <td>{entry.action}</td>
-                <td>
-                  {entry.target_type ? `${entry.target_type}:${entry.target_id}` : "—"}
-                </td>
+                <td>{entry.target_type ? `${entry.target_type}:${entry.target_id}` : "—"}</td>
                 <td style={{ whiteSpace: "normal", maxWidth: "20rem" }}>
                   {entry.details ? JSON.stringify(entry.details) : "—"}
                 </td>
