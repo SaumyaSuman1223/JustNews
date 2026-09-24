@@ -139,6 +139,11 @@ class Settings(BaseSettings):
     upstash_redis_rest_url: str | None = None
     upstash_redis_rest_token: str | None = None
     rate_limit_requests_per_minute: int = 120
+    # Shared with the web tier (its API_PROXY_SECRET). Its anonymous reads all
+    # arrive from the web server's address, so an IP bucket would put every
+    # reader in one; a request carrying this key is the web tier, which
+    # limits each reader by their own address before calling here.
+    web_proxy_secret: str | None = None
 
     @property
     def supabase_jwks_url(self) -> str | None:
