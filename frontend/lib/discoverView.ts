@@ -1,4 +1,5 @@
 import type { Article } from "@/lib/api";
+import { t, type LocaleCode } from "@/lib/i18n";
 import type { RankReason } from "@/lib/rankReason";
 
 /**
@@ -59,4 +60,21 @@ export function viewQuery(view: DiscoverView): URLSearchParams {
   if (view.kind === "top") query.set("view", "top");
   if (view.kind === "topic") query.set("topic", view.topicId);
   return query;
+}
+
+/**
+ * The page title for a view: "Top · JustNews", "Politics · JustNews". For
+ * You is the front door and keeps the site's own name. The server's metadata
+ * and the client's view switch both use this, so a tab, a bookmark and a
+ * search result all name the same thing.
+ */
+export function viewTitle(
+  locale: LocaleCode,
+  view: DiscoverView,
+  topicLabel: string | undefined,
+): string {
+  const site = "JustNews";
+  if (view.kind === "top") return `${t(locale, "discover.tab.top")} · ${site}`;
+  if (view.kind === "topic" && topicLabel) return `${topicLabel} · ${site}`;
+  return site;
 }

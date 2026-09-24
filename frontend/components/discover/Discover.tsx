@@ -5,12 +5,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StoryCard, type StoryVariant } from "@/components/discover/StoryCard";
 import { ChevronDownIcon, ShareIcon, SlidersIcon } from "@/components/icons";
-import { CUSTOMIZE_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
+import { CUSTOMIZE_EVENT, INTERESTS_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
 import {
   parseView,
   viewHref,
   viewKey,
   viewQuery,
+  viewTitle,
   type DiscoverItem,
   type DiscoverPage,
   type DiscoverView,
@@ -34,8 +35,21 @@ type Entry = {
  * Kept for the life of the tab, across route changes, so going back to
  * Discover from an article - or back to a tab already seen - is instant. A
  * module-level map rather than a context: nothing else reads it.
+ *
+ * Browser only. On the server a module outlives the request, so this map
+ * would be shared by every reader the process serves: one reader's For You
+ * rendered into the next reader's page, and one language's stories into
+ * another's. The server renders from `initialPage` and nothing else.
+ *
+ * Keyed by language and by whether the feed is personal as well as by view
+ * (`scopedKey`), so switching language, or signing in, in the same tab never
+ * shows the other feed from memory.
  */
 const cache = new Map<string, Entry>();
+
+function scopedKey(locale: LocaleCode, personal: boolean, view: DiscoverView): string {
+  return `${locale}|${personal ? "personal" : "shared"}|${viewKey(view)}`;
+}
 
 export interface DiscoverTopic {
   id: string;
@@ -58,6 +72,7 @@ export function Discover({
   topics,
   signedIn,
   canPersonalise,
+  hasInterests,
   initialSaved,
 }: {
   locale: LocaleCode;
@@ -66,14 +81,16 @@ export function Discover({
   topics: DiscoverTopic[];
   signedIn: boolean;
   canPersonalise: boolean;
+  /** Whether For You has chosen interests to rank by. */
+  hasInterests: boolean;
   initialSaved: number[];
 }) {
   const searchParams = useSearchParams();
   const view = parseView({ view: searchParams.get("view"), topic: searchParams.get("topic") });
-  const key = viewKey(view);
+  const key = scopedKey(locale, canPersonalise, view);
 
   // The server's page seeds the cache once, under the view it rendered.
-  useState(() => seed(initialView, initialPage));
+  useState(() => seed(scopedKey(locale, canPersonalise, initialView), initialPage));
 
   const [, setVersion] = useState(0);
   const rerender = useCallback(() => setVersion((value) => value + 1), []);
@@ -85,7 +102,7 @@ export function Discover({
 
   const load = useCallback(
     async (target: DiscoverView, cursor?: string) => {
-      const targetKey = viewKey(target);
+      const targetKey = scopedKey(locale, canPersonalise, target);
       const loadingKey = `${targetKey}|${cursor ?? ""}`;
       if (inFlight.current.has(loadingKey)) return;
       inFlight.current.add(loadingKey);
@@ -124,10 +141,16 @@ export function Discover({
         rerender();
       }
     },
-    [locale, rerender],
+    [locale, canPersonalise, rerender],
   );
 
-  const entry = cache.get(key);
+  // The server has no cache (see above); it renders exactly what it fetched.
+  const entry =
+    typeof window === "undefined"
+      ? viewKey(view) === viewKey(initialView)
+        ? { ...initialPage, fetchedAt: 0, error: false }
+        : undefined
+      : cache.get(key);
 
   // A view not in memory is fetched; one in memory but old is refreshed
   // behind what is already on screen.
@@ -147,8 +170,10 @@ export function Discover({
   useEffect(() => {
     current.current = view;
   });
+  const [interestsChosen, setInterestsChosen] = useState(hasInterests);
   useEffect(() => {
     function refresh() {
+      setInterestsChosen(true);
       cache.clear();
       void load(current.current);
     }
@@ -156,12 +181,20 @@ export function Discover({
     return () => window.removeEventListener(REFRESH_EVENT, refresh);
   }, [load]);
 
+  // The tab names the view, as the server's metadata did for the first one.
+  const topicLabel =
+    view.kind === "topic" ? topics.find((topic) => topic.id === view.topicId)?.label : undefined;
+  useEffect(() => {
+    document.title = viewTitle(locale, view, topicLabel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, topicLabel, locale]);
+
   // The feed fades in only when the reader changes view - never on the
   // server-rendered first page, which should simply be there.
   const [switched, setSwitched] = useState(false);
 
   function go(next: DiscoverView) {
-    if (viewKey(next) === key) return;
+    if (scopedKey(locale, canPersonalise, next) === key) return;
     setSwitched(true);
     window.history.pushState(null, "", viewHref(locale, next));
     window.scrollTo({ top: 0 });
@@ -199,6 +232,22 @@ export function Discover({
   return (
     <div className="discover">
       <DiscoverTabs locale={locale} view={view} topics={topics} onChange={go} />
+
+      {/* With nothing to personalise by, For You is Top - said plainly, so
+          two tabs showing the same stories read as a choice not yet made
+          rather than a bug. */}
+      {view.kind === "for-you" && !canPersonalise && !interestsChosen && (
+        <p className="discover__note">
+          {t(locale, "discover.forYouIsTop")}{" "}
+          <button
+            type="button"
+            className="rail-link-button"
+            onClick={() => window.dispatchEvent(new Event(INTERESTS_EVENT))}
+          >
+            {t(locale, "discover.chooseInterests")}
+          </button>
+        </p>
+      )}
 
       <div
         className={switched ? "discover__feed discover__feed--enter" : "discover__feed"}
@@ -255,8 +304,8 @@ export function Discover({
   );
 }
 
-function seed(view: DiscoverView, page: DiscoverPage): true {
-  const key = viewKey(view);
+function seed(key: string, page: DiscoverPage): true {
+  if (typeof window === "undefined") return true;
   const existing = cache.get(key);
   if (!existing || Date.now() - existing.fetchedAt > FRESH_MS) {
     cache.set(key, {

@@ -7,7 +7,7 @@ import { ChevronDownIcon, CloseIcon, SlidersIcon } from "@/components/icons";
 import { CompaniesWidget, MarketsWidget } from "@/components/rail/MarketWidgets";
 import { WeatherWidget } from "@/components/rail/WeatherWidget";
 import type { MarketTile, TrendingCompany } from "@/lib/api";
-import { CUSTOMIZE_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
+import { CUSTOMIZE_EVENT, INTERESTS_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
 import { t, type LocaleCode, type MessageKey } from "@/lib/i18n";
 import {
   RAIL_COOKIE,
@@ -80,6 +80,17 @@ export function DiscoverRail({
     return () => window.removeEventListener(CUSTOMIZE_EVENT, open);
   }, []);
 
+  // Asked again, and this time the reader asked: focus goes to the card.
+  const [askedByReader, setAskedByReader] = useState(false);
+  useEffect(() => {
+    function ask() {
+      setAsking(true);
+      setAskedByReader(true);
+    }
+    window.addEventListener(INTERESTS_EVENT, ask);
+    return () => window.removeEventListener(INTERESTS_EVENT, ask);
+  }, []);
+
   function update(next: RailPrefs) {
     setPrefs(next);
     writePreferenceCookie(RAIL_COOKIE, serializeRailPrefs(next));
@@ -90,7 +101,12 @@ export function DiscoverRail({
   return (
     <aside className="discover-rail" aria-label={t(locale, "rail.label")}>
       {asking && (
-        <MakeItYours locale={locale} topics={interestTopics} onDone={() => setAsking(false)} />
+        <MakeItYours
+          locale={locale}
+          topics={interestTopics}
+          focusOnOpen={askedByReader}
+          onDone={() => setAsking(false)}
+        />
       )}
 
       {customizing && (
@@ -102,23 +118,27 @@ export function DiscoverRail({
         />
       )}
 
-      {visible.map((id) => (
-        <section className="rail-widget" key={id} aria-labelledby={`rail-${id}`}>
-          <h2 className="rail-widget__title" id={`rail-${id}`}>
-            {t(locale, WIDGETS[id].titleKey)}
-          </h2>
-          {WIDGETS[id].render(data)}
-        </section>
-      ))}
+      {/* One group, so a narrow screen can scroll the widgets sideways
+          beneath the interests card rather than beside it. */}
+      <div className="discover-rail__widgets">
+        {visible.map((id) => (
+          <section className="rail-widget" key={id} aria-labelledby={`rail-${id}`}>
+            <h2 className="rail-widget__title" id={`rail-${id}`}>
+              {t(locale, WIDGETS[id].titleKey)}
+            </h2>
+            {WIDGETS[id].render(data)}
+          </section>
+        ))}
 
-      <button
-        type="button"
-        className="rail-link-button rail__customize"
-        onClick={() => setCustomizing(true)}
-      >
-        <SlidersIcon />
-        {t(locale, "rail.customize")}
-      </button>
+        <button
+          type="button"
+          className="rail-link-button rail__customize"
+          onClick={() => setCustomizing(true)}
+        >
+          <SlidersIcon />
+          {t(locale, "rail.customize")}
+        </button>
+      </div>
     </aside>
   );
 }
@@ -126,12 +146,18 @@ export function DiscoverRail({
 function MakeItYours({
   locale,
   topics,
+  focusOnOpen,
   onDone,
 }: {
   locale: LocaleCode;
   topics: DiscoverTopic[];
+  focusOnOpen: boolean;
   onDone: () => void;
 }) {
+  const title = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusOnOpen) title.current?.focus();
+  }, [focusOnOpen]);
   const [chosen, setChosen] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -182,7 +208,7 @@ function MakeItYours({
       >
         <CloseIcon />
       </button>
-      <h2 className="interests__title" id="interests-title">
+      <h2 className="interests__title" id="interests-title" tabIndex={-1} ref={title}>
         {t(locale, "interests.title")}
       </h2>
       <p className="interests__body">{t(locale, "interests.body")}</p>

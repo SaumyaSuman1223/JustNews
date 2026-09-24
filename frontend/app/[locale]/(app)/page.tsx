@@ -7,8 +7,8 @@ import { DiscoverRail } from "@/components/rail/DiscoverRail";
 import { getMarketTiles, getTopics, getTrendingCompanies } from "@/lib/api";
 import { curatedTopicLabel, curatedTopics } from "@/lib/curatedTopics";
 import { discoverReader, loadDiscoverPage, savedArticleIds } from "@/lib/discover";
-import { parseView } from "@/lib/discoverView";
-import { getLocale, isLocaleCode, t } from "@/lib/i18n";
+import { parseView, viewTitle, type DiscoverView } from "@/lib/discoverView";
+import { getLocale, isLocaleCode, t, type LocaleCode } from "@/lib/i18n";
 import { INTERESTS_DISMISSED_COOKIE } from "@/lib/interests";
 import {
   RAIL_COOKIE,
@@ -18,7 +18,31 @@ import {
   parseWeatherPlace,
 } from "@/lib/railPrefs";
 
-export const metadata: Metadata = { description: null };
+/** A topic's label: the curated one where there is one, the API's otherwise. */
+async function topicLabelFor(view: DiscoverView, locale: LocaleCode): Promise<string | undefined> {
+  if (view.kind !== "topic") return undefined;
+  const topic = (await getTopics(locale)).data.find((item) => item.id === view.topicId);
+  return curatedTopicLabel(view.topicId, topic?.label ?? "", locale) || undefined;
+}
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ view?: string; topic?: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const code = isLocaleCode(locale) ? locale : "en";
+  const view = parseView(await searchParams);
+  // `absolute`: the helper already carries the site name, and For You is
+  // the plain name rather than "JustNews · JustNews".
+  return {
+    title: { absolute: viewTitle(code, view, await topicLabelFor(view, code)) },
+    // Written in the body below, so it flushes with the shell.
+    description: null,
+  };
+}
 
 /** The Topics menu offers the top level of the taxonomy (and AI, the one
  * curated subtopic) - a browsable handful, not the whole IPTC tree. */
@@ -64,9 +88,16 @@ export default async function DiscoverRoute({
           label: curatedTopicLabel(topic.id, topic.label, active.code),
         }))
       : curatedTopics(active.code);
-  const topics: DiscoverTopic[] = source
+  const menuTopics: DiscoverTopic[] = source
     .filter((topic) => MENU_TOPIC.test(topic.id))
     .sort((a, b) => a.label.localeCompare(b.label, active.code));
+  // A deeper topic reached from a link ("Filed under", search) is shown in
+  // the menu while it is the view, so the menu names where the reader is.
+  const deeper =
+    view.kind === "topic" && !menuTopics.some((topic) => topic.id === view.topicId)
+      ? source.find((topic) => topic.id === view.topicId)
+      : undefined;
+  const topics = deeper ? [...menuTopics, deeper] : menuTopics;
 
   return (
     <div className="discover-page">
@@ -89,6 +120,7 @@ export default async function DiscoverRoute({
           topics={topics}
           signedIn={Boolean(reader.auth)}
           canPersonalise={Boolean(reader.auth) && reader.hasBetaAccess}
+          hasInterests={reader.interests.length > 0}
           initialSaved={saved}
         />
       </div>
@@ -105,7 +137,7 @@ export default async function DiscoverRoute({
         askInterests={
           reader.interests.length === 0 && !cookieStore.get(INTERESTS_DISMISSED_COOKIE)
         }
-        interestTopics={topics}
+        interestTopics={menuTopics}
       />
     </div>
   );
