@@ -3,7 +3,9 @@ import { type CookieOptions, createServerClient } from "@supabase/ssr";
 
 import { BROWSING_SESSION_COOKIE } from "@/lib/browsingSession";
 import { CONSENT_COOKIE } from "@/lib/consent";
+import { defaultLocale, isLocaleCode, t } from "@/lib/i18n";
 import { RENAMED_ROUTES } from "@/lib/navigation";
+import { isRateLimited } from "@/lib/rateLimit";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
@@ -74,6 +76,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // Before any work, and before the API sees the request: see lib/rateLimit.
+  if (await isRateLimited(request.headers)) {
+    const segment = request.nextUrl.pathname.split("/")[1] ?? "";
+    const locale = isLocaleCode(segment) ? segment : defaultLocale;
+    return new NextResponse(t(locale, "error.rateLimited"), {
+      status: 429,
+      headers: { "retry-after": "60", "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+
   const consent = request.cookies.get(CONSENT_COOKIE)?.value;
   const consentGranted = consent === "granted";
   const consentDenied = consent === "denied";
@@ -137,9 +149,12 @@ export async function middleware(request: NextRequest) {
   }
 
   if (sessionId) {
+    // Read only on the server, so scripts have no business seeing it.
     response.cookies.set(BROWSING_SESSION_COOKIE, sessionId, {
       maxAge: 60 * 60 * 24 * 30,
       sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
     });
   } else if (sessionId === null) {
     response.cookies.delete(BROWSING_SESSION_COOKIE);

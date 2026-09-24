@@ -42,6 +42,7 @@ export async function writeConsent(state: ConsentState): Promise<void> {
     maxAge: 60 * 60 * 24 * 180,
     sameSite: "lax",
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     path: "/",
   });
   if (state === "granted") {
@@ -49,6 +50,8 @@ export async function writeConsent(state: ConsentState): Promise<void> {
     store.set(BROWSING_SESSION_COOKIE, existing ?? crypto.randomUUID(), {
       maxAge: 60 * 60 * 24 * 30,
       sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       path: "/",
     });
   } else {
