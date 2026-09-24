@@ -24,7 +24,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.logging import get_logger
-from justnews_core.models import Article, CompanyMention, MarketSnapshot
+from justnews_core.models import Article, ArticleTopic, CompanyMention, MarketSnapshot, Topic
 from justnews_core.settings import Settings
 
 log = get_logger(__name__)
@@ -68,30 +68,37 @@ class Company:
     #: Names a headline uses for it. Matched as whole words, case-sensitive,
     #: so "Apple" the company is not "apple" the fruit in a recipe headline.
     aliases: tuple[str, ...]
+    #: Names that are also ordinary words or other things - "Shell", "BP"
+    #: (blood pressure), "Amazon" (the river), "Intel" (intelligence). These
+    #: count only in an article filed under business (BUSINESS_TOPIC), where
+    #: the company is the likely reading. Case alone cannot settle them: a
+    #: headline capitalises its first word, and some capitalise every word.
+    ambiguous: tuple[str, ...] = ()
 
 
 #: Curated by hand: big, frequently reported companies with their primary
 #: listing. Quotes exist only for US listings on Finnhub's free tier; the
 #: rest are still counted, and shown with their mentions and no price.
 COMPANIES: tuple[Company, ...] = (
-    Company("Apple", "AAPL", "NASDAQ", "apple.com", ("Apple",)),
+    Company("Apple", "AAPL", "NASDAQ", "apple.com", ("Apple Inc", "iPhone"), ("Apple",)),
     Company("Microsoft", "MSFT", "NASDAQ", "microsoft.com", ("Microsoft",)),
     Company("Alphabet", "GOOGL", "NASDAQ", "abc.xyz", ("Google", "Alphabet", "YouTube")),
-    Company("Amazon", "AMZN", "NASDAQ", "amazon.com", ("Amazon",)),
+    Company("Amazon", "AMZN", "NASDAQ", "amazon.com", ("Amazon.com", "AWS"), ("Amazon",)),
     Company(
         "Meta Platforms",
         "META",
         "NASDAQ",
         "meta.com",
-        ("Meta", "Facebook", "Instagram", "WhatsApp"),
+        ("Facebook", "Instagram", "WhatsApp"),
+        ("Meta",),
     ),
     Company("NVIDIA", "NVDA", "NASDAQ", "nvidia.com", ("Nvidia", "NVIDIA")),
     Company("Tesla", "TSLA", "NASDAQ", "tesla.com", ("Tesla",)),
     Company("Netflix", "NFLX", "NASDAQ", "netflix.com", ("Netflix",)),
-    Company("Intel", "INTC", "NASDAQ", "intel.com", ("Intel",)),
+    Company("Intel", "INTC", "NASDAQ", "intel.com", (), ("Intel",)),
     Company("AMD", "AMD", "NASDAQ", "amd.com", ("AMD",)),
     Company("Broadcom", "AVGO", "NASDAQ", "broadcom.com", ("Broadcom",)),
-    Company("Oracle", "ORCL", "NYSE", "oracle.com", ("Oracle",)),
+    Company("Oracle", "ORCL", "NYSE", "oracle.com", (), ("Oracle",)),
     Company("Salesforce", "CRM", "NYSE", "salesforce.com", ("Salesforce",)),
     Company("IBM", "IBM", "NYSE", "ibm.com", ("IBM",)),
     Company("Boeing", "BA", "NYSE", "boeing.com", ("Boeing",)),
@@ -121,16 +128,27 @@ COMPANIES: tuple[Company, ...] = (
     Company("Wipro", "WIT", "NYSE", "wipro.com", ("Wipro",)),
     Company("HDFC Bank", "HDB", "NYSE", "hdfcbank.com", ("HDFC",)),
     Company("ICICI Bank", "IBN", "NYSE", "icicibank.com", ("ICICI",)),
-    Company("Reliance Industries", "RELIANCE", "NSE", "ril.com", ("Reliance", "Jio")),
-    Company("Tata Group", "TCS", "NSE", "tata.com", ("Tata",)),
-    Company("Adani Group", "ADANIENT", "NSE", "adani.com", ("Adani",)),
-    Company("Shell", "SHEL", "NYSE", "shell.com", ("Shell",)),
-    Company("BP", "BP", "NYSE", "bp.com", ("BP",)),
+    Company(
+        "Reliance Industries",
+        "RELIANCE",
+        "NSE",
+        "ril.com",
+        ("Reliance Industries", "Reliance Jio", "Jio"),
+        ("Reliance",),
+    ),
+    # The listed company, not the group: a Tata Steel or Tata Motors story is
+    # not news about TCS, and a "Tata Group" row carried TCS's ticker.
+    Company("Tata Consultancy Services", "TCS", "NSE", "tcs.com", ("TCS", "Tata Consultancy"), ()),
+    Company(
+        "Adani Enterprises", "ADANIENT", "NSE", "adani.com", ("Adani Enterprises",), ("Adani",)
+    ),
+    Company("Shell", "SHEL", "NYSE", "shell.com", (), ("Shell",)),
+    Company("BP", "BP", "NYSE", "bp.com", (), ("BP",)),
     Company("HSBC", "HSBC", "NYSE", "hsbc.com", ("HSBC",)),
     Company("Nike", "NKE", "NYSE", "nike.com", ("Nike",)),
     Company("McDonald's", "MCD", "NYSE", "mcdonalds.com", ("McDonald's",)),
     Company("Starbucks", "SBUX", "NASDAQ", "starbucks.com", ("Starbucks",)),
-    Company("Visa", "V", "NYSE", "visa.com", ("Visa Inc",)),
+    Company("Visa", "V", "NYSE", "visa.com", ("Visa Inc",), ("Visa",)),
 )
 
 QUOTED_EXCHANGES = frozenset({"NASDAQ", "NYSE"})
@@ -251,26 +269,36 @@ def _snapshot(
     )
 
 
-def _patterns() -> list[tuple[Company, re.Pattern[str]]]:
+#: IPTC "economy, business and finance": an article under it, or under any
+#: of its descendants, is a business story for ``Company.ambiguous``.
+BUSINESS_TOPIC = "medtop:04000000"
+
+
+def _pattern(names: tuple[str, ...]) -> re.Pattern[str] | None:
+    if not names:
+        return None
+    return re.compile(r"(?<![\w])(" + "|".join(re.escape(n) for n in names) + r")(?![\w])")
+
+
+def _patterns() -> list[tuple[Company, re.Pattern[str] | None, re.Pattern[str] | None]]:
     return [
-        (
-            company,
-            re.compile(
-                r"(?<![\w])(" + "|".join(re.escape(a) for a in company.aliases) + r")(?![\w])"
-            ),
-        )
-        for company in COMPANIES
+        (company, _pattern(company.aliases), _pattern(company.ambiguous)) for company in COMPANIES
     ]
 
 
-def count_mentions(texts: list[str]) -> Counter[Company]:
+def count_mentions(texts: list[tuple[str, bool]]) -> Counter[Company]:
     """How many of these articles name each company - one per article, however
-    many times it repeats the name, so a single long piece is not a trend."""
+    many times it repeats the name, so a single long piece is not a trend.
+
+    Each text comes with whether its article is a business story, which is
+    what lets an ambiguous name count."""
     counts: Counter[Company] = Counter()
     patterns = _patterns()
-    for text in texts:
-        for company, pattern in patterns:
-            if pattern.search(text):
+    for text, business in texts:
+        for company, plain, ambiguous in patterns:
+            if (plain and plain.search(text)) or (
+                business and ambiguous and ambiguous.search(text)
+            ):
                 counts[company] += 1
     return counts
 
@@ -280,12 +308,20 @@ async def refresh_companies(
 ) -> int:
     """Replace Trending Companies with the most-named companies of the last
     day's live articles. Returns how many were written."""
+    business = (
+        select(ArticleTopic.article_id)
+        .join(Topic, Topic.id == ArticleTopic.topic_id)
+        .where(ArticleTopic.article_id == Article.id, Topic.path.contains([BUSINESS_TOPIC]))
+        .exists()
+    )
     result = await session.execute(
-        select(Article.title, Article.snippet).where(
+        select(Article.title, Article.snippet, business).where(
             Article.fetched_at >= now - MENTION_WINDOW, Article.removed_at.is_(None)
         )
     )
-    texts = [f"{title} {snippet or ''}" for title, snippet in result.all()]
+    texts = [
+        (f"{title} {snippet or ''}", is_business) for title, snippet, is_business in result.all()
+    ]
     ranked = [
         (company, count)
         for company, count in count_mentions(texts).most_common()
