@@ -36,6 +36,27 @@ const MAX_SCALE = 1.35;
 const FIT_QUERY = "(min-width: 64rem)";
 /** Room kept clear around the sheet for its stacked edge and shadow. */
 const FIT_MARGIN_PX = 20;
+/**
+ * The same measurement as the layout effect below, run inline as soon as the
+ * stage has been parsed. Set the design width first, then read the height
+ * the page has at that width, then scale - the order the effect reaches in
+ * two passes.
+ */
+const FIT_SCRIPT = `(function(){
+var stage=document.currentScript&&document.currentScript.parentElement;
+if(!stage||!window.matchMedia("${FIT_QUERY}").matches)return;
+var viewport=stage.querySelector(".aquila__viewport"),box=stage.querySelector(".aquila__fit-box"),book=stage.querySelector(".aquila__book");
+if(!viewport||!box||!book)return;
+box.style.setProperty("--fit-width","${DESIGN_WIDTH_PX}px");
+box.style.setProperty("--fit-scale","1");
+box.style.setProperty("--fit-height",book.offsetHeight+"px");
+box.setAttribute("data-fit","");
+var height=book.offsetHeight;
+var scale=Math.min((viewport.clientWidth-${FIT_MARGIN_PX * 2})/${DESIGN_WIDTH_PX},(viewport.clientHeight-${FIT_MARGIN_PX * 2})/height,${MAX_SCALE});
+box.style.setProperty("--fit-scale",String(scale));
+box.style.setProperty("--fit-height",height+"px");
+})()`;
+
 /** Matches `--dur-turn` in globals.css; the fallback that ends a turn if the
  * animation never reports back (a hidden tab does not run it). */
 const TURN_MS = 900;
@@ -305,7 +326,15 @@ export function IssueReader({
     <div className="aquila">
       <div className="aquila__stage">
         <div className="aquila__viewport" ref={viewportRef}>
-          <div className="aquila__fit-box" data-fit={fit ? "" : undefined} style={fitStyle}>
+          {/* suppressHydrationWarning: FIT_SCRIPT below sets this box's
+              attributes before React arrives, and the first measurement
+              then sets the same values through state. */}
+          <div
+            className="aquila__fit-box"
+            data-fit={fit ? "" : undefined}
+            style={fitStyle}
+            suppressHydrationWarning
+          >
             <div className="aquila__fit">
               <div
                 ref={bookRef}
@@ -422,6 +451,9 @@ export function IssueReader({
             </button>
           )}
         </nav>
+        {/* The first fit, before hydration: without it the page paints at
+            its natural size and jumps once the layout effect scales it. */}
+        <script dangerouslySetInnerHTML={{ __html: FIT_SCRIPT }} />
       </div>
 
       <ReaderUtility

@@ -1,6 +1,7 @@
 import {
   AquilaIcon,
   DiscoverIcon,
+  FollowingIcon,
   HistoryIcon,
   SavedIcon,
   SearchIcon,
@@ -16,6 +17,7 @@ export const NAV_ICONS: Record<NavItem["id"], (props: { className?: string }) =>
     aquila: AquilaIcon,
     search: SearchIcon,
     saved: SavedIcon,
+    following: FollowingIcon,
     history: HistoryIcon,
     settings: SettingsIcon,
   };
