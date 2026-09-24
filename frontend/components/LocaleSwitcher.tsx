@@ -24,9 +24,7 @@ export function LocaleSwitcher({
   pathname: string;
   search: string;
 }) {
-  const rest = pathname.startsWith(`/${active.code}`)
-    ? pathname.slice(active.code.length + 1)
-    : "";
+  const rest = pathname.startsWith(`/${active.code}`) ? pathname.slice(active.code.length + 1) : "";
 
   return (
     <nav aria-label={t(active.code, "nav.language")}>

@@ -23,11 +23,7 @@ export async function generateMetadata({
  * opened it. This lived on My Desk until Discover replaced it; following a
  * story is only worth anything if the reader can find it again.
  */
-export default async function FollowingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function FollowingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);

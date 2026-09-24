@@ -14,9 +14,8 @@ export default async function AdminFlagsPage() {
     <>
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>Feature flags</h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        A toggle that takes effect without a deploy. A flag with no row anywhere reads as
-        enabled, so creating one here never turns something off by omission - it only ever
-        adds a switch.
+        A toggle that takes effect without a deploy. A flag with no row anywhere reads as enabled,
+        so creating one here never turns something off by omission - it only ever adds a switch.
       </p>
 
       <div className="admin-table-wrap">
@@ -57,11 +56,17 @@ export default async function AdminFlagsPage() {
 
       <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem" }}>New flag</h2>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Created off by default - turn it on from the table above once the code that checks it
-        is deployed.
+        Created off by default - turn it on from the table above once the code that checks it is
+        deployed.
       </p>
       <form action={createFeatureFlagAction} className="inline-form">
-        <input type="text" name="key" placeholder="lowercase_key" required pattern="[a-z][a-z0-9_]{2,59}" />
+        <input
+          type="text"
+          name="key"
+          placeholder="lowercase_key"
+          required
+          pattern="[a-z][a-z0-9_]{2,59}"
+        />
         <input
           type="text"
           name="description"

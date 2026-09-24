@@ -7,14 +7,7 @@ import { FeedList } from "@/components/FeedList";
 import { FeedSkeleton } from "@/components/FeedSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { SearchControls } from "@/components/SearchControls";
-import {
-  getAllSources,
-  getMe,
-  getSaves,
-  getTopics,
-  searchArticles,
-  type Article,
-} from "@/lib/api";
+import { getAllSources, getMe, getSaves, getTopics, searchArticles, type Article } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { viewHref } from "@/lib/discoverView";
@@ -31,9 +24,7 @@ export async function generateMetadata({
   const [{ locale }, { q }] = await Promise.all([params, searchParams]);
   const code = isLocaleCode(locale) ? locale : "en";
   return {
-    title: q
-      ? t(code, "search.titleWithQuery", { query: q })
-      : t(code, "search.heading"),
+    title: q ? t(code, "search.titleWithQuery", { query: q }) : t(code, "search.heading"),
   };
 }
 
@@ -83,9 +74,7 @@ export default async function SearchPage({
       <Suspense
         key={`${query}:${topic ?? ""}:${language}:${source ?? ""}:${dateWindow}:${cursor ?? "start"}`}
         fallback={
-          query.length >= 2 ? (
-            <FeedSkeleton layout="list" secondaries={0} rows={5} />
-          ) : null
+          query.length >= 2 ? <FeedSkeleton layout="list" secondaries={0} rows={5} /> : null
         }
       >
         <SearchBody
@@ -133,8 +122,7 @@ async function SearchBody({
   // An explicit language filter narrows the reader's own set rather than
   // widening it - picking one is asking for a subset of what they read, and
   // must never reach for a language they did not choose.
-  const languages =
-    language || readerLanguages(profile?.preferred_languages, locale);
+  const languages = language || readerLanguages(profile?.preferred_languages, locale);
 
   const [results, savedIds] = await Promise.all([
     query.length >= 2
@@ -158,9 +146,7 @@ async function SearchBody({
           degraded: false,
         }),
     auth
-      ? getSaves(auth).then(
-          (page) => new Set(page.data.items.map((item) => item.article.id)),
-        )
+      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
       : Promise.resolve(new Set<number>()),
   ]);
 
@@ -196,7 +182,10 @@ async function SearchBody({
               <ul className="search-group__list">
                 {matchedTopics.map((match) => (
                   <li key={match.id}>
-                    <a className="topic-chip" href={viewHref(locale, { kind: "topic", topicId: match.id })}>
+                    <a
+                      className="topic-chip"
+                      href={viewHref(locale, { kind: "topic", topicId: match.id })}
+                    >
                       {curatedTopicLabel(match.id, match.label, locale)}
                     </a>
                   </li>
@@ -224,19 +213,16 @@ async function SearchBody({
         </section>
       )}
 
-      {query.length >= 2 &&
-        results.data.items.length === 0 &&
-        !hasGroups &&
-        !results.degraded && (
-          <EmptyState
-            title={t(locale, "search.empty.title", { query })}
-            body={t(locale, "search.empty.body")}
-            action={{
-              href: `/${locale}/desk`,
-              label: t(locale, "common.browseTopics"),
-            }}
-          />
-        )}
+      {query.length >= 2 && results.data.items.length === 0 && !hasGroups && !results.degraded && (
+        <EmptyState
+          title={t(locale, "search.empty.title", { query })}
+          body={t(locale, "search.empty.body")}
+          action={{
+            href: `/${locale}/desk`,
+            label: t(locale, "common.browseTopics"),
+          }}
+        />
+      )}
 
       {results.data.items.length > 0 && (
         <section className="search-results">

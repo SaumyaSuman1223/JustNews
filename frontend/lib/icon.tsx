@@ -15,39 +15,37 @@ import { ImageResponse } from "next/og";
 export function monogramIcon(size: number, { maskable = false }: { maskable?: boolean } = {}) {
   const scale = maskable ? 0.42 : 0.56;
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f7f8f7",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f7f8f7",
+          fontFamily: "serif",
+          fontWeight: 700,
+          fontSize: size * scale,
+          lineHeight: 1,
+          letterSpacing: "-0.02em",
+          // The fallback serif's reserved descender space outweighs "J"'s
+          // actual descender, so flex-centering the line box (not the
+          // glyph ink) sits visibly low. Nudged up empirically, measured
+          // against the rendered pixel bounding box rather than guessed.
+          // Only this inner wrapper moves - the outer div keeps the
+          // background pinned to the full canvas.
+          transform: "translateY(-13%)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            fontFamily: "serif",
-            fontWeight: 700,
-            fontSize: size * scale,
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            // The fallback serif's reserved descender space outweighs "J"'s
-            // actual descender, so flex-centering the line box (not the
-            // glyph ink) sits visibly low. Nudged up empirically, measured
-            // against the rendered pixel bounding box rather than guessed.
-            // Only this inner wrapper moves - the outer div keeps the
-            // background pinned to the full canvas.
-            transform: "translateY(-13%)",
-          }}
-        >
-          <span style={{ color: "#121614" }}>J</span>
-          <span style={{ color: "#0f6b53" }}>N</span>
-        </div>
+        <span style={{ color: "#121614" }}>J</span>
+        <span style={{ color: "#0f6b53" }}>N</span>
       </div>
-    ),
+    </div>,
     { width: size, height: size },
   );
 }

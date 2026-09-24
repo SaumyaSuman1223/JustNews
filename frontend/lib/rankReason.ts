@@ -14,9 +14,7 @@ import { t, type LocaleCode } from "@/lib/i18n";
  * problem this type does not attempt to solve.
  */
 export type RankReason =
-  | { kind: "followed_topic"; topic: string }
-  | { kind: "trending" }
-  | { kind: "exploration" };
+  { kind: "followed_topic"; topic: string } | { kind: "trending" } | { kind: "exploration" };
 
 export function formatRankReason(locale: LocaleCode, reason: RankReason): string {
   switch (reason.kind) {

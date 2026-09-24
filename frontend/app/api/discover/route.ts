@@ -24,6 +24,11 @@ export async function GET(request: Request): Promise<Response> {
     topic: url.searchParams.get("topic"),
   });
   const reader = await discoverReader(locale);
-  const page = await loadDiscoverPage(reader, view, locale, url.searchParams.get("cursor") ?? undefined);
+  const page = await loadDiscoverPage(
+    reader,
+    view,
+    locale,
+    url.searchParams.get("cursor") ?? undefined,
+  );
   return NextResponse.json(page, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -7,13 +7,7 @@ import { ArticleCard } from "@/components/ArticleCard";
 import { CoverageChips } from "@/components/CoverageChips";
 import { FollowStoryButton } from "@/components/FollowStoryButton";
 import { Perspectives } from "@/components/Perspectives";
-import {
-  getSaves,
-  getStory,
-  getStoryFollowState,
-  getTopicStories,
-  markStorySeen,
-} from "@/lib/api";
+import { getSaves, getStory, getStoryFollowState, getTopicStories, markStorySeen } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";

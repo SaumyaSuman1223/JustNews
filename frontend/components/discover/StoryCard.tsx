@@ -4,13 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import {
-  ClockIcon,
-  ExternalIcon,
-  HeartIcon,
-  MoreIcon,
-  ShareIcon,
-} from "@/components/icons";
+import { ClockIcon, ExternalIcon, HeartIcon, MoreIcon, ShareIcon } from "@/components/icons";
 import type { Article } from "@/lib/api";
 import type { DiscoverItem } from "@/lib/discoverView";
 import { formatRelativeTime, t, tPlural, type LocaleCode } from "@/lib/i18n";

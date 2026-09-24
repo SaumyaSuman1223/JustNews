@@ -156,7 +156,10 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       <article className="article-header">
         <p className="card__meta">

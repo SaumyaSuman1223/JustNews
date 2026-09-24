@@ -62,14 +62,7 @@ const ROLE_LABEL_KEY = {
  * guards below, the same pattern `cluster`'s own coverage line already uses.
  */
 export type CardVariant =
-  | "lead"
-  | "feature"
-  | "secondary"
-  | "list"
-  | "compact"
-  | "cluster"
-  | "timeline"
-  | "perspective";
+  "lead" | "feature" | "secondary" | "list" | "compact" | "cluster" | "timeline" | "perspective";
 
 /** Image geometry per variant. Fixed, so nothing shifts while a photo loads. */
 const MEDIA: Record<CardVariant, { width: number; height: number } | null> = {

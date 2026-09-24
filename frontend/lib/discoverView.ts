@@ -13,9 +13,7 @@ import type { RankReason } from "@/lib/rankReason";
  * - A topic: `/{locale}?topic=medtop:...`.
  */
 export type DiscoverView =
-  | { kind: "for-you" }
-  | { kind: "top" }
-  | { kind: "topic"; topicId: string };
+  { kind: "for-you" } | { kind: "top" } | { kind: "topic"; topicId: string };
 
 export interface DiscoverItem {
   article: Article;
@@ -34,10 +32,7 @@ export interface DiscoverPage {
 /** Topic ids are IPTC concept ids; anything else is not a topic. */
 const TOPIC_ID = /^medtop:\d{8}$/;
 
-export function parseView(params: {
-  view?: string | null;
-  topic?: string | null;
-}): DiscoverView {
+export function parseView(params: { view?: string | null; topic?: string | null }): DiscoverView {
   if (params.topic && TOPIC_ID.test(params.topic)) {
     return { kind: "topic", topicId: params.topic };
   }

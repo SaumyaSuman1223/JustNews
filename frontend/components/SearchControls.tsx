@@ -35,9 +35,7 @@ const listeners = new Set<() => void>();
 function readRecent(): string[] {
   try {
     const stored = window.localStorage.getItem(RECENT_KEY);
-    return stored
-      ? (JSON.parse(stored) as string[]).slice(0, RECENT_LIMIT)
-      : EMPTY;
+    return stored ? (JSON.parse(stored) as string[]).slice(0, RECENT_LIMIT) : EMPTY;
   } catch {
     // A private window, or storage the browser refuses. Recent searches are a
     // convenience; losing them is not worth an error path.
@@ -116,11 +114,7 @@ export function SearchControls({
   // What is in the box right now, for the type-ahead. The input itself stays
   // uncontrolled (defaultValue) so the form still submits without JS.
   const [draft, setDraft] = useState(query);
-  const recent = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
+  const recent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   // Records the query that actually ran, not what was typed - so a search
   // abandoned mid-word never lands in the list. Writing to storage is a real
@@ -129,12 +123,7 @@ export function SearchControls({
     if (query.length < 2) return;
     const current = readRecent();
     if (current[0] === query) return;
-    writeRecent(
-      [query, ...current.filter((item) => item !== query)].slice(
-        0,
-        RECENT_LIMIT,
-      ),
-    );
+    writeRecent([query, ...current.filter((item) => item !== query)].slice(0, RECENT_LIMIT));
   }, [query]);
 
   // Fifth pass F5: topics and publishers whose name matches what is being
@@ -169,12 +158,7 @@ export function SearchControls({
 
   return (
     <div className="search-controls">
-      <form
-        ref={form}
-        className="search-form"
-        action={`/${locale}/search`}
-        method="get"
-      >
+      <form ref={form} className="search-form" action={`/${locale}/search`} method="get">
         <label className="visually-hidden" htmlFor="search-q">
           {t(locale, "search.heading")}
         </label>
@@ -245,11 +229,7 @@ export function SearchControls({
 
           <label className="search-filter">
             <span>{t(locale, "search.filter.date")}</span>
-            <select
-              name="date"
-              defaultValue={date}
-              onChange={() => form.current?.requestSubmit()}
-            >
+            <select name="date" defaultValue={date} onChange={() => form.current?.requestSubmit()}>
               <option value="">{t(locale, "search.filter.anyDate")}</option>
               <option value="day">{t(locale, "search.filter.date.day")}</option>
               <option value="week">{t(locale, "search.filter.date.week")}</option>
@@ -285,31 +265,21 @@ export function SearchControls({
 
       {recent.length > 0 && (
         <div className="search-recent">
-          <h2 className="search-recent__heading">
-            {t(locale, "search.recent")}
-          </h2>
+          <h2 className="search-recent__heading">{t(locale, "search.recent")}</h2>
           <ul>
             {recent.map((item) => (
               <li key={item}>
                 <button
                   type="button"
                   className="chip"
-                  onClick={() =>
-                    router.push(
-                      `/${locale}/search?q=${encodeURIComponent(item)}`,
-                    )
-                  }
+                  onClick={() => router.push(`/${locale}/search?q=${encodeURIComponent(item)}`)}
                 >
                   {item}
                 </button>
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            className="search-recent__clear"
-            onClick={clearRecent}
-          >
+          <button type="button" className="search-recent__clear" onClick={clearRecent}>
             {t(locale, "search.recent.clear")}
           </button>
         </div>

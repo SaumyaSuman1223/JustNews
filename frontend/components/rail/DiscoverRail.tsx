@@ -31,27 +31,26 @@ export interface RailData {
  * id in lib/railPrefs.ts): the rail, the customize panel and the reader's
  * saved order all read this.
  */
-const WIDGETS: Record<WidgetId, { titleKey: MessageKey; render: (data: RailData) => ReactNode }> =
-  {
-    weather: {
-      titleKey: "weather.title",
-      render: (data) => (
-        <WeatherWidget
-          locale={data.locale}
-          initialPlace={data.weatherPlace}
-          initialUnit={data.tempUnit}
-        />
-      ),
-    },
-    markets: {
-      titleKey: "markets.title",
-      render: (data) => <MarketsWidget locale={data.locale} tiles={data.markets} />,
-    },
-    companies: {
-      titleKey: "companies.title",
-      render: (data) => <CompaniesWidget locale={data.locale} companies={data.companies} />,
-    },
-  };
+const WIDGETS: Record<WidgetId, { titleKey: MessageKey; render: (data: RailData) => ReactNode }> = {
+  weather: {
+    titleKey: "weather.title",
+    render: (data) => (
+      <WeatherWidget
+        locale={data.locale}
+        initialPlace={data.weatherPlace}
+        initialUnit={data.tempUnit}
+      />
+    ),
+  },
+  markets: {
+    titleKey: "markets.title",
+    render: (data) => <MarketsWidget locale={data.locale} tiles={data.markets} />,
+  },
+  companies: {
+    titleKey: "companies.title",
+    render: (data) => <CompaniesWidget locale={data.locale} companies={data.companies} />,
+  },
+};
 
 /**
  * Discover's right rail: "Make it yours" for a reader who has not chosen

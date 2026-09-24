@@ -134,9 +134,7 @@ export default async function DiscoverRoute({
         }}
         initialPrefs={parseRailPrefs(cookieStore.get(RAIL_COOKIE)?.value)}
         // Asked until the reader answers - by choosing, or by closing it.
-        askInterests={
-          reader.interests.length === 0 && !cookieStore.get(INTERESTS_DISMISSED_COOKIE)
-        }
+        askInterests={reader.interests.length === 0 && !cookieStore.get(INTERESTS_DISMISSED_COOKIE)}
         interestTopics={menuTopics}
       />
     </div>

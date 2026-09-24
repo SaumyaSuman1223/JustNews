@@ -12,10 +12,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale: locale.code }));
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ locale: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
 

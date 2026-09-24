@@ -12,7 +12,15 @@ export const metadata = { title: "Analytics · Admin" };
 /** A proportional bar row for one DAU/WAU bucket, the same technique the
  * reader-facing reading-mix breakdown already uses (settings/page.tsx) -
  * plain divs, no chart library. */
-function ActiveUsersRow({ bucket, max, label }: { bucket: ActiveUsersBucket; max: number; label: string }) {
+function ActiveUsersRow({
+  bucket,
+  max,
+  label,
+}: {
+  bucket: ActiveUsersBucket;
+  max: number;
+  label: string;
+}) {
   const pct = max > 0 ? Math.round((bucket.active_users / max) * 100) : 0;
   return (
     <li className="reading-mix__row">
@@ -25,13 +33,19 @@ function ActiveUsersRow({ bucket, max, label }: { bucket: ActiveUsersBucket; max
   );
 }
 
-function ActiveUsersChart({ buckets, dateStyle }: { buckets: ActiveUsersBucket[]; dateStyle: "day" | "week" }) {
+function ActiveUsersChart({
+  buckets,
+  dateStyle,
+}: {
+  buckets: ActiveUsersBucket[];
+  dateStyle: "day" | "week";
+}) {
   const max = Math.max(0, ...buckets.map((b) => b.active_users));
   return (
     <>
       <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-        {buckets.length} {dateStyle} bucket{buckets.length === 1 ? "" : "s"} shown - at beta scale
-        a handful of users can swing this chart, so read it as a trend, not a precise count.
+        {buckets.length} {dateStyle} bucket{buckets.length === 1 ? "" : "s"} shown - at beta scale a
+        handful of users can swing this chart, so read it as a trend, not a precise count.
       </p>
       <ul className="reading-mix">
         {buckets.map((bucket) => (
@@ -39,7 +53,10 @@ function ActiveUsersChart({ buckets, dateStyle }: { buckets: ActiveUsersBucket[]
             key={bucket.bucket}
             bucket={bucket}
             max={max}
-            label={new Date(bucket.bucket).toLocaleDateString("en", { month: "short", day: "numeric" })}
+            label={new Date(bucket.bucket).toLocaleDateString("en", {
+              month: "short",
+              day: "numeric",
+            })}
           />
         ))}
       </ul>
@@ -73,7 +90,8 @@ function RetentionTable({ cohorts }: { cohorts: RetentionCohort[] }) {
                 <td>{cohort.cohort_size}</td>
                 {offsets.map((offset) => {
                   const active = byOffset.get(offset);
-                  const pct = active !== undefined ? Math.round((active / cohort.cohort_size) * 100) : null;
+                  const pct =
+                    active !== undefined ? Math.round((active / cohort.cohort_size) * 100) : null;
                   return <td key={offset}>{pct === null ? "—" : `${pct}%`}</td>;
                 })}
               </tr>
@@ -113,9 +131,9 @@ export default async function AdminAnalyticsPage() {
 
       <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem" }}>Retention</h2>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Cohorts are the week a reader redeemed their invite, not account creation. Every cell is
-        a percentage of that cohort&rsquo;s own size, shown next to it so a small cohort
-        doesn&rsquo;t read as more meaningful than it is.
+        Cohorts are the week a reader redeemed their invite, not account creation. Every cell is a
+        percentage of that cohort&rsquo;s own size, shown next to it so a small cohort doesn&rsquo;t
+        read as more meaningful than it is.
       </p>
       <RetentionTable cohorts={retention} />
 
@@ -123,8 +141,8 @@ export default async function AdminAnalyticsPage() {
         Experiment: heuristic ranker vs chronological
       </h2>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Stage 5&rsquo;s A/B split. Every reader is bucketed once, deterministically, by their own
-        id - this is CTR for each bucket over the same window above.
+        Stage 5&rsquo;s A/B split. Every reader is bucketed once, deterministically, by their own id
+        - this is CTR for each bucket over the same window above.
       </p>
       <div className="admin-table-wrap">
         <table className="admin-table">

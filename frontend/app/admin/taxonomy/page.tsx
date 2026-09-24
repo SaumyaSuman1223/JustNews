@@ -14,8 +14,8 @@ export default async function AdminTaxonomyPage() {
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>Taxonomy</h1>
 
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        The 17 top-level IPTC Media Topics concepts currently loaded. There is no deeper tree yet
-        - every article is classified into one of these, never a subtopic.
+        The 17 top-level IPTC Media Topics concepts currently loaded. There is no deeper tree yet -
+        every article is classified into one of these, never a subtopic.
       </p>
 
       <div className="admin-table-wrap">

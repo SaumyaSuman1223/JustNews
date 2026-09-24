@@ -11,7 +11,8 @@ export interface AuthContext {
   sessionId: string | null;
 }
 
-export type AdminAccessResult = { ok: true; auth: AuthContext } | { ok: false; element: ReactElement };
+export type AdminAccessResult =
+  { ok: true; auth: AuthContext } | { ok: false; element: ReactElement };
 
 export async function requireAdmin(): Promise<AdminAccessResult> {
   const session = await getSession();
@@ -28,7 +29,10 @@ export async function requireAdmin(): Promise<AdminAccessResult> {
   const auth = { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
   const profile = await getMe(auth);
   if (profile?.role !== "admin") {
-    return { ok: false, element: <p className="empty">This account does not have admin access.</p> };
+    return {
+      ok: false,
+      element: <p className="empty">This account does not have admin access.</p>,
+    };
   }
   return { ok: true, auth };
 }

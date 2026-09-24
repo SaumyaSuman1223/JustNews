@@ -124,7 +124,9 @@ export function Understand({
         heading={t(locale, "desk.understand.saying")}
         note={t(
           locale,
-          outlets.length > 0 ? "desk.understand.saying.fallbackNote" : "desk.understand.saying.note",
+          outlets.length > 0
+            ? "desk.understand.saying.fallbackNote"
+            : "desk.understand.saying.note",
         )}
       >
         {outlets.length > 0 ? (

@@ -91,11 +91,7 @@
      a 360px phone. Cormorant runs small for its point size, so these sit a
      step above where the same numbers would land in a system serif. */
   --type-display-xl: clamp(2.2rem, 1.3rem + 4vw, 3.6rem); /* front-page lead */
-  --type-display-l: clamp(
-    1.7rem,
-    1.2rem + 2.2vw,
-    2.4rem
-  ); /* section headline */
+  --type-display-l: clamp(1.7rem, 1.2rem + 2.2vw, 2.4rem); /* section headline */
   --type-display-m: 1.32rem; /* story headline */
   --type-body-l: 1.06rem; /* standfirst, deck */
   --type-body-m: 0.95rem; /* reading text */
@@ -151,12 +147,11 @@
      by next/font; each already carries its own metric-matched local fallback,
      which is what makes the swap shift-free. */
   --font-display:
-    var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia,
-    "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
+    var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia, "Noto Serif Devanagari",
+    "Kohinoor Devanagari", "Times New Roman", serif;
   --font-ui:
-    var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system,
-    "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI",
-    "Devanagari Sangam MN", sans-serif;
+    var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
 }
 
 /* Designed, not inverted. Warm dark: the ground is a shade below Deep
@@ -2436,10 +2431,7 @@ a.chip:active {
    makes it a newspaper is how it turns (the leaf, below), not a coffee ring. */
 .aquila__sheet {
   position: relative;
-  inline-size: min(
-    100%,
-    68.75rem
-  ); /* Scaled to fit from 64rem up - see the
+  inline-size: min(100%, 68.75rem); /* Scaled to fit from 64rem up - see the
      fit block below. */
   /* The paper is light in both themes, so its colours are fixed here rather
      than inherited - but fixed to the *accessible* values, not the direction
@@ -2682,9 +2674,7 @@ a.chip:active {
     border-block-start: 1px solid var(--paper-hair);
   }
 
-  .paper__body:not(.paper__body--front)
-    .paper__column:nth-child(n + 3)
-    .halftone {
+  .paper__body:not(.paper__body--front) .paper__column:nth-child(n + 3) .halftone {
     display: none;
   }
 
@@ -3595,14 +3585,9 @@ span.paper__pageref {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(
-    to left,
-    rgba(20, 16, 10, 0.34),
-    rgba(20, 16, 10, 0.06) 70%
-  );
+  background: linear-gradient(to left, rgba(20, 16, 10, 0.34), rgba(20, 16, 10, 0.06) 70%);
   opacity: 0;
-  animation: aquila-leaf-shade-front var(--dur-turn)
-    cubic-bezier(0.55, 0.05, 0.3, 1) both;
+  animation: aquila-leaf-shade-front var(--dur-turn) cubic-bezier(0.55, 0.05, 0.3, 1) both;
 }
 
 .aquila__leaf-back::after {
@@ -3642,20 +3627,12 @@ span.paper__pageref {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(
-    to right,
-    rgba(20, 16, 10, 0.3),
-    rgba(20, 16, 10, 0) 55%
-  );
+  background: linear-gradient(to right, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
   animation: aquila-under-shade var(--dur-turn) ease-out both;
 }
 
 [dir="rtl"] .aquila__book[data-turning] > .aquila__sheet::after {
-  background: linear-gradient(
-    to left,
-    rgba(20, 16, 10, 0.3),
-    rgba(20, 16, 10, 0) 55%
-  );
+  background: linear-gradient(to left, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
 }
 
 .aquila__book[data-turning="back"] > .aquila__sheet::after {

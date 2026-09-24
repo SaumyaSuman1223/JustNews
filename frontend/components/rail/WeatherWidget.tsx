@@ -25,15 +25,7 @@ interface Place {
 }
 
 type Condition =
-  | "clear"
-  | "partlyCloudy"
-  | "cloudy"
-  | "fog"
-  | "drizzle"
-  | "rain"
-  | "snow"
-  | "showers"
-  | "thunder";
+  "clear" | "partlyCloudy" | "cloudy" | "fog" | "drizzle" | "rain" | "snow" | "showers" | "thunder";
 
 /** WMO weather codes, as Open-Meteo reports them, grouped into what a
  * reader would call the sky. */
@@ -103,8 +95,7 @@ export function WeatherWidget({
     setUnit(next);
   }
 
-  const show = (celsius: number) =>
-    Math.round(unit === "f" ? (celsius * 9) / 5 + 32 : celsius);
+  const show = (celsius: number) => Math.round(unit === "f" ? (celsius * 9) / 5 + 32 : celsius);
   const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" });
   const today = data?.days[0];
 

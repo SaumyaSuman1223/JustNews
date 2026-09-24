@@ -43,9 +43,7 @@ export function ReaderShortcuts({ locale }: { locale: LocaleCode }) {
         return;
       }
       if (event.key === "/") {
-        const search = document.querySelector<HTMLInputElement>(
-          "#search-q, input[type='search']",
-        );
+        const search = document.querySelector<HTMLInputElement>("#search-q, input[type='search']");
         if (search) {
           event.preventDefault();
           search.focus();

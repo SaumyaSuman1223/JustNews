@@ -26,11 +26,7 @@ export async function generateMetadata({
   return { title: t(isLocaleCode(locale) ? locale : "en", "onboarding.heading") };
 }
 
-export default async function OnboardingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function OnboardingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);

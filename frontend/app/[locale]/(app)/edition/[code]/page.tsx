@@ -28,9 +28,7 @@ export async function generateMetadata({
   const { locale, code } = await params;
   const edition = await loadEdition(code);
   return {
-    title: edition
-      ? edition.name
-      : t(isLocaleCode(locale) ? locale : "en", "article.notFound"),
+    title: edition ? edition.name : t(isLocaleCode(locale) ? locale : "en", "article.notFound"),
   };
 }
 
@@ -87,8 +85,7 @@ async function EditionBody({
           {t(locale, "edition.intro", {
             name: edition.name,
             language:
-              locales.find((option) => option.code === edition.language)?.label ??
-              edition.language,
+              locales.find((option) => option.code === edition.language)?.label ?? edition.language,
           })}
         </p>
       </div>

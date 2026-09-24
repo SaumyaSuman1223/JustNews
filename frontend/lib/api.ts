@@ -186,11 +186,7 @@ export function getStory(id: number, language: string): Promise<Degradable<Story
 
 /** My Desk's Topic Overview panel - real counts, no pagination needed. */
 export function getTopicOverview(topicId: string): Promise<Degradable<TopicOverview | null>> {
-  return get<TopicOverview | null>(
-    `/v1/topics/${encodeURIComponent(topicId)}/overview`,
-    null,
-    120,
-  );
+  return get<TopicOverview | null>(`/v1/topics/${encodeURIComponent(topicId)}/overview`, null, 120);
 }
 
 /** My Desk's Timeline and Key Developments tabs both read this same list -
@@ -217,11 +213,7 @@ export function getRelatedTopics(
 /** My Desk's Perspectives tab (ADR 0013) - real groups only, so an empty
  * array here is a real "not enough roled coverage yet", not a loading gap. */
 export function getTopicPerspectives(topicId: string): Promise<Degradable<PerspectiveGroup[]>> {
-  return get<PerspectiveGroup[]>(
-    `/v1/topics/${encodeURIComponent(topicId)}/perspectives`,
-    [],
-    120,
-  );
+  return get<PerspectiveGroup[]>(`/v1/topics/${encodeURIComponent(topicId)}/perspectives`, [], 120);
 }
 
 /**
@@ -648,10 +640,7 @@ export async function deleteMe(auth: AuthContext): Promise<boolean> {
   return !error;
 }
 
-export async function getSaves(
-  auth: AuthContext,
-  cursor?: string,
-): Promise<Degradable<SavePage>> {
+export async function getSaves(auth: AuthContext, cursor?: string): Promise<Degradable<SavePage>> {
   const { data, error } = await authedClient(auth).GET("/v1/saves", {
     params: { query: { cursor } },
     signal: AbortSignal.timeout(TIMEOUT_MS),

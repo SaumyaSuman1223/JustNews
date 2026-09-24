@@ -407,10 +407,7 @@ export function IssueReader({
           </p>
         )}
 
-        <nav
-          className="aquila__controls"
-          aria-label={t(locale, "aquila.pagination")}
-        >
+        <nav className="aquila__controls" aria-label={t(locale, "aquila.pagination")}>
           <button
             type="button"
             className="aquila__arrow"
