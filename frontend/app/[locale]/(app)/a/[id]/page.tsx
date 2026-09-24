@@ -17,6 +17,7 @@ import {
   getStory,
 } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { viewHref } from "@/lib/discoverView";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import {
   formatRelativeTime,
@@ -197,7 +198,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
               <Link
                 key={topic.id}
                 className="topic-chip"
-                href={`/${active.code}/desk/${encodeURIComponent(topic.id)}`}
+                href={viewHref(active.code, { kind: "topic", topicId: topic.id })}
               >
                 {topic.label}
               </Link>
@@ -275,7 +276,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
       {primaryTopic && moreInTopic.length > 0 && (
         <section className="read-next" aria-labelledby="more-in-topic">
           <h2 id="more-in-topic" className="home-tier">
-            <Link href={`/${active.code}/desk/${encodeURIComponent(primaryTopic.id)}`}>
+            <Link href={viewHref(active.code, { kind: "topic", topicId: primaryTopic.id })}>
               {t(active.code, "article.moreIn", { topic: primaryTopic.label })}
             </Link>
           </h2>

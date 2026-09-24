@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { viewHref } from "@/lib/discoverView";
 import { getLocale, isLocaleCode, readerLanguages, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -195,7 +196,7 @@ async function SearchBody({
               <ul className="search-group__list">
                 {matchedTopics.map((match) => (
                   <li key={match.id}>
-                    <a className="topic-chip" href={`/${locale}/desk/${encodeURIComponent(match.id)}`}>
+                    <a className="topic-chip" href={viewHref(locale, { kind: "topic", topicId: match.id })}>
                       {curatedTopicLabel(match.id, match.label, locale)}
                     </a>
                   </li>

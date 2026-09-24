@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 
 import { getArticles } from "@/lib/api";
+import { curatedTopics } from "@/lib/curatedTopics";
+import { viewHref } from "@/lib/discoverView";
 import { locales } from "@/lib/i18n";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -19,11 +21,19 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/${locale.code}`, changeFrequency: "always" as const, priority: 1 },
-    // The three destinations (ADR 0011). Aquila outranks My Desk here because
-    // it is the same publication for every reader in a locale and therefore
-    // the one worth indexing; My Desk is personal and mostly signed-in.
+    // Discover's shared views and Aquila: the same for every reader in a
+    // locale, so worth indexing. For You is the locale root above.
+    {
+      url: `${SITE_URL}${viewHref(locale.code, { kind: "top" })}`,
+      changeFrequency: "always" as const,
+      priority: 0.9,
+    },
     { url: `${SITE_URL}/${locale.code}/aquila`, changeFrequency: "daily" as const, priority: 0.8 },
-    { url: `${SITE_URL}/${locale.code}/desk`, changeFrequency: "daily" as const, priority: 0.5 },
+    ...curatedTopics(locale.code).map((topic) => ({
+      url: `${SITE_URL}${viewHref(locale.code, { kind: "topic", topicId: topic.id })}`,
+      changeFrequency: "hourly" as const,
+      priority: 0.6,
+    })),
   ];
 
   const articleRoutes: MetadataRoute.Sitemap = articles.data.items.map((article) => ({

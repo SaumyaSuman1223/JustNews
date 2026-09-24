@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import type { SourceOption, Topic } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { viewHref } from "@/lib/discoverView";
 import { locales, t, type LocaleCode } from "@/lib/i18n";
 
 /** How many of each kind the type-ahead offers. */
@@ -264,7 +265,7 @@ export function SearchControls({
           <ul>
             {topicSuggestions.map((item) => (
               <li key={item.id}>
-                <Link href={`/${locale}/desk/${encodeURIComponent(item.id)}`}>
+                <Link href={viewHref(locale, { kind: "topic", topicId: item.id })}>
                   {item.label}
                   <span className="search-suggest__kind">{t(locale, "search.suggest.topic")}</span>
                 </Link>
