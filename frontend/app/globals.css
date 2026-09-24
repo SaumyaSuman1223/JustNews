@@ -91,7 +91,11 @@
      a 360px phone. Cormorant runs small for its point size, so these sit a
      step above where the same numbers would land in a system serif. */
   --type-display-xl: clamp(2.2rem, 1.3rem + 4vw, 3.6rem); /* front-page lead */
-  --type-display-l: clamp(1.7rem, 1.2rem + 2.2vw, 2.4rem); /* section headline */
+  --type-display-l: clamp(
+    1.7rem,
+    1.2rem + 2.2vw,
+    2.4rem
+  ); /* section headline */
   --type-display-m: 1.32rem; /* story headline */
   --type-body-l: 1.06rem; /* standfirst, deck */
   --type-body-m: 0.95rem; /* reading text */
@@ -146,10 +150,13 @@
      The `--font-*-latin` and `--font-*-deva` variables are injected on <html>
      by next/font; each already carries its own metric-matched local fallback,
      which is what makes the swap shift-free. */
-  --font-display: var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia,
+  --font-display:
+    var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia,
     "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
-  --font-ui: var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system, "Segoe UI",
-    Roboto, "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
+  --font-ui:
+    var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system,
+    "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI",
+    "Devanagari Sangam MN", sans-serif;
 }
 
 /* Designed, not inverted. Warm dark: the ground is a shade below Deep
@@ -342,17 +349,6 @@ a {
   padding-block-end: var(--space-12);
 }
 
-.masthead {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  align-items: baseline;
-  justify-content: space-between;
-  padding-block: var(--space-6);
-  border-block-end: 1px solid var(--border);
-  margin-block-end: var(--space-6);
-}
-
 .wordmark {
   font-family: var(--font-display);
   font-size: 1.6rem;
@@ -363,17 +359,6 @@ a {
 
 .wordmark:active {
   opacity: 0.6;
-}
-
-.wordmark__accent {
-  color: var(--accent);
-}
-
-/* The monogram the wordmark collapses to in the icon rail. Hidden by default
-   because below the rail breakpoint the masthead is a top bar with room for
-   the name in full. */
-.wordmark__mark {
-  display: none;
 }
 
 .locale-switcher {
@@ -414,33 +399,6 @@ a {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
-}
-
-/* Below 40rem - the same line every other narrow-screen rule in this file
-   uses - the masthead's groups (wordmark, primary nav, search and account)
-   were flex items sharing one row, so each wrapped into fragments inside
-   whatever space the others left rather than using the full viewport width:
-   the wordmark took the first line's start, and Explore/Topics/Saved, the
-   search field and the account control broke wherever they ran out of the
-   leftover room beside it. Stacking the three groups full-width fixes that
-   without touching source order - nothing here is a keyboard-order change,
-   only how much width each group gets to lay out in. */
-@media (max-width: 39.9375rem) {
-  .masthead {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
-    padding-block: var(--space-4);
-  }
-
-  .search-box {
-    align-self: stretch;
-  }
-
-  .search-box input {
-    min-width: 0;
-    flex: 1;
-  }
 }
 
 /* --- feed: the card size set ---------------------------------------------
@@ -518,7 +476,9 @@ a {
 }
 
 .card__title a {
-  transition: color var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  transition:
+    color var(--dur) var(--ease),
+    opacity var(--dur) var(--ease);
 }
 
 .card__title a:hover {
@@ -651,6 +611,12 @@ a.card__source:focus-visible {
 }
 
 /* --- My Desk: followed stories (fifth pass F2) ----------------------------- */
+
+.following__note {
+  margin-block: 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--type-body-s);
+}
 
 .followed-stories {
   list-style: none;
@@ -1150,7 +1116,9 @@ a.card__source:focus-visible {
 
 .card--hidden .card__frame {
   filter: grayscale(0.6);
-  transition: opacity var(--dur) var(--ease), filter var(--dur) var(--ease);
+  transition:
+    opacity var(--dur) var(--ease),
+    filter var(--dur) var(--ease);
 }
 
 .card__action {
@@ -1356,19 +1324,6 @@ a.card__source:focus-visible {
   letter-spacing: -0.01em;
 }
 
-/* The form gets a surface of its own so it reads as one object to complete,
-   rather than controls scattered on the page ground. */
-.form-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-6);
-}
-
-.form-panel .button {
-  inline-size: 100%;
-}
-
 /* --- auth card -------------------------------------------------------------
  *
  * Its own surface, slightly more generous than .form-panel's default padding
@@ -1427,7 +1382,9 @@ a.card__source:focus-visible {
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
-  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+  transition:
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .auth-oauth:hover {
@@ -1482,145 +1439,13 @@ a.card__source:focus-visible {
 
 /* --- header nav / account / search --------------------------------------- */
 
-/* --- navigation: rail and tab bar -------------------------------------------
- *
- * One navigation model (lib/navigation.ts), two shapes. Below 64rem the three
- * destinations live in a fixed bottom tab bar where a thumb reaches them, and
- * the masthead keeps only the wordmark, search, account and language. At
- * 64rem and up - where the card grid gains its fourth column - the rail
- * appears beside the content and the tab bar goes away.
- *
- * Which one is visible is decided here, in CSS, rather than by rendering one
- * or the other on the server: the server has no viewport, and a JS-side
- * media query would leave the wrong navigation in the HTML until hydration.
- */
+/* --- navigation: sidebar and tab bar ------------------------------------ */
 
-.rail-nav {
-  display: none; /* below 64rem the tab bar carries the destinations */
-}
-
-.rail-group {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* A rule between groups, not a heading: the split between the three
-   destinations and the things that support them is real hierarchy, and a
-   hairline says it without adding two words nobody reads twice. */
-.rail-group:not([data-first]) {
-  margin-block-start: var(--space-3);
-  padding-block-start: var(--space-3);
-  border-block-start: 1px solid var(--border);
-  /* The rule spans the icons, not the rail's padding - a hairline running
-     edge to edge in a 56px column reads as a border, not a grouping. */
-  align-self: stretch;
-}
-
-/* A square target, icon centred. 2.75rem inside a 3.5rem rail leaves the icon
-   optically centred without the box touching either edge. */
-.rail-link {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
-  border-radius: var(--radius);
-  color: var(--text-mid);
-  transition:
-    background-color var(--dur-micro) var(--ease),
-    color var(--dur-micro) var(--ease);
-}
-
-.rail-link:hover {
-  background: var(--surface-sub);
-  color: var(--text);
-}
-
-.rail-link__icon {
-  flex: none;
-  font-size: 1.15rem;
-  color: var(--text-muted);
-  transition: color var(--dur-micro) var(--ease);
-}
-
-/* The label: the link's accessible name, drawn as a tooltip.
- *
- * Opacity and `pointer-events`, never `display: none` or `visibility:
- * hidden` - both of those remove the element from the accessibility tree,
- * and then the only name left is the icon, which has none. This is the
- * failure mode §14's "keyboard accessible" line is guarding against.
- *
- * Positioned with logical properties so it flies out to the right of the
- * rail under `dir="ltr"` and to the left under `dir="rtl"`.
- */
-.rail-link__label,
+/* The account's name or "Sign in", beside its icon. */
 .account-menu__email {
   font-size: var(--type-body-s);
   font-weight: 500;
   line-height: var(--leading-snug);
-}
-
-.rail-link__label {
-  position: absolute;
-  inset-inline-start: calc(100% + var(--space-2));
-  inset-block-start: 50%;
-  translate: 0 -50%;
-  z-index: 30;
-  white-space: nowrap;
-  padding: 0.3rem var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-micro) var(--ease);
-}
-
-.rail-link:hover .rail-link__label,
-.rail-link:focus-visible .rail-link__label {
-  opacity: 1;
-}
-
-/* The active destination. Three signals, not one - background, the brass
-   icon, and the brass rule - because the design system forbids state carried
-   by colour alone, and because a reader glancing at the rail should not have
-   to compare two greys to find out where they are. `aria-current` carries
-   the same fact to a screen reader. */
-.rail-link[aria-current="page"] {
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* The brass marker. A pseudo-element rather than an inset box-shadow because
-   `box-shadow` takes physical offsets: `inset 2px 0 0` stays on the left in
-   Arabic, where the rail is on the right and the marker belongs on the other
-   side of the icon. */
-.rail-link[aria-current="page"]::after {
-  content: "";
-  position: absolute;
-  inset-inline-start: 0;
-  inset-block: 0.5rem;
-  inline-size: 2px;
-  border-radius: 2px;
-  background: var(--brass);
-}
-
-.rail-link[aria-current="page"] .rail-link__icon {
-  color: var(--brass);
-}
-
-.masthead-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
 }
 
 /* --- the tab bar (below 64rem) --------------------------------------------- */
@@ -1671,194 +1496,11 @@ a.card__source:focus-visible {
   color: var(--brass);
 }
 
-/* The bar floats over the page, so the page needs to end above it. */
-.shell {
-  padding-block-end: calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
-}
-
-/* 56.25rem (900px), not 64rem: spec §4 draws the line for mobile nav at
-   900px ("below 900px: hide the desktop sidebar"), not at 1024px - a 960px
-   tablet was getting the phone's bottom tab bar instead of the rail this
-   rule was written to give it. */
+/* 56.25rem (900px): the sidebar replaces the tab bar. */
 @media (min-width: 56.25rem) {
-  /* The rail replaces the tab bar. Sticky, not fixed: a fixed rail sits over
-     the page regardless of its own height, which is what clips a tall nav's
-     bottom item on a short viewport. Sticky inside a grid cell that spans
-     every row keeps it reachable through the whole scroll without that.
-     Logical properties throughout, so the whole thing mirrors under
-     dir="rtl" with no directional override. */
-  /* Audit §14: a 3.5rem (56px) icon rail, inside the 52-60px band, against a
-     fluid content area. It was 20rem, and the audit's §29 complaint - that
-     the navigation carries too much and makes the product read as a
-     conventional website - was mostly the width. The shell itself spans the
-     viewport and the *content* carries the max-width, rather than the shell
-     capping both: capping the shell is what leaves a wide screen with a rail
-     floating in the middle of nowhere. */
-  .shell {
-    max-width: none;
-    display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    align-items: start;
-    padding-inline: 0;
-    padding-block-end: var(--space-12);
-  }
-
-  /* Sticky, not fixed: a fixed rail sits over the page regardless of its own
-     height, which is what clips a tall nav's bottom item on a short viewport.
-     Sticky inside a grid cell that spans every row keeps it reachable through
-     the whole scroll without that.
-
-     No `overflow-y` here, unlike the 20rem version: the tooltips are absolute
-     children of the rail, and a scroll container would clip every one of them
-     at the rail's own edge - which is exactly the edge they need to cross.
-     Seven 44px targets and the account fit a short viewport without it. */
-  .masthead {
-    grid-column: 1;
-    grid-row: 1 / -1;
-    position: sticky;
-    inset-block-start: 0;
-    min-block-size: 100dvh;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: var(--space-6);
-    padding-block: var(--space-6);
-    padding-inline: 0;
-    border-block-end: none;
-    border-inline-end: 1px solid var(--border);
-    margin-block-end: 0;
-  }
-
-  .wordmark {
-    display: block;
-    font-size: 1.15rem;
-    letter-spacing: 0.02em;
-    line-height: var(--leading-tight);
-  }
-
-  /* The name collapses to its monogram. `display: none` on the full name is
-     safe here only because the link carries an `aria-label` - see the
-     layout. */
-  .wordmark__full {
-    display: none;
-  }
-
-  .wordmark__mark {
-    display: block;
-  }
-
-  .rail-nav {
-    display: block;
-  }
-
-  .masthead-tools {
-    /* Pushed to the foot of the rail by the leftover space above it. */
-    margin-block-start: auto;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .search-box input {
-    min-width: 0;
-    flex: 1;
-  }
-
-  /* The account becomes an icon with the same tooltip treatment as the rail
-     links, and the panel flies out beside the rail rather than hanging off
-     its inline end - a 10rem panel anchored inside a 3.5rem column would sit
-     almost entirely off-screen. */
-  .account-menu__trigger {
-    inline-size: 2.75rem;
-    block-size: 2.75rem;
-    justify-content: center;
-    padding: 0;
-    border-color: transparent;
-  }
-
-  .account-menu__email {
-    position: absolute;
-    inset-inline-start: calc(100% + var(--space-2));
-    inset-block-end: 0;
-    z-index: 30;
-    max-inline-size: none;
-    white-space: nowrap;
-    padding: 0.3rem var(--space-3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--dur-micro) var(--ease);
-  }
-
-  .account-menu__trigger:hover .account-menu__email,
-  .account-menu__trigger:focus-visible .account-menu__email {
-    opacity: 1;
-  }
-
-  .account-menu__panel {
-    inset-inline-start: calc(100% + var(--space-2));
-    inset-inline-end: auto;
-    inset-block-end: 0;
-    margin-block: 0;
-  }
-
-  .shell > main,
-  .shell > .site-footer {
-    grid-column: 2;
-    /* 1440px, spec §11. min() rather than max-width alone so the padding is
-       inside the cap rather than added to it. */
-    inline-size: min(100%, 90rem);
-    margin-inline: auto;
-    padding-inline: var(--space-8);
-  }
-
-  .shell > main {
-    padding-block-start: var(--space-8);
-  }
-
-  /* Spec §9: no permanent full-width search form in the rail. Search is a
-     destination in the navigation; the field belongs to the surfaces that
-     are about searching. Below this breakpoint the field stays in the top
-     bar, where there is no rail to hold a nav item instead. */
-  .masthead .search-box {
-    display: none;
-  }
-
   .tabbar {
     display: none;
   }
-}
-
-.search-box {
-  display: flex;
-}
-
-.search-box input {
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 0.35rem var(--space-3);
-  border: 1px solid var(--border);
-  border-start-start-radius: var(--radius);
-  border-end-start-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  min-width: 10rem;
-}
-
-.search-box button {
-  font: inherit;
-  font-size: 0.85rem;
-  padding-inline: var(--space-3);
-  border: 1px solid var(--border);
-  border-inline-start: none;
-  border-start-end-radius: var(--radius);
-  border-end-end-radius: var(--radius);
-  background: var(--surface-sub);
-  color: var(--text-mid);
-  cursor: pointer;
 }
 
 .account-menu {
@@ -1927,7 +1569,9 @@ a.card__source:focus-visible {
   border-radius: var(--radius);
   color: var(--text-mid);
   cursor: pointer;
-  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
 
 .account-menu__panel a:hover,
@@ -1991,9 +1635,6 @@ a.chip:active {
 /* My Desk's curated topic selector (§24): a word list, not a tag cloud - no
    pill, no bubble fill. Following is a rule under the word, the way an
    active section reads in a masthead nav, not a filled badge. */
-.topic-picker {
-  gap: var(--space-1) var(--space-4);
-}
 
 .topic-chip {
   display: inline-flex;
@@ -2089,6 +1730,11 @@ a.chip:active {
   border-radius: var(--radius);
   background: var(--surface-sub);
   margin-block: var(--space-6);
+}
+
+/* A story's picture illustrates it; it should not be the first screen. */
+.story-media {
+  max-block-size: min(26rem, 50dvh);
 }
 
 .outbound-cta {
@@ -2302,7 +1948,10 @@ a.chip:active {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-mid);
-  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+  transition:
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .admin-nav a:hover {
@@ -2411,90 +2060,6 @@ a.chip:active {
   color: var(--text);
 }
 
-/* Audit §30: identity, then one quiet line of links. Not a second copy of the
-   navigation - the rail is the navigation, and repeating it here is part of
-   what made the product read as a conventional website. */
-.site-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-6);
-  margin-block-start: var(--space-12);
-  padding-block-start: var(--space-4);
-  border-block-start: 1px solid var(--border);
-  font-size: 0.8rem;
-}
-
-.site-footer__identity {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin: 0;
-}
-
-.site-footer__mark {
-  font-family: var(--font-ui);
-  font-size: var(--type-micro);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-mid);
-}
-
-.site-footer__tagline {
-  font-family: var(--font-display);
-  font-style: italic;
-  color: var(--text-muted);
-}
-
-/* Flex with a gap, not plain inline anchors: as inline elements the links
-   rendered as "PrivacySend feedback", with no space between them at all -
-   whitespace between JSX siblings is not preserved. */
-.site-footer__line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3);
-}
-
-/* The middot separators §30 draws. Generated rather than typed so the markup
-   stays a list of links and the language control keeps its own <nav>. */
-.site-footer__line > * + *::before {
-  content: "·";
-  margin-inline-end: var(--space-3);
-  color: var(--border);
-}
-
-.site-footer__line > nav {
-  display: flex;
-  align-items: baseline;
-}
-
-.site-footer a {
-  color: var(--text-muted);
-}
-
-/* In the footer the language control is text on a line, not a row of bordered
-   chips - a boxed control here would be the loudest thing in the quietest
-   part of the page. */
-.site-footer .locale-switcher {
-  gap: var(--space-3);
-}
-
-.site-footer .locale-switcher a {
-  border: none;
-  padding: 0;
-  font-size: inherit;
-}
-
-.site-footer .locale-switcher a[aria-current="true"] {
-  background: none;
-  color: var(--text-mid);
-  font-weight: 600;
-}
-
 .chip__count {
   margin-inline-start: var(--space-2);
   padding-inline: 0.4rem;
@@ -2575,46 +2140,8 @@ a.chip:active {
   margin-block-end: var(--space-8);
 }
 
-.blindspot__heading {
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  margin: 0;
-}
-
-.blindspot__note {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin-block: var(--space-1) var(--space-4);
-  max-width: var(--measure);
-}
-
-.blindspot__list {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.blindspot__title {
-  font-family: var(--font-display);
-  font-size: 0.98rem;
-  font-weight: 600;
-  line-height: 1.3;
-  margin: 0 0 var(--space-2);
-  text-wrap: balance;
-}
-
-.blindspot__title a:hover {
-  color: var(--accent);
-}
-
 /* The chip row sits under each title; it should read as metadata, not as a
    second row of controls. */
-.blindspot__item .chip-list {
-  margin-block-end: 0;
-}
 
 /* --- trending rail ------------------------------------------------------- */
 
@@ -2633,66 +2160,6 @@ a.chip:active {
   font-family: var(--font-display);
   font-size: var(--type-section);
   margin: 0 0 var(--space-3);
-}
-
-.trending__list {
-  /* Numbered by the browser rather than by hand: the rank is real
-     information, so it belongs in an <ol> and is read out as one. */
-  counter-reset: trending;
-  display: grid;
-  gap: var(--space-3);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.trending__item {
-  counter-increment: trending;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: var(--space-3);
-  align-items: baseline;
-  padding-block-end: var(--space-3);
-  border-block-end: 1px solid var(--border);
-}
-
-.trending__item:last-child {
-  padding-block-end: 0;
-  border-block-end: none;
-}
-
-.trending__item::before {
-  content: counter(trending);
-  grid-row: 1 / span 2;
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.trending__link {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.35;
-  text-wrap: balance;
-  transition: color var(--dur) var(--ease), opacity var(--dur) var(--ease);
-}
-
-.trending__link:hover {
-  color: var(--accent);
-}
-
-.trending__link:active {
-  opacity: 0.6;
-}
-
-.trending__meta {
-  grid-column: 2;
-  color: var(--text-muted);
-  font-size: 0.76rem;
-  margin: var(--space-1) 0 0;
 }
 
 /* --- skeletons ------------------------------------------------------------
@@ -2755,25 +2222,12 @@ a.chip:active {
   margin-block-end: var(--space-2);
 }
 
-/* Matches .chip's own footprint - not tied to an individual chip's label
-   width, since that's exactly the thing the real chip has and the skeleton
-   doesn't know yet. */
-.skeleton--chip {
-  border-radius: 999px;
-  block-size: 1.85rem;
-  inline-size: 5.5rem;
-}
-
 /* A rail module's reserved footprint (glance, trending, the brief, topic
    overview) - not a pixel match for any one of them, just enough height that
    the rail doesn't collapse to nothing and then jump wide once real content
    lands. */
 .skeleton--panel {
   block-size: 9rem;
-}
-
-.skeleton--panel--tall {
-  block-size: 11rem;
 }
 
 .skeleton--tab {
@@ -2848,7 +2302,6 @@ a.chip:active {
    project committed to. Applying it everywhere would inflate a design whose
    whole argument is ordered density. So it lands only where a finger is
    doing the pointing, which is where the size actually matters. */
-.rail-link,
 .tabbar__link,
 .locale-switcher a,
 .account-menu__trigger,
@@ -2857,7 +2310,6 @@ a.chip:active {
 .card__action,
 .chip,
 .pill,
-.trending__link,
 .link-button,
 .button {
   min-block-size: 24px;
@@ -2865,14 +2317,7 @@ a.chip:active {
   align-items: center;
 }
 
-/* A headline can run to several lines; centring it would leave the first line
-   sitting low against the number beside it. */
-.trending__link {
-  display: inline-block;
-}
-
 @media (pointer: coarse) {
-  .rail-link,
   .tabbar__link,
   .locale-switcher a,
   .account-menu__trigger,
@@ -2991,7 +2436,10 @@ a.chip:active {
    makes it a newspaper is how it turns (the leaf, below), not a coffee ring. */
 .aquila__sheet {
   position: relative;
-  inline-size: min(100%, 68.75rem); /* Scaled to fit from 64rem up - see the
+  inline-size: min(
+    100%,
+    68.75rem
+  ); /* Scaled to fit from 64rem up - see the
      fit block below. */
   /* The paper is light in both themes, so its colours are fixed here rather
      than inherited - but fixed to the *accessible* values, not the direction
@@ -3234,7 +2682,9 @@ a.chip:active {
     border-block-start: 1px solid var(--paper-hair);
   }
 
-  .paper__body:not(.paper__body--front) .paper__column:nth-child(n + 3) .halftone {
+  .paper__body:not(.paper__body--front)
+    .paper__column:nth-child(n + 3)
+    .halftone {
     display: none;
   }
 
@@ -3491,12 +2941,6 @@ a.chip:active {
   font-size: clamp(1.1rem, 1.9cqi, 1.35rem);
   font-weight: 600;
   line-height: 1.15;
-  margin: 0 0 var(--space-2);
-}
-
-.paper__focus-deck {
-  font-size: var(--type-body-s);
-  color: var(--paper-mid);
   margin: 0 0 var(--space-2);
 }
 
@@ -3780,10 +3224,29 @@ span.paper__pageref {
 
 .aquila__controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: var(--space-3);
   /* Spec §28: 48-56px, and no giant buttons. */
   min-block-size: 3rem;
+}
+
+/* A phone fits the arrows, the folio and both toggles on one line only
+   once the gaps and the toggles' padding tighten; `flex-wrap` above is what
+   keeps a longer translation from pushing the page sideways instead. */
+@media (max-width: 30rem) {
+  .aquila__controls {
+    gap: var(--space-2);
+  }
+
+  .aquila__controls .aquila__contents-toggle {
+    padding-inline: var(--space-3);
+  }
+
+  .aquila__controls .aquila__folio {
+    min-inline-size: 3.25rem;
+  }
 }
 
 .aquila__arrow {
@@ -4000,14 +3463,6 @@ span.paper__pageref {
   }
 }
 
-.aquila__sign {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--type-body-s);
-  color: var(--text-muted);
-  margin-block-start: var(--space-6);
-}
-
 .aquila__note {
   margin-block-start: var(--space-6);
 }
@@ -4140,9 +3595,14 @@ span.paper__pageref {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(to left, rgba(20, 16, 10, 0.34), rgba(20, 16, 10, 0.06) 70%);
+  background: linear-gradient(
+    to left,
+    rgba(20, 16, 10, 0.34),
+    rgba(20, 16, 10, 0.06) 70%
+  );
   opacity: 0;
-  animation: aquila-leaf-shade-front var(--dur-turn) cubic-bezier(0.55, 0.05, 0.3, 1) both;
+  animation: aquila-leaf-shade-front var(--dur-turn)
+    cubic-bezier(0.55, 0.05, 0.3, 1) both;
 }
 
 .aquila__leaf-back::after {
@@ -4182,12 +3642,20 @@ span.paper__pageref {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(to right, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
+  background: linear-gradient(
+    to right,
+    rgba(20, 16, 10, 0.3),
+    rgba(20, 16, 10, 0) 55%
+  );
   animation: aquila-under-shade var(--dur-turn) ease-out both;
 }
 
 [dir="rtl"] .aquila__book[data-turning] > .aquila__sheet::after {
-  background: linear-gradient(to left, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
+  background: linear-gradient(
+    to left,
+    rgba(20, 16, 10, 0.3),
+    rgba(20, 16, 10, 0) 55%
+  );
 }
 
 .aquila__book[data-turning="back"] > .aquila__sheet::after {
@@ -4395,72 +3863,9 @@ span.paper__pageref {
  * a full-width personal feed below both. Single column until there is room
  * for a 320px rail beside real content rather than beside itself. */
 
-.home-greeting {
-  margin-block-end: var(--space-8);
-}
-
-/* §16's standing line. Quiet by construction - small caps and an italic
-   promise, above a rule - so it reads as a colophon rather than competing
-   with the greeting it introduces. */
-.home-greeting__standing {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-6);
-  padding-block-end: var(--space-3);
-  border-block-end: 1px solid var(--border);
-}
-
 /* Only beside the icon rail, which carries a monogram and nothing else.
    Below 56.25rem the top bar already prints the wordmark, and repeating it
    one line lower read as a stutter (fifth pass §2.3). */
-@media (max-width: 56.1875rem) {
-  .home-greeting__standing {
-    display: none;
-  }
-}
-
-.home-greeting__mark {
-  font-family: var(--font-ui);
-  font-size: var(--type-micro);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-mid);
-}
-
-.home-greeting__tagline {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--type-body-s);
-  color: var(--text-muted);
-}
-
-.home-greeting h2 {
-  font-family: var(--font-display);
-  font-size: var(--type-display-xl);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-  margin: 0;
-  text-wrap: balance;
-}
-
-/* The signed-out desk: what a desk would hold, in real topics. Same measure
-   as the sections above it, so the heading rules line up. */
-.desk-preview {
-  max-inline-size: 58rem;
-  margin-block-start: var(--space-12);
-}
-
-.desk-preview__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  list-style: none;
-  margin: var(--space-4) 0 0;
-  padding: 0;
-}
 
 /* --- search: input, filters, recent ---------------------------------------
  *
@@ -4567,22 +3972,6 @@ span.paper__pageref {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.home__hero,
-.home__know {
-  min-width: 0;
-}
-
-.home__rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  min-width: 0;
-}
-
-.home__feed {
-  min-width: 0;
-}
-
 @media (min-width: 64rem) {
   .home {
     grid-template-columns: minmax(0, 1fr) 20rem;
@@ -4598,22 +3987,6 @@ span.paper__pageref {
       "know rail"
       "feed rail";
   }
-
-  .home__hero {
-    grid-area: hero;
-  }
-
-  .home__know {
-    grid-area: know;
-  }
-
-  .home__rail {
-    grid-area: rail;
-  }
-
-  .home__feed {
-    grid-area: feed;
-  }
 }
 
 /* Each tier holds a fixed number of stories, so its cards take fixed spans
@@ -4622,11 +3995,6 @@ span.paper__pageref {
    does not divide. */
 
 /* Tier one: the lead, then two beneath it - §17's diagram exactly. */
-@media (min-width: 40rem) {
-  .home__hero .card--secondary {
-    grid-column: span 6;
-  }
-}
 
 /* The lead at full width needs different proportions from the lead in a
    column. `.card--lead`'s general rule is 1.15fr of 4:3 photo against the
@@ -4635,26 +4003,6 @@ span.paper__pageref {
    three hundred pixels above the bottom of it.
    16/9 and a bigger headline is what makes the top story read as the top
    story rather than as a large picture with a caption. */
-@media (min-width: 64rem) {
-  .home__hero .card--lead {
-    grid-template-columns: 1.2fr 1fr;
-    gap: var(--space-8);
-  }
-
-  .home__hero .card--lead .card__media {
-    aspect-ratio: 16 / 9;
-  }
-
-  .home__hero .card--lead .card__title {
-    font-size: var(--type-display-xl);
-  }
-
-  .home__hero .card--lead .card__snippet {
-    font-size: var(--type-body-l);
-    -webkit-line-clamp: 5;
-    line-clamp: 5;
-  }
-}
 
 /* Tier two: two picture stories across the top, then the text entries.
  *
@@ -4663,68 +4011,11 @@ span.paper__pageref {
  * shapes are the same components at different weights, which is why nothing
  * here needs a new variant beyond the `compact` one the card set already had.
  */
-@media (min-width: 40rem) {
-  .home__know .card--secondary {
-    grid-column: span 6;
-  }
-
-  /* `cluster`/`timeline`/`perspective` land in this band exactly where a
-     `compact` row would (see FeedList's promotion, only past the feature and
-     secondary bands) - the same span, or a promoted card breaks the two-
-     column rhythm it was supposed to be adding variety to, not disrupting. */
-  .home__know .card--compact,
-  .home__know .card--cluster,
-  .home__know .card--timeline,
-  .home__know .card--perspective {
-    grid-column: span 6;
-  }
-}
-
-@media (min-width: 90rem) {
-  .home__know .card--compact,
-  .home__know .card--cluster,
-  .home__know .card--timeline,
-  .home__know .card--perspective {
-    grid-column: span 3;
-  }
-}
-
-/* A rule above each text entry, not a box around it (§32). Rows that share a
-   line read as a column of headlines; the same rows boxed read as a table of
-   objects, which is exactly the "everything is a card" the audit is
-   objecting to. */
-.home__know .card--compact,
-.home__know .card--cluster,
-.home__know .card--timeline,
-.home__know .card--perspective {
-  padding-block-start: var(--space-4);
-  border-block-start: 1px solid var(--border);
-}
 
 /* Tier three: the dense stream. Two columns of rows once there is width for
    them, because §19 says this is the level where density is appropriate -
    and because a third full-width single column after two other full-width
    single columns is the flat rhythm §31 is complaining about. */
-@media (min-width: 64rem) {
-  /* Fifth pass §2.3: at the base 16px column gap the left row's thumbnail sat
-     flush against the right row's headline, and read as belonging to it. A
-     gutter wider than the gap inside a row keeps each thumbnail with its own
-     headline. */
-  .home__feed .feed--list {
-    column-gap: var(--space-12);
-  }
-
-  .home__feed .feed--list .card--list {
-    grid-column: span 6;
-  }
-
-  /* The no-rule exemption follows the columns: with two per row it is the
-     first *two* rows that sit at the top of the run, not just the first. */
-  .home__feed .feed--list .card--list:nth-child(-n + 2) {
-    padding-block-start: 0;
-    border-block-start: none;
-  }
-}
 
 /* --- today at a glance ----------------------------------------------------- */
 
@@ -4842,8 +4133,8 @@ span.paper__pageref {
 /* --- search results ------------------------------------------------------ */
 
 /* §21's result grouping: a topic or source the query names, alongside the
-   article matches below. Reuses `.topic-picker`/`.topic-chip` (My Desk's own
-   topic list) rather than a new chip style - the same control, the same
+   article matches below. Reuses `.topic-chip` (the article page's
+   "Filed under") rather than a new chip style - the same control, the same
    meaning, wherever it appears. */
 .search-groups {
   display: flex;
@@ -4896,83 +4187,6 @@ span.paper__pageref {
   padding-block-start: var(--space-2);
 }
 
-.brief__date {
-  font-size: var(--type-micro);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-1);
-}
-
-.brief__heading {
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  margin: 0;
-}
-
-.brief__tagline {
-  font-style: italic;
-  color: var(--text-muted);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--border);
-  margin: 0 0 var(--space-3);
-}
-
-.brief__list {
-  counter-reset: brief;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  list-style: none;
-  margin: 0 0 var(--space-4);
-  padding: 0;
-}
-
-.brief__list li {
-  counter-increment: brief;
-  display: grid;
-  grid-template-columns: 1.75rem 1fr;
-  column-gap: var(--space-2);
-  align-items: baseline;
-  padding-block: var(--space-2);
-}
-
-.brief__list li::before {
-  content: counter(brief, decimal-leading-zero);
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.brief__list a {
-  font-size: 0.9rem;
-  line-height: 1.35;
-  transition: color var(--dur) var(--ease);
-}
-
-.brief__list a:hover {
-  color: var(--accent);
-}
-
-.brief__cta {
-  display: inline-flex;
-  align-items: center;
-  block-size: 2.5rem;
-  padding-inline: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-
-.brief__cta:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 /* --- home tabs --------------------------------------------------------------- */
 
 .home-tabs {
@@ -4999,7 +4213,9 @@ span.paper__pageref {
   white-space: nowrap;
   border-block-end: 2px solid transparent;
   margin-block-end: -1px;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 
 .home-tabs a:hover {
@@ -5012,134 +4228,7 @@ span.paper__pageref {
   border-block-end-color: var(--accent);
 }
 
-/* --- my desk: what changed, tiles, understand -----------------------------
- *
- * Audit §23: "the current My Desk is essentially a sign-in gate. That is not
- * enough." §27 names what it should be instead - a personal intelligence
- * workspace - and the test it sets is whether the reader thinks "this is my
- * workspace" rather than "this is another page showing news".
- *
- * The structural answer is that the page leads with an *answer* (what changed
- * in your topics) rather than with navigation (a grid of topics to go and
- * read). Everything below is in service of that ordering.
- */
-
-/* My Desk has no rail, so its content would otherwise run the full 1384px of
-   the content column - a 1300px line of display type is not a headline, it is
-   a banner. The measure is on the section rather than on each headline so the
-   heading rules stop at the same place the text does. */
-.desk-section {
-  max-inline-size: 58rem;
-  margin-block: var(--space-8) var(--space-12);
-}
-
-.desk-section__note {
-  margin: calc(var(--space-4) * -1) 0 var(--space-6);
-  color: var(--text-muted);
-  font-size: var(--type-body-s);
-}
-
-/* Fourth-pass §20: what a desk is for, before the page asks for anything.
-   No cards (§32) - a rule-per-line reads as furniture, not a pitch deck. */
-.desk-pitch {
-  max-inline-size: 58rem;
-  margin-block: var(--space-8) var(--space-6);
-}
-
-.desk-pitch__list {
-  list-style: none;
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-3);
-}
-
-.desk-pitch__list li {
-  font-family: var(--font-display);
-  font-size: var(--type-body-l);
-  line-height: 1.4;
-  padding-inline-start: var(--space-4);
-  border-inline-start: 2px solid var(--accent);
-}
-
-/* The worked example: the same `Understand` module a real topic page
-   renders, over a topic nobody signed-out has chosen. Demonstration, not
-   description. */
-.desk-example {
-  max-inline-size: 58rem;
-  margin-block: var(--space-6) var(--space-12);
-}
-
-.desk-section--gate {
-  max-inline-size: 58rem;
-  border-block-start: 1px solid var(--border);
-  padding-block-start: var(--space-6);
-  margin-block: 0 var(--space-12);
-}
-
-/* What changed: one development per followed topic. Rules and type, no cards
-   (§32) - these are entries in a list, not objects to be managed. */
-.changed {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.changed__item {
-  padding-block: var(--space-4);
-  border-block-start: 1px solid var(--border);
-}
-
-.changed__item:first-child {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-.changed__topic {
-  margin: 0 0 var(--space-2);
-  font-size: var(--type-label);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.changed__topic a {
-  color: var(--text-muted);
-  transition: color var(--dur) var(--ease);
-}
-
-.changed__topic a:hover {
-  color: var(--accent);
-}
-
-.changed__headline {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--type-display-m);
-  font-weight: 600;
-  line-height: var(--leading-snug);
-  text-wrap: balance;
-  max-inline-size: var(--measure);
-}
-
-/* §25's "varied hierarchy": the reader's own first topic leads. The desk is
-   ordered by them, so the page can treat that order as a statement of
-   priority rather than inventing one. */
-.changed__item--lead .changed__headline {
-  font-size: var(--type-display-l);
-  line-height: var(--leading-tight);
-}
-
-.changed__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: var(--space-2) 0 0;
-  color: var(--text-muted);
-  font-size: var(--type-meta);
-}
+/* --- topic pages: understand ------------------------------------------ */
 
 /* Understand: §26's three modules. */
 .understand__title {
@@ -5261,91 +4350,6 @@ span.paper__pageref {
 .understand__outlet {
   font-weight: 600;
   color: var(--text);
-}
-
-.desk-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-  gap: var(--space-4);
-  list-style: none;
-  margin: 0 0 var(--space-6);
-  padding: 0;
-}
-
-.desk-tile {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-block-size: 6rem;
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.desk-tile__link {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.desk-tile__label {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--text);
-  transition: color var(--dur) var(--ease);
-}
-
-.desk-tile__link:hover .desk-tile__label {
-  color: var(--accent);
-}
-
-.desk-tile__count {
-  font-size: var(--type-label);
-  color: var(--text-muted);
-}
-
-.desk-tile__controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.desk-tile__controls button {
-  font: inherit;
-  font-size: 0.8rem;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-mid);
-  cursor: pointer;
-  block-size: 1.75rem;
-  padding-inline: var(--space-2);
-}
-
-.desk-tile__controls button:hover:not(:disabled) {
-  border-color: var(--text-muted);
-  color: var(--text);
-}
-
-.desk-tile__controls button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.desk-tile__remove {
-  margin-inline-start: auto;
-}
-
-.desk-add {
-  margin-block-end: var(--space-8);
-}
-
-.desk-add .chip-list {
-  margin-block-start: var(--space-4);
 }
 
 /* §35's My Desk gesture: the tab body dims while the next tab streams in
@@ -5483,19 +4487,6 @@ span.paper__pageref {
 
 /* --- topic stub (perspectives, analysis) ---------------------------------- */
 
-.topic-stub {
-  padding: var(--space-6);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  max-width: var(--measure);
-}
-
-.topic-stub p + p {
-  color: var(--text-mid);
-  line-height: var(--leading-body);
-}
-
 /* --- perspectives (ADR 0013) ----------------------------------------------
  *
  * A structured list, not colored circular widgets (spec §34) - the grouping
@@ -5626,6 +4617,11 @@ span.paper__pageref {
   .sidebar[data-open] {
     transform: none;
     visibility: visible;
+    /* Visible at once on opening, so focus can move in on the same frame;
+       closing keeps the delay, so the drawer slides out before it hides. */
+    transition:
+      transform var(--dur-standard) var(--ease),
+      visibility 0s;
   }
 
   .sidebar__collapse {
@@ -5933,6 +4929,17 @@ html[data-drawer-open] {
 
 .discover-page__main {
   min-inline-size: 0;
+}
+
+.discover__note {
+  margin-block: var(--space-4) 0;
+  font-size: var(--type-body-s);
+  color: var(--text-muted);
+}
+
+/* The interests card is already asking; the line would only repeat it. */
+.discover-page:has(.interests) .discover__note {
+  display: none;
 }
 
 .discover__bar {
@@ -6682,7 +5689,8 @@ html[data-drawer-open] {
 
 /* --- the rail -------------------------------------------------------------- */
 
-.discover-rail {
+.discover-rail,
+.discover-rail__widgets {
   display: grid;
   gap: var(--space-4);
   align-content: start;
@@ -6700,23 +5708,46 @@ html[data-drawer-open] {
   }
 }
 
-/* Narrow: the feed never ends, so a rail below it would never be seen. The
-   interests card moves above the feed; the widgets wait for a wide screen. */
+/* Narrow: the feed never ends, so a rail below it would never be seen. It
+   moves above the feed instead: the interests card and the customize panel
+   across the full width, and the widgets as one row that scrolls sideways,
+   so the feed still starts within the first screen. */
 @media (max-width: 74.9375rem) {
   .discover-page {
     display: flex;
     flex-direction: column;
+    gap: var(--space-4);
   }
 
   .discover-rail {
     order: -1;
   }
 
-  .discover-rail > :not(.interests) {
-    display: none;
+  .discover-rail__widgets {
+    display: flex;
+    align-items: start;
+    gap: var(--space-3);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    /* Room for a focus ring that would otherwise be clipped by the scroller. */
+    padding-block: 2px;
   }
 
-  .discover-rail:not(:has(.interests)) {
+  .discover-rail__widgets > * {
+    flex: 0 0 min(17rem, 78vw);
+    scroll-snap-align: start;
+  }
+
+  .discover-rail__widgets > .rail__customize {
+    flex-basis: auto;
+    align-self: center;
+  }
+
+  /* The top three companies: the full six made this one card as tall as
+     the other two put together, and the row as tall as the card. */
+  .discover-rail__widgets .companies > li:nth-child(n + 4) {
     display: none;
   }
 }

@@ -129,10 +129,17 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
         {detail.category && <p className="eyebrow">{detail.category.label}</p>}
         <h1>{detail.story.title}</h1>
         {lead?.snippet && <p className="article-snippet">{lead.snippet}</p>}
+        {/* Reports and sources counted separately: one outlet filing twice
+            is two reports from one source, and saying only "1 source" beside
+            a count of 2 read as a contradiction. */}
         <p>
-          {tPlural(active.code, "story.coveredBy", detail.story.source_count)}
-          {detail.story.language_count > 1 &&
-            ` ${t(active.code, "story.reportedIn", { count: detail.story.language_count })}`}
+          {[
+            tPlural(active.code, "story.reports", detail.articles.length),
+            tPlural(active.code, "coverage.sources", detail.story.source_count),
+            ...(detail.story.language_count > 1
+              ? [tPlural(active.code, "coverage.languages", detail.story.language_count)]
+              : []),
+          ].join(" · ")}
         </p>
         <p className="story-header__facts">
           {t(active.code, "story.firstReported", {
@@ -152,7 +159,10 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
             ))}
           </ul>
         )}
-        <CoverageChips coverage={detail.coverage} locale={active.code} />
+        {/* One language says nothing the line above does not. */}
+        {detail.story.language_count > 1 && (
+          <CoverageChips coverage={detail.coverage} locale={active.code} />
+        )}
         {/* Null when it cannot be known (signed out, no beta access): no
             control at all rather than one that cannot work. */}
         {following !== null && (
@@ -169,7 +179,7 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
 
       {lead?.image_url && (
         <Image
-          className="article-media"
+          className="article-media story-media"
           src={lead.image_url}
           alt=""
           width={1200}

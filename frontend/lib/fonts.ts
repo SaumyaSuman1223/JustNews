@@ -18,20 +18,21 @@ import { IBM_Plex_Sans_Devanagari, Noto_Serif_Devanagari } from "next/font/googl
 
 /** Display: headlines, mastheads, pull quotes. One display family, never two. */
 export const display = Cormorant_Garamond({
-  subsets: ["latin", "latin-ext"],
-  // 600 is the headline weight; 400/500 carry decks and pull quotes. Cormorant
-  // is a light-bodied face, so its "bold" reads closer to a normal serif's
-  // semibold - hence 700 for the front-page lead rather than 600.
-  weight: ["400", "500", "600", "700"],
+  // Preloaded: Latin only, which covers English and Spanish. The latin-ext
+  // faces are still declared, by unicode-range, and fetched only by a page
+  // that uses one of their characters.
+  subsets: ["latin"],
+  // No `weight`: the variable font, one file per style that carries every
+  // weight the design uses (400 to 700) - smaller than the four static
+  // weights it replaces, twice over for the italic.
   style: ["normal", "italic"],
   display: "swap",
   variable: "--font-display-latin",
 });
 
-/** Interface: navigation, metadata, labels, controls. */
+/** Interface: navigation, metadata, labels, controls. Variable, as above. */
 export const ui = IBM_Plex_Sans({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
+  subsets: ["latin"],
   display: "swap",
   variable: "--font-ui-latin",
 });
@@ -39,16 +40,17 @@ export const ui = IBM_Plex_Sans({
 /** Display, Devanagari. Variable weight, so headlines keep their hierarchy. */
 export const displayDevanagari = Noto_Serif_Devanagari({
   subsets: ["devanagari"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
   variable: "--font-display-deva",
 });
 
-/** Interface, Devanagari. Plex's own sibling, so the pairing holds in Hindi. */
+/** Interface, Devanagari. Plex's own sibling, so the pairing holds in Hindi.
+ * Static only, so two weights: 500 falls to 400, as the browser's matching
+ * rules would pick anyway. */
 export const uiDevanagari = IBM_Plex_Sans_Devanagari({
   subsets: ["devanagari"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
   display: "swap",
   preload: false,
   variable: "--font-ui-deva",

@@ -10,7 +10,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: t(isLocaleCode(locale) ? locale : "en", "settings.privacyPolicy") };
+  return { title: t(isLocaleCode(locale) ? locale : "en", "nav.privacy") };
 }
 
 /**
