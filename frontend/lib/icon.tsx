@@ -10,7 +10,7 @@ import { ImageResponse } from "next/og";
  * Garamond on warm paper, "News" in brass.
  *
  * The font is a Latin subset of Cormorant Garamond SemiBold (SIL OFL, see
- * assets/fonts/OFL.txt), small enough to read on every request. It covers
+ * assets/fonts/OFL-CormorantGaramond.txt), small enough to read on every request. It covers
  * the wordmark and the English tagline; nothing else is drawn in it.
  */
 export const BRAND = {
