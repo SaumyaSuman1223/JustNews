@@ -97,14 +97,19 @@ export function ReaderUtility({
         onFocus={() => onOpenChange(true)}
       >
         <span className="visually-hidden">{t(locale, "aquila.contents")}</span>
+        {/* A list of entries, not a menu: the navigation's own button at
+            the other edge is the three bars, and the two read alike. */}
         <svg viewBox="0 0 24 24" width="1.2em" height="1.2em" aria-hidden="true">
           <path
-            d="M5 7h14M5 12h14M5 17h9"
+            d="M9.5 7h10M9.5 12h10M9.5 17h10"
             stroke="currentColor"
             strokeWidth="1.6"
             fill="none"
             strokeLinecap="round"
           />
+          <circle cx="5" cy="7" r="1.2" fill="currentColor" />
+          <circle cx="5" cy="12" r="1.2" fill="currentColor" />
+          <circle cx="5" cy="17" r="1.2" fill="currentColor" />
         </svg>
       </button>
 

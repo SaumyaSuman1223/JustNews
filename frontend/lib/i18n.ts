@@ -98,7 +98,6 @@ const en = {
   "error.rateLimited": "Too many requests. Try again in a minute.",
   "nav.language": "Language",
   "nav.aquila": "Aquila",
-  "nav.desk": "My Desk",
   "nav.search": "Search",
   "nav.settings": "Settings",
   "nav.saved": "Saved",
@@ -130,19 +129,16 @@ const en = {
     "Follow a story and this page counts the new reports each time you come back.",
   "signIn.history.body":
     "Stories you open while signed in are listed here, so you can find one again.",
+  "signIn.settings.body":
+    "Your reading languages, your privacy choices, and a copy of your data are kept here.",
+  "signIn.onboarding.body":
+    "Choose the languages you read and the sources you trust, and For You starts from them.",
 
   "feed.degraded.personal":
     "Your feed is unavailable right now, so this page may be out of date. Everything else still works.",
   "feed.degraded.anonymous":
     "Live headlines are unavailable right now, so this page may be out of date. Everything else still works.",
   "feed.empty.action": "Go to Explore",
-
-  "stats.articles.one": "article",
-  "stats.articles.other": "articles",
-  "stats.sources.one": "source",
-  "stats.sources.other": "sources",
-  "stats.stories.one": "story",
-  "stats.stories.other": "stories",
 
   "home.lead.context.show": "More about this story",
   "home.lead.context.hide": "Less",
@@ -182,7 +178,7 @@ const en = {
   "aquila.none.title": "No edition has been published yet",
   "aquila.none.body":
     "The Tribune is composed three times a day, at 6am, 2pm and 10pm. The next edition will appear here.",
-  "aquila.none.action": "Go to Home",
+  "aquila.none.action": "Go to Discover",
 
   "coverage.label": "Languages covering this story",
 
@@ -193,11 +189,10 @@ const en = {
   "article.otherSources.one": "Also reported by 1 other source",
   "article.otherSources.other": "Also reported by {count} other sources",
   "article.seeFullCoverage": "See full coverage",
-  "article.backToFront": "Back to the front page",
+  "article.backToFront": "Back to Discover",
   "article.filedUnder": "Filed under",
   "article.moreIn": "More in {topic}",
   "article.moreFrom": "More from {source}",
-  "source.eyebrow": "Publisher",
   "source.notFound": "Publisher not found",
   "source.visit": "Visit {source}",
   "source.latest": "Latest reporting",
@@ -279,7 +274,7 @@ const en = {
   "invite.submit": "Unlock",
   "invite.failed": "That code did not work.",
 
-  "common.backToFeed": "Back to the feed",
+  "common.backToFeed": "Back to Discover",
   "common.browseTopics": "Browse topics",
 
   "saved.heading": "Saved",
@@ -294,10 +289,6 @@ const en = {
   "history.empty.title": "No reading history yet",
   "history.empty.body": "Articles you open appear here, most recent first. Only you can see this.",
   "history.viewed": "Viewed {time}",
-
-  "topics.empty.title": "Nothing tagged {topic} yet",
-  "topics.empty.body":
-    "Coverage of this topic in your languages is still thin. It fills in as sources publish through the day.",
 
   "search.heading": "Search",
   "search.titleWithQuery": "Search: {query}",
@@ -340,7 +331,8 @@ const en = {
     "This edition draws on publishers based in one country. It fills in as they publish.",
 
   "notFound.heading": "That page does not exist",
-  "notFound.action": "Go to the front page",
+  "notFound.body": "The link may be old, or the address mistyped. Search for the story instead:",
+  "notFound.action": "Go to Discover",
 
   "consent.label": "Cookie choice",
   "consent.body":
@@ -385,14 +377,7 @@ const en = {
   "account.menu": "Account",
 
   "site.description": "Personalised, multilingual news.",
-  "topics.fallbackTitle": "Topic",
 
-  "desk.tabs.label": "Topic sections",
-  "desk.tabs.latest": "Latest",
-  "desk.tabs.perspectives": "Perspectives",
-  "desk.overview.heading": "Topic overview",
-  "desk.related.heading": "Related topics",
-  "desk.timeline.empty": "No story timeline yet for this topic.",
   "desk.coverage.sources.one": "{count} source",
   "desk.coverage.sources.other": "{count} sources",
   "desk.coverage.languages.one": "{count} language",
@@ -408,7 +393,6 @@ const en = {
   "coverage.countries.other": "{count} countries",
   "coverage.languages.one": "{count} language",
   "coverage.languages.other": "{count} languages",
-  "desk.keyDevelopments.empty": "No major developments yet.",
   "desk.perspectives.empty":
     "Not enough named-source coverage yet to show perspectives for this topic.",
   "desk.perspectives.sourceCount": "{count} sources",
@@ -418,17 +402,6 @@ const en = {
   "desk.perspectives.role.investor": "Investor press",
   "desk.perspectives.role.consumer": "Consumer press",
   "desk.perspectives.role.public": "Public sources",
-  "desk.tabs.understand": "Understand",
-  "desk.understand.heading": "Understand {topic}",
-  "desk.understand.happening": "What\u2019s happening",
-  "desk.understand.happening.note": "The developments the most publishers are covering.",
-  "desk.understand.happening.fallbackNote":
-    "No story has been picked up by more than one outlet yet. The latest reporting:",
-  "desk.understand.saying": "Who is saying what",
-  "desk.understand.saying.note": "Which kinds of publisher are reporting this, and who they are.",
-  "desk.understand.saying.fallbackNote": "The outlets reporting on this most recently.",
-  "desk.understand.changing": "What\u2019s changing",
-  "desk.understand.changing.note": "How the coverage developed, newest first.",
 
   "profile.languageMix.heading": "What you actually read",
   "profile.languageMix.body": "Based on your last {count} articles opened.",
@@ -529,6 +502,8 @@ const en = {
   "across.title": "Across languages",
   "across.subtitle": "The same story, and how many outlets in each language are reporting it.",
   "across.outlets": "Outlets reporting it, by language:",
+  "perspectives.railTitle": "Who is reporting it",
+  "perspectives.railNote": "This topic's recent reporting, by the kind of publisher behind it.",
   "mostRead.title": "Most read today",
   "aquila.today": "Today's Aquila",
   "aquila.open": "Open the edition",
@@ -541,6 +516,9 @@ const en = {
   "discover.save": "Save",
   "discover.unsave": "Remove from saved",
   "discover.signInToSave": "Sign in to save stories",
+  "discover.saveNeedsAccount": "Sign in to save stories and find them again on any device.",
+  "discover.saveNeedsInvite": "Saving is open to beta readers for now. An invite code opens it.",
+  "discover.redeemInvite": "Use an invite code",
   "discover.more": "More options",
   "discover.share": "Share",
   "discover.copied": "Link copied",
@@ -587,7 +565,7 @@ const en = {
   "weather.code.snow": "Snow",
   "weather.code.showers": "Showers",
   "weather.code.thunder": "Thunderstorm",
-  "markets.title": "Market Outlook",
+  "markets.title": "US markets",
   "markets.note": "Index-tracking ETFs, and Bitcoin. Prices may be delayed.",
   "markets.empty": "Market data isn't available yet.",
   "markets.tile": "{label}: {price}, {change} today",
@@ -609,7 +587,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "error.rateLimited": "Demasiadas solicitudes. Inténtalo de nuevo en un minuto.",
     "nav.language": "Idioma",
     "nav.aquila": "Aquila",
-    "nav.desk": "Mi Escritorio",
     "nav.search": "Buscar",
     "nav.settings": "Ajustes",
     "nav.saved": "Guardados",
@@ -642,19 +619,16 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "Sigue una historia y esta página contará las informaciones nuevas cada vez que vuelvas.",
     "signIn.history.body":
       "Las historias que abras con la sesión iniciada aparecen aquí para que puedas volver a encontrarlas.",
+    "signIn.settings.body":
+      "Aquí están tus idiomas de lectura, tus opciones de privacidad y una copia de tus datos.",
+    "signIn.onboarding.body":
+      "Elige los idiomas que lees y los medios en que confías, y Para ti empieza por ellos.",
 
     "feed.degraded.personal":
       "Tu feed no está disponible ahora mismo, así que esta página puede estar desactualizada. Todo lo demás sigue funcionando.",
     "feed.degraded.anonymous":
       "Los titulares en directo no están disponibles ahora mismo, así que esta página puede estar desactualizada. Todo lo demás sigue funcionando.",
     "feed.empty.action": "Ir a Explorar",
-
-    "stats.articles.one": "artículo",
-    "stats.articles.other": "artículos",
-    "stats.sources.one": "fuente",
-    "stats.sources.other": "fuentes",
-    "stats.stories.one": "historia",
-    "stats.stories.other": "historias",
 
     "home.lead.context.show": "Más sobre esta historia",
     "home.lead.context.hide": "Menos",
@@ -694,7 +668,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.none.title": "Aún no se ha publicado ninguna edición",
     "aquila.none.body":
       "El Tribune se compone tres veces al día: a las 6:00, las 14:00 y las 22:00. La próxima edición aparecerá aquí.",
-    "aquila.none.action": "Ir a Inicio",
+    "aquila.none.action": "Ir a Descubrir",
 
     "coverage.label": "Idiomas que cubren esta historia",
 
@@ -705,11 +679,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "article.otherSources.one": "También informado por 1 fuente más",
     "article.otherSources.other": "También informado por otras {count} fuentes",
     "article.seeFullCoverage": "Ver la cobertura completa",
-    "article.backToFront": "Volver a la portada",
+    "article.backToFront": "Volver a Descubrir",
     "article.filedUnder": "Archivado en",
     "article.moreIn": "Más en {topic}",
     "article.moreFrom": "Más de {source}",
-    "source.eyebrow": "Medio",
     "source.notFound": "Medio no encontrado",
     "source.visit": "Visitar {source}",
     "source.latest": "Lo más reciente",
@@ -792,7 +765,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "invite.submit": "Desbloquear",
     "invite.failed": "Ese código no ha funcionado.",
 
-    "common.backToFeed": "Volver al feed",
+    "common.backToFeed": "Volver a Descubrir",
     "common.browseTopics": "Explorar temas",
 
     "saved.heading": "Guardados",
@@ -808,10 +781,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "history.empty.body":
       "Los artículos que abras aparecen aquí, del más reciente al más antiguo. Solo tú puedes ver esto.",
     "history.viewed": "Visto {time}",
-
-    "topics.empty.title": "Todavía no hay nada etiquetado como {topic}",
-    "topics.empty.body":
-      "La cobertura de este tema en tus idiomas todavía es escasa. Se va llenando a medida que las fuentes publican durante el día.",
 
     "search.heading": "Buscar",
     "search.titleWithQuery": "Buscar: {query}",
@@ -855,7 +824,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "Esta edición se nutre de medios con sede en un país. Se va llenando a medida que publican.",
 
     "notFound.heading": "Esa página no existe",
-    "notFound.action": "Ir a la portada",
+    "notFound.body":
+      "Puede que el enlace sea antiguo o la dirección tenga un error. Busca la historia:",
+    "notFound.action": "Ir a Descubrir",
 
     "consent.label": "Elección de cookies",
     "consent.body":
@@ -901,14 +872,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.menu": "Cuenta",
 
     "site.description": "Noticias personalizadas y multilingües.",
-    "topics.fallbackTitle": "Tema",
 
-    "desk.tabs.label": "Secciones del tema",
-    "desk.tabs.latest": "Lo último",
-    "desk.tabs.perspectives": "Perspectivas",
-    "desk.overview.heading": "Resumen del tema",
-    "desk.related.heading": "Temas relacionados",
-    "desk.timeline.empty": "Todavía no hay cronología para este tema.",
     "desk.coverage.sources.one": "{count} fuente",
     "desk.coverage.sources.other": "{count} fuentes",
     "desk.coverage.languages.one": "{count} idioma",
@@ -919,7 +883,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "coverage.countries.other": "{count} países",
     "coverage.languages.one": "{count} idioma",
     "coverage.languages.other": "{count} idiomas",
-    "desk.keyDevelopments.empty": "Todavía no hay desarrollos importantes.",
     "desk.perspectives.empty":
       "Todavía no hay suficiente cobertura de fuentes identificadas para mostrar perspectivas de este tema.",
     "desk.perspectives.sourceCount": "{count} fuentes",
@@ -929,18 +892,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.perspectives.role.investor": "Prensa de inversión",
     "desk.perspectives.role.consumer": "Prensa de consumo",
     "desk.perspectives.role.public": "Fuentes públicas",
-    "desk.tabs.understand": "Entender",
-    "desk.understand.heading": "Entender {topic}",
-    "desk.understand.happening": "Qué está pasando",
-    "desk.understand.happening.note": "Los desarrollos que más medios están cubriendo.",
-    "desk.understand.happening.fallbackNote":
-      "Ninguna historia ha sido recogida todavía por más de un medio. Lo más reciente:",
-    "desk.understand.saying": "Quién dice qué",
-    "desk.understand.saying.note": "Qué tipos de medio lo están cubriendo, y cuáles son.",
-    "desk.understand.saying.fallbackNote":
-      "Los medios que han informado sobre esto más recientemente.",
-    "desk.understand.changing": "Qué está cambiando",
-    "desk.understand.changing.note": "Cómo se ha desarrollado la cobertura, lo más nuevo primero.",
 
     "profile.languageMix.heading": "Lo que realmente lees",
     "profile.languageMix.body": "Según tus últimos {count} artículos abiertos.",
@@ -1042,6 +993,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "across.title": "En varios idiomas",
     "across.subtitle": "La misma historia, y cuántos medios la cubren en cada idioma.",
     "across.outlets": "Medios que la cubren, por idioma:",
+    "perspectives.railTitle": "Quién lo cuenta",
+    "perspectives.railNote":
+      "La cobertura reciente de este tema, según el tipo de medio que la publica.",
     "mostRead.title": "Lo más leído hoy",
     "aquila.today": "Aquila de hoy",
     "aquila.open": "Abrir la edición",
@@ -1054,6 +1008,11 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "discover.save": "Guardar",
     "discover.unsave": "Quitar de guardados",
     "discover.signInToSave": "Inicia sesión para guardar historias",
+    "discover.saveNeedsAccount":
+      "Inicia sesión para guardar historias y encontrarlas en cualquier dispositivo.",
+    "discover.saveNeedsInvite":
+      "Por ahora, guardar es para lectores de la beta. Un código de invitación lo abre.",
+    "discover.redeemInvite": "Usar un código de invitación",
     "discover.more": "Más opciones",
     "discover.share": "Compartir",
     "discover.copied": "Enlace copiado",
@@ -1101,7 +1060,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "weather.code.snow": "Nieve",
     "weather.code.showers": "Chubascos",
     "weather.code.thunder": "Tormenta",
-    "markets.title": "Panorama del mercado",
+    "markets.title": "Mercados de EE. UU.",
     "markets.note": "ETF que siguen índices, y bitcóin. Los precios pueden ir con retraso.",
     "markets.empty": "Aún no hay datos del mercado.",
     "markets.tile": "{label}: {price}, {change} hoy",
@@ -1118,7 +1077,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "error.rateLimited": "बहुत ज़्यादा अनुरोध। एक मिनट बाद फिर कोशिश करें।",
     "nav.language": "भाषा",
     "nav.aquila": "अक्विला",
-    "nav.desk": "मेरा डेस्क",
     "nav.search": "खोजें",
     "nav.settings": "सेटिंग्स",
     "nav.saved": "सहेजे गए",
@@ -1149,19 +1107,16 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "signIn.following.body": "कोई ख़बर फ़ॉलो करें, और हर बार लौटने पर यह पेज नई रिपोर्टें गिनेगा।",
     "signIn.history.body":
       "साइन इन रहते हुए खोली गई ख़बरें यहाँ दिखती हैं, ताकि आप उन्हें फिर ढूँढ सकें।",
+    "signIn.settings.body":
+      "आपकी पढ़ने की भाषाएँ, निजता के विकल्प और आपके डेटा की प्रति यहाँ रहती है।",
+    "signIn.onboarding.body":
+      "अपनी पढ़ी जाने वाली भाषाएँ और भरोसेमंद स्रोत चुनें, और आपके लिए उन्हीं से शुरू होगा।",
 
     "feed.degraded.personal":
       "आपकी फ़ीड अभी उपलब्ध नहीं है, इसलिए यह पेज पुराना हो सकता है। बाकी सब कुछ काम कर रहा है।",
     "feed.degraded.anonymous":
       "ताज़ा सुर्ख़ियाँ अभी उपलब्ध नहीं हैं, इसलिए यह पेज पुराना हो सकता है। बाकी सब कुछ काम कर रहा है।",
     "feed.empty.action": "एक्सप्लोर पर जाएँ",
-
-    "stats.articles.one": "लेख",
-    "stats.articles.other": "लेख",
-    "stats.sources.one": "स्रोत",
-    "stats.sources.other": "स्रोत",
-    "stats.stories.one": "कहानी",
-    "stats.stories.other": "कहानियाँ",
 
     "home.lead.context.show": "इस कहानी के बारे में और",
     "home.lead.context.hide": "कम करें",
@@ -1201,7 +1156,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.none.title": "अभी कोई संस्करण प्रकाशित नहीं हुआ",
     "aquila.none.body":
       "ट्रिब्यून दिन में तीन बार तैयार होता है — सुबह 6, दोपहर 2 और रात 10 बजे। अगला संस्करण यहाँ दिखेगा।",
-    "aquila.none.action": "होम पर जाएँ",
+    "aquila.none.action": "डिस्कवर पर जाएँ",
 
     "coverage.label": "इस कहानी को कवर करने वाली भाषाएँ",
 
@@ -1212,11 +1167,10 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "article.otherSources.one": "1 और स्रोत ने भी यह ख़बर दी",
     "article.otherSources.other": "{count} और स्रोतों ने भी यह ख़बर दी",
     "article.seeFullCoverage": "पूरी कवरेज देखें",
-    "article.backToFront": "मुख्य पृष्ठ पर लौटें",
+    "article.backToFront": "डिस्कवर पर लौटें",
     "article.filedUnder": "इस विषय में",
     "article.moreIn": "{topic} में और",
     "article.moreFrom": "{source} से और",
-    "source.eyebrow": "प्रकाशक",
     "source.notFound": "प्रकाशक नहीं मिला",
     "source.visit": "{source} पर जाएँ",
     "source.latest": "ताज़ा रिपोर्टिंग",
@@ -1299,7 +1253,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "invite.submit": "खोलें",
     "invite.failed": "यह कोड काम नहीं आया।",
 
-    "common.backToFeed": "फ़ीड पर लौटें",
+    "common.backToFeed": "डिस्कवर पर लौटें",
     "common.browseTopics": "विषय देखें",
 
     "saved.heading": "सहेजे गए",
@@ -1315,10 +1269,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "history.empty.body":
       "आप जो लेख खोलते हैं वे यहाँ दिखते हैं, सबसे नए पहले। यह सिर्फ़ आपको दिखता है।",
     "history.viewed": "{time} देखा",
-
-    "topics.empty.title": "{topic} के साथ अभी कुछ नहीं है",
-    "topics.empty.body":
-      "आपकी भाषाओं में इस विषय की कवरेज अभी कम है। दिन भर में जैसे-जैसे स्रोत छापेंगे, यह भरता जाएगा।",
 
     "search.heading": "खोज",
     "search.titleWithQuery": "खोज: {query}",
@@ -1361,7 +1311,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
       "यह संस्करण एक देश के प्रकाशकों पर टिका है। जैसे-जैसे वे छापेंगे, यह भरता जाएगा।",
 
     "notFound.heading": "यह पेज मौजूद नहीं है",
-    "notFound.action": "मुख्य पृष्ठ पर जाएँ",
+    "notFound.body": "हो सकता है लिंक पुराना हो या पता ग़लत लिखा गया हो। ख़बर खोजें:",
+    "notFound.action": "डिस्कवर पर जाएँ",
 
     "consent.label": "कुकी विकल्प",
     "consent.body":
@@ -1408,14 +1359,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "account.menu": "खाता",
 
     "site.description": "वैयक्तिकृत, बहुभाषी ख़बरें।",
-    "topics.fallbackTitle": "विषय",
 
-    "desk.tabs.label": "विषय अनुभाग",
-    "desk.tabs.latest": "ताज़ा",
-    "desk.tabs.perspectives": "दृष्टिकोण",
-    "desk.overview.heading": "विषय अवलोकन",
-    "desk.related.heading": "संबंधित विषय",
-    "desk.timeline.empty": "इस विषय के लिए अभी कोई समयरेखा नहीं है।",
     "desk.coverage.sources.one": "{count} स्रोत",
     "desk.coverage.sources.other": "{count} स्रोत",
     "desk.coverage.languages.one": "{count} भाषा",
@@ -1426,7 +1370,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "coverage.countries.other": "{count} देश",
     "coverage.languages.one": "{count} भाषा",
     "coverage.languages.other": "{count} भाषाएँ",
-    "desk.keyDevelopments.empty": "अभी कोई बड़ा घटनाक्रम नहीं है।",
     "desk.perspectives.empty":
       "इस विषय के लिए दृष्टिकोण दिखाने के लिए अभी पर्याप्त पहचाने गए स्रोतों की कवरेज नहीं है।",
     "desk.perspectives.sourceCount": "{count} स्रोत",
@@ -1436,17 +1379,6 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "desk.perspectives.role.investor": "निवेशक प्रेस",
     "desk.perspectives.role.consumer": "उपभोक्ता प्रेस",
     "desk.perspectives.role.public": "सार्वजनिक स्रोत",
-    "desk.tabs.understand": "समझें",
-    "desk.understand.heading": "{topic} को समझें",
-    "desk.understand.happening": "क्या हो रहा है",
-    "desk.understand.happening.note": "वे घटनाक्रम जिन्हें सबसे ज़्यादा प्रकाशक कवर कर रहे हैं।",
-    "desk.understand.happening.fallbackNote":
-      "अभी तक किसी ख़बर को एक से ज़्यादा प्रकाशक ने नहीं उठाया है। सबसे ताज़ा रिपोर्टिंग:",
-    "desk.understand.saying": "कौन क्या कह रहा है",
-    "desk.understand.saying.note": "किस तरह के प्रकाशक इसे कवर कर रहे हैं, और वे कौन हैं।",
-    "desk.understand.saying.fallbackNote": "वे प्रकाशक जिन्होंने हाल में इस पर रिपोर्ट किया है।",
-    "desk.understand.changing": "क्या बदल रहा है",
-    "desk.understand.changing.note": "कवरेज कैसे आगे बढ़ा, सबसे नया पहले।",
 
     "profile.languageMix.heading": "आप असल में क्या पढ़ते हैं",
     "profile.languageMix.body": "आपके पिछले {count} खोले गए लेखों के आधार पर।",
@@ -1546,6 +1478,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "across.title": "भाषाओं के पार",
     "across.subtitle": "एक ही ख़बर, और हर भाषा में कितने स्रोत उसे दे रहे हैं।",
     "across.outlets": "भाषा के हिसाब से, इसे देने वाले स्रोत:",
+    "perspectives.railTitle": "इसे कौन दे रहा है",
+    "perspectives.railNote":
+      "इस विषय की हालिया रिपोर्टिंग, उसे छापने वाले प्रकाशक के प्रकार के हिसाब से।",
     "mostRead.title": "आज सबसे ज़्यादा पढ़ी गईं",
     "aquila.today": "आज का अक्विला",
     "aquila.open": "संस्करण खोलें",
@@ -1558,6 +1493,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "discover.save": "सहेजें",
     "discover.unsave": "सहेजे गए से हटाएँ",
     "discover.signInToSave": "खबरें सहेजने के लिए साइन इन करें",
+    "discover.saveNeedsAccount": "ख़बरें सहेजने और किसी भी डिवाइस पर फिर पाने के लिए साइन इन करें।",
+    "discover.saveNeedsInvite": "फ़िलहाल सहेजना बीटा पाठकों के लिए है। आमंत्रण कोड से यह खुलता है।",
+    "discover.redeemInvite": "आमंत्रण कोड डालें",
     "discover.more": "और विकल्प",
     "discover.share": "साझा करें",
     "discover.copied": "लिंक कॉपी हो गया",
@@ -1605,7 +1543,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "weather.code.snow": "बर्फ़",
     "weather.code.showers": "बौछारें",
     "weather.code.thunder": "आंधी-तूफ़ान",
-    "markets.title": "बाज़ार का हाल",
+    "markets.title": "अमेरिकी बाज़ार",
     "markets.note": "सूचकांक ट्रैक करने वाले ETF और बिटकॉइन। कीमतें देर से हो सकती हैं।",
     "markets.empty": "बाज़ार का डेटा अभी उपलब्ध नहीं है।",
     "markets.tile": "{label}: {price}, आज {change}",
@@ -1661,9 +1599,6 @@ type PluralBase =
   | "search.resultCount"
   | "source.articleCount"
   | "following.new"
-  | "stats.articles"
-  | "stats.sources"
-  | "stats.stories"
   | "story.reports";
 
 const pluralRules = new Map<LocaleCode, Intl.PluralRules>();

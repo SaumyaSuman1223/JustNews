@@ -31,8 +31,21 @@ export default async function OnboardingPage({ params }: { params: Promise<{ loc
   if (!isLocaleCode(locale)) notFound();
   const active = getLocale(locale);
 
-  const access = await requireBetaAccess(active.code, `/${active.code}/onboarding`);
-  if (!access.ok) return access.element;
+  const access = await requireBetaAccess(active.code, `/${active.code}/onboarding`, {
+    title: t(active.code, "account.signIn"),
+    body: t(active.code, "signIn.onboarding.body"),
+    embedded: true,
+  });
+  if (!access.ok) {
+    return (
+      <div className="narrow">
+        <div className="page-header">
+          <h1>{t(active.code, "onboarding.heading")}</h1>
+        </div>
+        {access.element}
+      </div>
+    );
+  }
 
   const [deck, profile, followedSourceIds, topics, followedTopicIds] = await Promise.all([
     getExplorationDeck(access.auth, { locale: active.code }),

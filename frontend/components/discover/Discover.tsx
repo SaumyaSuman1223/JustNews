@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ReadingLanguages } from "@/components/discover/ReadingLanguages";
-import { StoryCard, type StoryVariant } from "@/components/discover/StoryCard";
+import { StoryCard } from "@/components/discover/StoryCard";
+import { arrange, type Block } from "@/components/discover/storyLayout";
 import { ChevronDownIcon } from "@/components/icons";
 import { INTERESTS_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
 import {
@@ -350,29 +351,6 @@ function seed(key: string, page: DiscoverPage): true {
     });
   }
   return true;
-}
-
-type Block = { variant: StoryVariant; items: { item: DiscoverItem; position: number }[] };
-
-/**
- * The feed's rhythm: one lead, then a row of three cards and a wide feature,
- * repeating. A picture-less story never takes the lead or the feature slot
- * when one with a picture is near - those shapes are built around the photo.
- */
-function arrange(items: DiscoverItem[]): Block[] {
-  const queue = items.map((item, position) => ({ item, position }));
-  const blocks: Block[] = [];
-  // Only called while the queue is non-empty, so `splice` always yields one.
-  const takeWithImage = () => {
-    const index = queue.findIndex((entry, i) => i < 4 && entry.item.article.image_url);
-    return queue.splice(index >= 0 ? index : 0, 1);
-  };
-  if (queue.length > 0) blocks.push({ variant: "lead", items: takeWithImage() });
-  while (queue.length > 0) {
-    blocks.push({ variant: "card", items: queue.splice(0, 3) });
-    if (queue.length > 0) blocks.push({ variant: "wide", items: takeWithImage() });
-  }
-  return blocks;
 }
 
 function DiscoverTabs({

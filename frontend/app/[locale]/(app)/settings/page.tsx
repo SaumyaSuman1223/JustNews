@@ -55,7 +55,24 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   const active = getLocale(locale);
   const session = await getSession();
 
-  if (!session) return <SignInRequired locale={active.code} path={`/${active.code}/settings`} />;
+  if (!session) {
+    // The page's own heading, and what signing in would show here - the
+    // same shape as Saved, Following and History.
+    return (
+      <div className="narrow">
+        <div className="page-header">
+          <h1>{t(active.code, "settings.heading")}</h1>
+        </div>
+        <SignInRequired
+          locale={active.code}
+          path={`/${active.code}/settings`}
+          title={t(active.code, "account.signIn")}
+          body={t(active.code, "signIn.settings.body")}
+          embedded
+        />
+      </div>
+    );
+  }
 
   const auth = { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() };
   const [profile, readingProfile, consent] = await Promise.all([

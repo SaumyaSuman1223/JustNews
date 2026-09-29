@@ -24,6 +24,8 @@ export interface StoryCardProps {
   saved: boolean;
   onSavedChange: (articleId: number, saved: boolean) => void;
   priority?: boolean;
+  /** Open at the publisher whatever the coverage (the story page). */
+  openAtPublisher?: boolean;
 }
 
 /**
@@ -48,11 +50,15 @@ export function StoryCard({
   saved,
   onSavedChange,
   priority = false,
+  openAtPublisher = false,
 }: StoryCardProps) {
   const { article } = item;
   const [hidden, setHidden] = useState(false);
+  // A picture that does not load leaves a text card, not an empty frame.
+  const [imageFailed, setImageFailed] = useState(false);
   useHydrated();
-  const href = `/${locale}/a/${article.id}`;
+  const direct = openAtPublisher || opensAtPublisher(article);
+  const href = direct ? article.url : `/${locale}/a/${article.id}`;
 
   function reportClick() {
     // Fire-and-forget, never delaying the navigation. Anonymous reads are a
@@ -93,15 +99,15 @@ export function StoryCard({
 
   return (
     <article className={`story story--${variant}`}>
-      {article.image_url && (
+      {article.image_url && !imageFailed && (
         <div className="story__media">
           <Image
             src={article.image_url}
             alt=""
             fill
             sizes={imageSizes}
-            unoptimized
             priority={priority}
+            onError={() => setImageFailed(true)}
           />
         </div>
       )}
@@ -110,11 +116,17 @@ export function StoryCard({
           {/* The stretched link: its ::after covers the card, so the whole
               card opens the article while the controls below stay their own
               targets. */}
-          <Link href={href} className="story__link" onClick={reportClick}>
-            {article.title}
-          </Link>
+          {direct ? (
+            <a href={href} className="story__link" onClick={reportClick}>
+              {article.title}
+            </a>
+          ) : (
+            <Link href={href} className="story__link" onClick={reportClick}>
+              {article.title}
+            </Link>
+          )}
         </h2>
-        {(variant !== "card" || !article.image_url) && article.snippet && (
+        {(variant !== "card" || !article.image_url || imageFailed) && article.snippet && (
           <p className="story__snippet" lang={languageTag(article.language)}>
             {article.snippet}
           </p>
@@ -144,6 +156,17 @@ export function StoryCard({
       </div>
     </article>
   );
+}
+
+/**
+ * Whether a card opens the story at its publisher rather than on JustNews.
+ * A story with one source in one language has nothing on JustNews's own
+ * page but the card again, so the tap goes where the story is; one with
+ * more coverage opens the page that shows it.
+ */
+export function opensAtPublisher(article: Article): boolean {
+  const coverage = article.coverage;
+  return !coverage || (coverage.sources <= 1 && coverage.languages <= 1);
 }
 
 /** The `lang` value for an article's language. */
@@ -300,16 +323,7 @@ function SaveHeart({
   const [failed, setFailed] = useState(false);
 
   if (!signedIn || !canSave) {
-    return (
-      <Link
-        className="story__action"
-        href={`/${locale}/login`}
-        aria-label={t(locale, "discover.signInToSave")}
-        title={t(locale, "discover.signInToSave")}
-      >
-        <HeartIcon />
-      </Link>
-    );
+    return <SaveGate locale={locale} signedIn={signedIn} />;
   }
 
   async function toggle() {
@@ -356,6 +370,70 @@ function SaveHeart({
         </span>
       )}
     </>
+  );
+}
+
+/**
+ * The heart for a reader who cannot save yet: it says why, and offers the
+ * way in, instead of jumping to the login page and losing their place. The
+ * sign-in link brings them back here.
+ */
+function SaveGate({ locale, signedIn }: { locale: LocaleCode; signedIn: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [back, setBack] = useState(`/${locale}`);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointer(event: PointerEvent) {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        trigger.current?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const label = t(locale, "discover.signInToSave");
+  return (
+    <div className="story__menu" ref={ref}>
+      <button
+        ref={trigger}
+        type="button"
+        className="story__action"
+        aria-label={label}
+        title={label}
+        aria-expanded={open}
+        onClick={() => {
+          // Where to come back to after signing in: this page, as it is.
+          setBack(window.location.pathname + window.location.search);
+          setOpen((value) => !value);
+        }}
+      >
+        <HeartIcon />
+      </button>
+      {open && (
+        <div className="story__popover story__popover--note" role="note">
+          <p>{t(locale, signedIn ? "discover.saveNeedsInvite" : "discover.saveNeedsAccount")}</p>
+          {signedIn ? (
+            <Link href={`/${locale}/invite`}>{t(locale, "discover.redeemInvite")}</Link>
+          ) : (
+            <Link href={`/${locale}/login?next=${encodeURIComponent(back)}`}>
+              {t(locale, "account.signIn")}
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -421,6 +499,21 @@ function MoreMenu({
     if (response?.ok) onHidden();
   }
 
+  // Arrow keys move between the items, as in any menu a reader has used;
+  // Tab still leaves it. Focus starts on the first item.
+  const popover = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) popover.current?.querySelector<HTMLElement>("a, button")?.focus();
+  }, [open]);
+  function moveFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("a, button"));
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    items[(index + step + items.length) % items.length]?.focus();
+  }
+
   const menuId = `story-menu-${article.id}`;
   return (
     <div className="story__menu" ref={ref}>
@@ -444,7 +537,7 @@ function MoreMenu({
       {open && (
         // A disclosure of plain links and buttons, not an ARIA menu - the
         // earlier pass removed a fake one; tabbing through these is honest.
-        <div className="story__popover" id={menuId}>
+        <div className="story__popover" id={menuId} ref={popover} onKeyDown={moveFocus}>
           <button type="button" onClick={share}>
             <ShareIcon />
             {t(locale, "discover.share")}

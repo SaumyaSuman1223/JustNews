@@ -147,11 +147,11 @@
      by next/font; each already carries its own metric-matched local fallback,
      which is what makes the swap shift-free. */
   --font-display:
-    var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia, "Noto Serif Devanagari",
-    "Kohinoor Devanagari", "Times New Roman", serif;
+    var(--font-display-latin), var(--font-display-latin-ext), var(--font-display-deva), ui-serif,
+    Georgia, "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
   --font-ui:
-    var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system, "Segoe UI", Roboto,
-    "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
+    var(--font-ui-latin), var(--font-ui-latin-ext), var(--font-ui-deva), system-ui, -apple-system,
+    "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
 }
 
 /* Designed, not inverted. Warm dark: the ground is a shade below Deep
@@ -596,8 +596,9 @@ a.card__source:focus-visible {
 
 /* The same centred column as the article above it, so the page reads as
    one piece that continues rather than a second page stuck underneath. */
+/* Wider than the article's measure: a row of three cards, not a list. */
 .read-next {
-  max-inline-size: var(--measure);
+  max-inline-size: min(100%, 62rem);
   margin-inline: auto;
   margin-block: var(--space-12) 0;
 }
@@ -615,7 +616,7 @@ a.card__source:focus-visible {
   margin-block-start: var(--space-4);
 }
 
-/* --- My Desk: followed stories (fifth pass F2) ----------------------------- */
+/* --- Following: followed stories (fifth pass F2) -------------------------- */
 
 .following__note {
   margin-block: 0 var(--space-4);
@@ -742,10 +743,89 @@ a.card__source:focus-visible {
 
 /* --- display page (fifth pass F8) ------------------------------------------ */
 
+/* --- 404 ------------------------------------------------------------------ */
+
+.not-found {
+  max-inline-size: 36rem;
+  padding-block: var(--space-8);
+}
+
+.not-found__wordmark {
+  display: inline-block;
+  margin-block-end: var(--space-12);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.not-found__wordmark span {
+  color: var(--accent);
+}
+
+.not-found__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+}
+
+.not-found__note {
+  color: var(--text-mid);
+}
+
+.not-found__search {
+  display: flex;
+  gap: var(--space-2);
+  margin-block: var(--space-4) var(--space-6);
+}
+
+.not-found__search .input {
+  flex: 1;
+  min-inline-size: 0;
+  font: inherit;
+  padding: 0.55rem var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Long-form reading pages - the privacy policy, how JustNews works - in
+   the product's own type rather than the browser's default headings. */
+.prose {
+  max-inline-size: 42rem;
+  margin-inline: auto;
+  line-height: var(--leading-body);
+}
+
+.prose h1 {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+  margin-block: var(--space-6) var(--space-4);
+}
+
+.prose h2 {
+  margin-block: var(--space-8) var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+}
+
+.prose p,
+.prose li {
+  color: var(--text-mid);
+}
+
 .display-form {
   display: grid;
   gap: var(--space-6);
   justify-items: start;
+}
+
+.submit-on-change {
+  display: grid;
+  gap: var(--space-6);
 }
 
 .display-form__group {
@@ -1324,9 +1404,10 @@ a.card__source:focus-visible {
   margin-inline: auto;
 }
 
+/* A narrow page is still a page: its heading is a page's, a step below the
+   wide pages' lead size rather than shrunk to a section's. */
 .narrow .page-header h1 {
-  font-size: var(--type-section);
-  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2rem);
 }
 
 /* --- auth card -------------------------------------------------------------
@@ -1637,9 +1718,8 @@ a.chip:active {
   background: var(--accent-soft);
 }
 
-/* My Desk's curated topic selector (§24): a word list, not a tag cloud - no
-   pill, no bubble fill. Following is a rule under the word, the way an
-   active section reads in a masthead nav, not a filled badge. */
+/* A topic as a word, not a tag: the article page's "Filed under" and
+   search's topic matches. No pill, no bubble fill. */
 
 .topic-chip {
   display: inline-flex;
@@ -2087,11 +2167,6 @@ a.chip:active {
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: baseline;
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--border);
-  margin-block-end: var(--space-4);
 }
 
 .coverage-group__count {
@@ -2137,35 +2212,8 @@ a.chip:active {
   color: var(--accent);
 }
 
-/* --- blindspot rail ------------------------------------------------------ */
-
-.blindspot {
-  border-block-start: 2px solid var(--accent);
-  padding-block: var(--space-4) 0;
-  margin-block-end: var(--space-8);
-}
-
 /* The chip row sits under each title; it should read as metadata, not as a
    second row of controls. */
-
-/* --- trending rail ------------------------------------------------------- */
-
-/* A closing module, not a header. It sits below the feed because the front
-   page's job is to lead with the news; what other readers clicked is context
-   you reach after that, not the thing you are greeted by. */
-.trending {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: var(--space-6);
-  margin-block: var(--space-12) var(--space-8);
-}
-
-.trending__heading {
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  margin: 0 0 var(--space-3);
-}
 
 /* --- skeletons ------------------------------------------------------------
  * Reserving the exact final space, per the design system's zero-CLS rule -
@@ -2225,19 +2273,6 @@ a.chip:active {
   block-size: 2rem;
   inline-size: 40%;
   margin-block-end: var(--space-2);
-}
-
-/* A rail module's reserved footprint (glance, trending, the brief, topic
-   overview) - not a pixel match for any one of them, just enough height that
-   the rail doesn't collapse to nothing and then jump wide once real content
-   lands. */
-.skeleton--panel {
-  block-size: 9rem;
-}
-
-.skeleton--tab {
-  inline-size: 4.5rem;
-  block-size: 1rem;
 }
 
 /* Editorially interesting, not a problem: the accent rule rather than the
@@ -2319,6 +2354,25 @@ a.chip:active {
   min-block-size: 24px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Under a finger: the card's buttons, the menu button and the search
+   filters at 44px, where a mouse is fine with less. */
+@media (pointer: coarse) {
+  .story__action,
+  .topbar__menu {
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+  }
+
+  .search-filter select,
+  .rail-link-button {
+    min-block-size: 2.75rem;
+  }
+
+  .sources {
+    padding-block: 0.6rem;
+  }
 }
 
 @media (pointer: coarse) {
@@ -3098,17 +3152,21 @@ a.chip:active {
    rather than as a UI control bolted onto the page. Reset from `<button>`
    where PageRefTag renders one: same visual result whether or not the reader
    has a live session to jump pages in. */
+/* The hit area is padded past the text and the padding taken back out of
+   the layout, so "Page 3" is a 24px target on a scaled sheet without moving
+   anything on it. */
 .paper__pageref {
   display: inline-flex;
   align-items: baseline;
-  margin-inline-start: var(--space-2);
+  margin-block: -0.55rem;
+  margin-inline: calc(var(--space-2) - 0.4rem) -0.4rem;
+  padding: 0.55rem 0.4rem;
   font: inherit;
   font-size: var(--type-micro);
   letter-spacing: 0.1em;
   color: var(--paper-accent);
   background: none;
   border: none;
-  padding: 0;
   cursor: pointer;
 }
 
@@ -3901,15 +3959,35 @@ span.paper__pageref {
 
 /* The standing label above each of Home's three levels. A rule and a line of
    small caps, in the application's brass - Aquila's red stays in Aquila. */
-.home-tier {
-  font-size: var(--type-label);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 600;
+/* A section of a page - "More from BBC News", "Latest reporting",
+   "Stories" - set as the rail sets its modules: a heavy rule, then the
+   heading in the display face. One style for every list in the product,
+   where these were letter-spaced capitals from an older design. */
+.home-tier,
+.coverage-group__heading,
+.search-group__heading {
   margin: 0 0 var(--space-4);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--border);
+  padding-block-start: var(--space-3);
+  border-block-start: 2px solid var(--text);
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+
+.home-tier a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-tier a:hover {
+  text-decoration: underline;
+}
+
+.story-grid {
+  display: grid;
+  gap: var(--space-8);
 }
 
 .home {
@@ -3940,80 +4018,6 @@ span.paper__pageref {
    unknown length and leave a ragged last row when the count is known and
    does not divide. */
 
-/* Tier one: the lead, then two beneath it - §17's diagram exactly. */
-
-/* The lead at full width needs different proportions from the lead in a
-   column. `.card--lead`'s general rule is 1.15fr of 4:3 photo against the
-   headline, which is right in an 800px column and wrong at 1320: the photo
-   resolves to 714x535 and the headline column runs out of things to say
-   three hundred pixels above the bottom of it.
-   16/9 and a bigger headline is what makes the top story read as the top
-   story rather than as a large picture with a caption. */
-
-/* Tier two: two picture stories across the top, then the text entries.
- *
- * This is §18's "varied compositions, avoid repeated identical cards" and
- * §31's rhythm, and it is a composition rather than a card style - the two
- * shapes are the same components at different weights, which is why nothing
- * here needs a new variant beyond the `compact` one the card set already had.
- */
-
-/* Tier three: the dense stream. Two columns of rows once there is width for
-   them, because §19 says this is the level where density is appropriate -
-   and because a third full-width single column after two other full-width
-   single columns is the flat rhythm §31 is complaining about. */
-
-/* --- today at a glance ----------------------------------------------------- */
-
-/* Audit §22: "can feel like generic SaaS dashboard cards", and option B -
-   render them as quiet editorial metadata instead.
-   Gone: the border, the fill, the card padding, and the 1.7rem display
-   numerals. What is left is a rule and a column of small caps, which is how a
-   newspaper prints its own circulation figures - present, checkable, and not
-   competing with an actual story. */
-.glance {
-  padding-block-start: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
-.glance__heading {
-  font-size: var(--type-micro);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-3);
-}
-
-.glance__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.glance__list > div {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.glance dd {
-  font-size: var(--type-label);
-  font-weight: 600;
-  color: var(--text-mid);
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.glance dt {
-  font-size: var(--type-label);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0;
-}
-
 /* The type-ahead: a quiet row of direct links under the box (fifth pass F5). */
 .search-suggest {
   display: flex;
@@ -4024,9 +4028,7 @@ span.paper__pageref {
 }
 
 .search-suggest__label {
-  font-size: var(--type-micro);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: var(--type-label);
   color: var(--text-muted);
 }
 
@@ -4089,12 +4091,6 @@ span.paper__pageref {
   margin-block-start: var(--space-6);
 }
 
-.search-group__heading {
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  margin: 0 0 var(--space-3);
-}
-
 .search-group__list {
   display: flex;
   flex-wrap: wrap;
@@ -4115,12 +4111,6 @@ span.paper__pageref {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- trending, inside the rail ---------------------------------------------- */
-
-.trending--rail {
-  margin-block: 0;
-}
-
 /* --- the daily brief --------------------------------------------------------
  *
  * §20/§33: numbered lines, not a bordered box - the same "structure through
@@ -4131,209 +4121,6 @@ span.paper__pageref {
  */
 .brief {
   padding-block-start: var(--space-2);
-}
-
-/* --- home tabs --------------------------------------------------------------- */
-
-.home-tabs {
-  border-block-end: 1px solid var(--border);
-  margin-block-end: var(--space-6);
-}
-
-.home-tabs ul {
-  display: flex;
-  gap: var(--space-6);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-x: auto;
-}
-
-.home-tabs a {
-  display: inline-flex;
-  align-items: center;
-  block-size: 3rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  white-space: nowrap;
-  border-block-end: 2px solid transparent;
-  margin-block-end: -1px;
-  transition:
-    color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
-}
-
-.home-tabs a:hover {
-  color: var(--text);
-}
-
-.home-tabs a[aria-current="page"] {
-  color: var(--text);
-  font-weight: 600;
-  border-block-end-color: var(--accent);
-}
-
-/* --- topic pages: understand ------------------------------------------ */
-
-/* Understand: §26's three modules. */
-.understand__title {
-  font-family: var(--font-display);
-  font-size: var(--type-display-m);
-  font-weight: 600;
-  margin: 0 0 var(--space-6);
-}
-
-.understand__module {
-  margin-block-end: var(--space-8);
-  padding-block-start: var(--space-6);
-  border-block-start: 1px solid var(--border);
-}
-
-.understand__module:first-of-type {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-.understand__heading {
-  font-size: var(--type-label);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-mid);
-  margin: 0;
-}
-
-.understand__note {
-  margin: var(--space-1) 0 var(--space-4);
-  color: var(--text-muted);
-  font-size: var(--type-body-s);
-}
-
-.understand__developments {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.understand__developments li {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  gap: var(--space-3);
-  padding-block: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
-.understand__developments li:first-child {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-/* The rank is the ordering made visible, not a decoration: this list is
-   sorted by how many publishers carried the story, and without the number
-   nothing on screen says the order means anything. */
-.understand__rank {
-  font-family: var(--font-display);
-  font-size: var(--type-body-l);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-  line-height: var(--leading-snug);
-}
-
-.understand__headline {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--type-body-l);
-  font-weight: 600;
-  line-height: var(--leading-snug);
-  max-inline-size: var(--measure);
-}
-
-.understand__meta {
-  margin: var(--space-1) 0 0;
-  color: var(--text-muted);
-  font-size: var(--type-meta);
-}
-
-/* The stand-ins for a topic with reporting but no stories yet (fifth pass
-   §2.1): the same rule-separated rows as the developments list, without the
-   rank column - newest-first is not an order worth numbering. */
-.understand__latest,
-.understand__outlets {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.understand__latest li,
-.understand__outlets li {
-  padding-block: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
-.understand__latest li:first-child,
-.understand__outlets li:first-child {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-.understand__outlets li {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-4);
-}
-
-.understand__outlets .understand__meta {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.understand__outlet {
-  font-weight: 600;
-  color: var(--text);
-}
-
-/* §35's My Desk gesture: the tab body dims while the next tab streams in
-   (see TopicTabs), rather than a hard navigation flash. Standard tier
-   (240ms) - "navigation, panels, menus" per design-system.md - not the
-   editorial tier reserved for Aquila's page turn. `prefers-reduced-motion`
-   is handled by the global rule that zeroes every transition duration. */
-.topic-unfold {
-  transition: opacity var(--dur-standard) var(--ease);
-}
-
-.topic-unfold[data-pending] {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.desk-layout {
-  display: grid;
-  gap: var(--space-6);
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.desk-layout__main {
-  min-width: 0;
-}
-
-.desk-layout__rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  min-width: 0;
-}
-
-@media (min-width: 64rem) {
-  .desk-layout {
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    column-gap: var(--space-6);
-  }
 }
 
 .related-topics {
@@ -4372,63 +4159,6 @@ span.paper__pageref {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.timeline__item {
-  display: grid;
-  grid-template-columns: 0.5rem 1fr;
-  column-gap: var(--space-4);
-  padding-block-end: var(--space-6);
-  position: relative;
-}
-
-.timeline__item::before {
-  /* The connecting line, drawn from this dot down to the next one. */
-  content: "";
-  position: absolute;
-  inset-inline-start: 0.2rem;
-  inset-block-start: 1rem;
-  inset-block-end: 0;
-  inline-size: 1px;
-  background: var(--border);
-}
-
-.timeline__item:last-child {
-  padding-block-end: 0;
-}
-
-.timeline__item:last-child::before {
-  display: none;
-}
-
-.timeline__dot {
-  inline-size: 0.5rem;
-  block-size: 0.5rem;
-  border-radius: 999px;
-  background: var(--accent);
-  margin-block-start: 0.35rem;
-}
-
-.timeline__date {
-  font-size: var(--type-micro);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-1);
-}
-
-.timeline__title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 var(--space-1);
-  line-height: 1.3;
-}
-
-.timeline__meta {
-  font-size: var(--type-label);
-  color: var(--text-muted);
-  margin: 0;
 }
 
 /* --- topic stub (perspectives, analysis) ---------------------------------- */
@@ -4757,7 +4487,10 @@ html[data-drawer-open] {
   font-size: var(--type-label);
 }
 
+/* Padded to a 24px target (WCAG 2.2, 2.5.8) - the text alone was 15px. */
 .sidebar__small a {
+  display: inline-block;
+  padding-block: 0.3rem;
   color: var(--text-muted);
   text-decoration: none;
 }
@@ -5265,9 +4998,21 @@ html[data-drawer-open] {
   padding: var(--space-1);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
   animation: pop-in var(--dur-micro) var(--ease);
+}
+
+.story__popover--note {
+  max-inline-size: 17rem;
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
+.story__popover--note p {
+  margin: 0;
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
 }
 
 .story__popover a,
@@ -5368,6 +5113,15 @@ html[data-drawer-open] {
 
   .story--lead .story__body {
     gap: var(--space-3);
+  }
+}
+
+/* A lead or feature whose picture failed to load reads as text across the
+   full width, not beside an empty column. */
+@media (min-width: 48rem) {
+  .story--lead:not(:has(.story__media)),
+  .story--wide:not(:has(.story__media)) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -138,14 +138,6 @@ export function getArticle(id: number): Promise<Degradable<Article | null>> {
   return get<Article | null>(`/v1/articles/${id}`, null, 60);
 }
 
-export function getStats(): Promise<Degradable<CorpusStats>> {
-  return get<CorpusStats>(
-    "/v1/stats",
-    { articles: 0, sources: 0, story_clusters: 0, languages: 0 },
-    300,
-  );
-}
-
 export function getTopics(language: string): Promise<Degradable<Topic[]>> {
   // Topics change on a deploy cadence, not a content one.
   return get<Topic[]>(`/v1/topics?language=${encodeURIComponent(language)}`, [], 3600);
@@ -185,11 +177,6 @@ export function getStory(id: number, language: string): Promise<Degradable<Story
   return get<StoryDetail | null>(`/v1/stories/${id}?${query}`, null, 60);
 }
 
-/** My Desk's Topic Overview panel - real counts, no pagination needed. */
-export function getTopicOverview(topicId: string): Promise<Degradable<TopicOverview | null>> {
-  return get<TopicOverview | null>(`/v1/topics/${encodeURIComponent(topicId)}/overview`, null, 120);
-}
-
 /** My Desk's Timeline and Key Developments tabs both read this same list -
  * the timeline plots it by date, key developments re-sorts it by breadth of
  * coverage. One fetch, two views. */
@@ -198,33 +185,10 @@ export function getTopicStories(topicId: string, limit = 20): Promise<Degradable
   return get<Story[]>(`/v1/topics/${encodeURIComponent(topicId)}/stories?${query}`, [], 120);
 }
 
-export function getRelatedTopics(
-  topicId: string,
-  language: string,
-  limit = 6,
-): Promise<Degradable<RelatedTopic[]>> {
-  const query = new URLSearchParams({ language, limit: String(limit) });
-  return get<RelatedTopic[]>(
-    `/v1/topics/${encodeURIComponent(topicId)}/related?${query}`,
-    [],
-    3600,
-  );
-}
-
 /** My Desk's Perspectives tab (ADR 0013) - real groups only, so an empty
  * array here is a real "not enough roled coverage yet", not a loading gap. */
 export function getTopicPerspectives(topicId: string): Promise<Degradable<PerspectiveGroup[]>> {
   return get<PerspectiveGroup[]>(`/v1/topics/${encodeURIComponent(topicId)}/perspectives`, [], 120);
-}
-
-/**
- * Stories being reported, but not in a language this reader reads. Cacheable
- * and anonymous: the answer depends only on the languages asked about, not on
- * who is asking.
- */
-export function getBlindspots(languages: string, limit = 4): Promise<Degradable<Blindspot[]>> {
-  const query = new URLSearchParams({ languages, limit: String(limit) });
-  return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
 }
 
 /**
@@ -486,48 +450,6 @@ export async function getIssueEditions(
     return data;
   } catch {
     return [];
-  }
-}
-
-/**
- * Explore works signed-out - that is who it is for - so `auth` is nullable.
- * The browsing session id is still sent either way: an anonymous reader's
- * impressions are keyed by it alone, which is what lets a click from explore
- * be attributed at all before anyone has an account.
- *
- * Not cached, unlike the other anonymous reads in this file. Each request
- * logs the impressions it served, so a shared cached response would attribute
- * one visitor's page to everyone who got the same cache entry.
- */
-export async function getExplore(
-  auth: AuthContext | null,
-  params: { languages?: string; locale: string; cursor?: string; pageSize?: number },
-): Promise<Degradable<FeedPage>> {
-  const client = createApiClient(API_URL, {
-    proxyKey: PROXY_KEY,
-    accessToken: auth?.accessToken,
-    sessionId: auth?.sessionId ?? undefined,
-  });
-  try {
-    const { data, error } = await client.GET("/v1/explore", {
-      params: {
-        query: {
-          languages: params.languages,
-          locale: params.locale,
-          cursor: params.cursor,
-          page_size: params.pageSize ?? 20,
-        },
-        header: { "x-analytics-consent": (await hasAnalyticsConsent()) ? "granted" : undefined },
-      },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (error || !data) return { data: EMPTY_FEED, degraded: true };
-    return { data, degraded: false };
-  } catch {
-    // openapi-fetch only returns {data,error} for HTTP-level failures - a
-    // network-level one (DNS, connection refused, timeout) throws instead.
-    // The API being unreachable is exactly the case this must degrade for.
-    return { data: EMPTY_FEED, degraded: true };
   }
 }
 

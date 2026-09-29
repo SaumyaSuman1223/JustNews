@@ -10,6 +10,7 @@ import {
   MostReadModule,
   TodaysAquilaModule,
 } from "@/components/rail/NewsModules";
+import { TopicPerspectives } from "@/components/rail/TopicPerspectives";
 import { WeatherWidget } from "@/components/rail/WeatherWidget";
 import type {
   AcrossLanguages,
@@ -163,6 +164,8 @@ export function DiscoverRail({
           onClose={() => setCustomizing(false)}
         />
       )}
+
+      <TopicPerspectives locale={locale} />
 
       {/* One group, so a narrow screen can scroll the widgets sideways
           beneath the interests card rather than beside it. */}

@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { StoryGrid } from "@/components/discover/StoryGrid";
 import { EmptyState } from "@/components/EmptyState";
-import { FeedList } from "@/components/FeedList";
 import { FollowSourceButton } from "@/components/FollowSourceButton";
 import { Pagination } from "@/components/Pagination";
-import { getArticles, getFollowedSources, getSaves, getSource } from "@/lib/api";
-import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { getArticles, getFollowedSources, getSource } from "@/lib/api";
+import { discoverReader, savedArticleIds } from "@/lib/discover";
 import { getLocale, isLocaleCode, locales, t, tPlural, type LocaleCode } from "@/lib/i18n";
-import { getSession } from "@/lib/session";
 
 /** ADR 0013's roles - the same six labels Perspectives groups by; "wire" is
  * not a perspective and is not labelled as one here either. */
@@ -65,20 +64,16 @@ export default async function SourcePage({
   const source = (await getSource(decodeURIComponent(slug))).data;
   if (!source) notFound();
 
-  const session = await getSession();
-  const auth = session
-    ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
-    : null;
+  const reader = await discoverReader(active.code);
+  const auth = reader.auth;
   const basePath = `/${active.code}/source/${encodeURIComponent(source.slug)}`;
 
-  const [articles, following, savedIds] = await Promise.all([
+  const [articles, following, saved] = await Promise.all([
     getArticles({ source: source.id, cursor, pageSize: 24 }),
     auth
       ? getFollowedSources(auth).then((rows) => rows.some((row) => row.source_id === source.id))
       : Promise.resolve(false),
-    auth
-      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
-      : Promise.resolve(new Set<number>()),
+    savedArticleIds(reader),
   ]);
 
   const roleKey = source.source_role
@@ -97,7 +92,6 @@ export default async function SourcePage({
   return (
     <>
       <header className="page-header source-header">
-        <p className="eyebrow">{t(active.code, "source.eyebrow")}</p>
         <h1>{source.name}</h1>
         {facts.length > 0 && <p className="source-header__facts">{facts.join(" · ")}</p>}
         <p className="source-header__count">
@@ -133,16 +127,16 @@ export default async function SourcePage({
       ) : (
         <>
           <h2 className="home-tier">{t(active.code, "source.latest")}</h2>
-          <FeedList
-            items={articles.data.items.map((article) => ({
-              article,
-              saved: savedIds.has(article.id),
-            }))}
+          {/* The first page leads with its newest story; later pages are the
+              same rhythm continued. */}
+          <StoryGrid
+            articles={articles.data.items}
             locale={active.code}
             surface="topic"
-            signedIn={Boolean(session)}
-            revalidatePath={basePath}
-            layout="list"
+            signedIn={Boolean(auth)}
+            canPersonalise={Boolean(auth) && reader.hasBetaAccess}
+            initialSaved={saved}
+            lead={!cursor}
           />
           <Pagination
             locale={active.code}

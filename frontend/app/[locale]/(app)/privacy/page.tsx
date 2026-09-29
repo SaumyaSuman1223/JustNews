@@ -30,7 +30,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
   return (
     // .narrow is sized for forms (26rem) - a reading-width legal document
     // needs the measure body copy uses elsewhere, not a form's width.
-    <article style={{ maxWidth: "42rem", marginInline: "auto", lineHeight: 1.7 }}>
+    <article className="prose">
       {active.code !== "en" && (
         <p className="notice" role="note">
           {t(active.code, "privacy.englishOnly")}

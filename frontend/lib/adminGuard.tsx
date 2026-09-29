@@ -20,9 +20,12 @@ export async function requireAdmin(): Promise<AdminAccessResult> {
     return {
       ok: false,
       element: (
-        <p className="empty">
-          Sign in with an admin account. <Link href="/en/login?next=/admin">Sign in</Link>
-        </p>
+        <div className="empty">
+          <h1 className="empty__title">Admin</h1>
+          <p>
+            Sign in with an admin account. <Link href="/en/login?next=/admin">Sign in</Link>
+          </p>
+        </div>
       ),
     };
   }
@@ -31,7 +34,12 @@ export async function requireAdmin(): Promise<AdminAccessResult> {
   if (profile?.role !== "admin") {
     return {
       ok: false,
-      element: <p className="empty">This account does not have admin access.</p>,
+      element: (
+        <div className="empty">
+          <h1 className="empty__title">Admin</h1>
+          <p>This account does not have admin access.</p>
+        </div>
+      ),
     };
   }
   return { ok: true, auth };

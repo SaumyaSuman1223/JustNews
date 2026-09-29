@@ -3,12 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ArticleCard } from "@/components/ArticleCard";
+import { StoryGrid } from "@/components/discover/StoryGrid";
 import { CoverageChips } from "@/components/CoverageChips";
 import { FollowStoryButton } from "@/components/FollowStoryButton";
 import { Perspectives } from "@/components/Perspectives";
 import { getSaves, getStory, getStoryFollowState, getTopicStories, markStorySeen } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
+import { discoverReader } from "@/lib/discover";
+import { viewHref } from "@/lib/discoverView";
 import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -87,6 +89,7 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
   // Opening the story is what "seen" means for "N new reports since you
   // looked" (fifth pass F2) - so a follower's visit resets their count.
   if (auth && following) await markStorySeen(auth, detail.story.id);
+  const canPersonalise = Boolean(auth) && (await discoverReader(active.code)).hasBetaAccess;
 
   // The lead article - earliest reported, since list_articles_in_cluster
   // orders that way - stands in for the story's own image and standfirst.
@@ -115,12 +118,9 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
     new Map(detail.articles.map((article) => [article.source_id, article])).values(),
   ).sort((a, b) => a.source_name.localeCompare(b.source_name, active.code));
 
-  let position = 0;
-
   return (
     <>
       <div className="page-header story-header">
-        {detail.category && <p className="eyebrow">{detail.category.label}</p>}
         <h1>{detail.story.title}</h1>
         {lead?.snippet && <p className="article-snippet">{lead.snippet}</p>}
         {/* Reports and sources counted separately: one outlet filing twice
@@ -136,6 +136,14 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
           ].join(" · ")}
         </p>
         <p className="story-header__facts">
+          {detail.category && (
+            <>
+              <Link href={viewHref(active.code, { kind: "topic", topicId: detail.category.id })}>
+                {detail.category.label}
+              </Link>
+              {" · "}
+            </>
+          )}
           {t(active.code, "story.firstReported", {
             time: formatRelativeTime(detail.story.first_seen_at, active.code),
           })}
@@ -177,8 +185,8 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
           src={lead.image_url}
           alt=""
           width={1200}
+          sizes="(max-width: 48rem) 100vw, 44rem"
           height={675}
-          unoptimized
           priority
         />
       )}
@@ -191,20 +199,19 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
               {tPlural(active.code, "story.reports", group.articles.length)}
             </span>
           </h2>
-          <ul className="feed">
-            {group.articles.map((article) => (
-              <ArticleCard
-                key={article.id}
-                article={article}
-                locale={active.code}
-                surface="topic"
-                position={position++}
-                signedIn={Boolean(session)}
-                saved={savedIds.has(article.id)}
-                revalidatePath={`/${active.code}/story/${detail.story.id}`}
-              />
-            ))}
-          </ul>
+          {/* This page is the story's coverage: each card opens its report
+              at the publisher, not a JustNews page repeating the card. */}
+          <StoryGrid
+            articles={group.articles}
+            locale={active.code}
+            surface="topic"
+            signedIn={Boolean(session)}
+            canPersonalise={canPersonalise}
+            initialSaved={[...savedIds]}
+            lead={false}
+            features={false}
+            openAtPublisher
+          />
         </section>
       ))}
 
