@@ -1,5 +1,5 @@
 import type { LanguageCoverage } from "@/lib/api";
-import { type LocaleCode, locales, t } from "@/lib/i18n";
+import { languageName, type LocaleCode, t } from "@/lib/i18n";
 
 /**
  * The language split of one story: "English 1 · Español 3 · हिन्दी 2".
@@ -26,24 +26,19 @@ export function CoverageChips({
   return (
     <ul className="chip-list" aria-label={t(locale, "coverage.label")}>
       {coverage.map((entry) => {
-        const known = locales.find((option) => option.code === entry.language);
         return (
           <li key={entry.language}>
-            {/* A language we do not ship can still appear here: the corpus
-                outlives a change to the launch set, and hiding it would
-                misreport the coverage. */}
+            {/* Named in the reader's language. A language we do not ship
+                can still appear here: the corpus outlives a change to the
+                launch set, and hiding it would misreport the coverage. */}
             {linkTo ? (
               <a className="chip chip--link" href={linkTo(entry.language)}>
-                <span lang={known?.htmlLang ?? entry.language}>
-                  {known?.label ?? entry.language}
-                </span>
+                {languageName(entry.language, locale, { capitalize: true })}
                 <b className="chip__count">{entry.article_count.toLocaleString(locale)}</b>
               </a>
             ) : (
               <span className="chip">
-                <span lang={known?.htmlLang ?? entry.language}>
-                  {known?.label ?? entry.language}
-                </span>
+                {languageName(entry.language, locale, { capitalize: true })}
                 <b className="chip__count">{entry.article_count.toLocaleString(locale)}</b>
               </span>
             )}

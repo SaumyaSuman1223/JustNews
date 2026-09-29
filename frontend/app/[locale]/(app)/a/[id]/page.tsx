@@ -28,6 +28,7 @@ import {
   readerLanguages,
   t,
   tPlural,
+  languageName,
 } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
@@ -112,7 +113,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
     const known = locales.find((option) => option.code === language);
     return {
       language,
-      label: known?.label ?? language,
+      label: languageName(language, active.code, { capitalize: true }),
       htmlLang: known?.htmlLang ?? language,
       articles: related.filter((item) => item.language === language),
     };

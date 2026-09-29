@@ -8,7 +8,7 @@ import { getMe, getReadingProfile } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { setConsentAction, updateLanguagesFormAction } from "@/lib/actions";
 import { getConsentState } from "@/lib/consent";
-import { getLocale, isLocaleCode, locales, t, type LocaleCode } from "@/lib/i18n";
+import { getLocale, isLocaleCode, locales, t, type LocaleCode, languageName } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 export async function generateMetadata({
@@ -140,7 +140,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
                   return (
                     <MixRow
                       key={row.language}
-                      label={known?.label ?? row.language}
+                      label={languageName(row.language, active.code, { capitalize: true })}
                       lang={known?.htmlLang ?? row.language}
                       count={row.count}
                       pct={pct}

@@ -2,7 +2,14 @@ import Link from "next/link";
 
 import type { AcrossLanguages, Article, Issue, IssuePageContent } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
-import { locales, t, tPlural, type LocaleCode, type MessageKey } from "@/lib/i18n";
+import {
+  languageName as displayLanguage,
+  locales,
+  t,
+  tPlural,
+  type LocaleCode,
+  type MessageKey,
+} from "@/lib/i18n";
 
 /** A language's own name, in its own script: "हिन्दी", not "Hindi". */
 function languageName(code: string): { label: string; lang: string } {
@@ -55,11 +62,10 @@ export function AcrossLanguagesModule({
               <p className="across__coverage">
                 <span className="visually-hidden">{t(locale, "across.outlets")} </span>
                 {item.coverage.map((entry, index) => {
-                  const name = languageName(entry.language);
                   return (
                     <span key={entry.language} className="across__lang">
                       {index > 0 && <span aria-hidden="true"> · </span>}
-                      <span lang={name.lang}>{name.label}</span>{" "}
+                      {displayLanguage(entry.language, locale, { capitalize: true })}{" "}
                       <b className="across__count">{entry.source_count.toLocaleString(locale)}</b>
                     </span>
                   );

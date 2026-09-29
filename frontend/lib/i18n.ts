@@ -1688,6 +1688,38 @@ export function formatRelativeTime(iso: string, locale: LocaleCode): string {
     ["day", 86_400],
     ["hour", 3_600],
     ["minute", 60],
+const displayNames = new Map<LocaleCode, Intl.DisplayNames>();
+
+/**
+ * A language's name in the reader's language: "Hindi" on an English page,
+ * "inglés" on a Spanish one, "अंग्रेज़ी" on a Hindi one - for anywhere a
+ * language is named in running text or a label. A picker, where a reader
+ * looks for their own language, shows each language's own name instead
+ * (`locales[].label`): "हिन्दी" in a sentence is a riddle to an English
+ * reader, and "Hindi" in a picker is a riddle to a Hindi one.
+ *
+ * `capitalize` for a label that stands alone; Spanish names a language in
+ * lower case mid-sentence, and a chip is not mid-sentence.
+ */
+export function languageName(
+  code: string,
+  locale: LocaleCode,
+  { capitalize = false }: { capitalize?: boolean } = {},
+): string {
+  let names = displayNames.get(locale);
+  if (!names) {
+    names = new Intl.DisplayNames([locale], { type: "language" });
+    displayNames.set(locale, names);
+  }
+  let name = code.toUpperCase();
+  try {
+    name = names.of(code) ?? name;
+  } catch {
+    // Not a language code at all; its upper-cased code is the honest label.
+  }
+  return capitalize ? name.charAt(0).toLocaleUpperCase(locale) + name.slice(1) : name;
+}
+
   ];
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   for (const [unit, size] of units) {

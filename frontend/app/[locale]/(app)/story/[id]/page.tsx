@@ -17,7 +17,15 @@ import {
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { viewHref } from "@/lib/discoverView";
-import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
+import {
+  formatRelativeTime,
+  getLocale,
+  isLocaleCode,
+  locales,
+  t,
+  tPlural,
+  languageName,
+} from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -130,7 +138,7 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
   ].map((entry) => entry.language);
   const columns: CoverageColumn[] = order.map((language) => ({
     language,
-    label: locales.find((locale) => locale.code === language)?.label ?? language,
+    label: languageName(language, active.code, { capitalize: true }),
     htmlLang: locales.find((locale) => locale.code === language)?.htmlLang ?? language,
     articles: detail.articles.filter((article) => article.language === language),
   }));

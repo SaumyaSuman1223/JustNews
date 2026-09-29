@@ -7,7 +7,15 @@ import { FollowSourceButton } from "@/components/FollowSourceButton";
 import { Pagination } from "@/components/Pagination";
 import { getArticles, getFollowedSources, getSource } from "@/lib/api";
 import { discoverReader, savedArticleIds } from "@/lib/discover";
-import { getLocale, isLocaleCode, locales, t, tPlural, type LocaleCode } from "@/lib/i18n";
+import {
+  getLocale,
+  isLocaleCode,
+  locales,
+  t,
+  tPlural,
+  type LocaleCode,
+  languageName,
+} from "@/lib/i18n";
 
 /** ADR 0013's roles - the same six labels Perspectives groups by; "wire" is
  * not a perspective and is not labelled as one here either. */
@@ -85,9 +93,11 @@ export default async function SourcePage({
     : null;
   // Only facts the row actually has; a source with no recorded country or
   // role prints fewer items rather than a placeholder.
-  const facts = [roleKey ? t(active.code, roleKey) : null, country, language?.label ?? null].filter(
-    (fact): fact is string => Boolean(fact),
-  );
+  const facts = [
+    roleKey ? t(active.code, roleKey) : null,
+    country,
+    language ? languageName(language.code, active.code, { capitalize: true }) : null,
+  ].filter((fact): fact is string => Boolean(fact));
 
   return (
     <>
