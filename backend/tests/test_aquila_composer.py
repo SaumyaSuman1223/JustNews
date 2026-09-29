@@ -225,6 +225,43 @@ class TestComposeIssue:
         clustered = [c for c in printed if c == cluster.id]
         assert len(clustered) <= 1, "the same story cluster must not run twice in one issue"
 
+    async def test_a_story_carried_in_several_languages_leads(self, session: AsyncSession) -> None:
+        """Breadth counts in the lead, as on Discover's Top: a story five
+        outlets are carrying in three languages leads over newer single-outlet
+        pieces. No pictures anywhere, so the picture preference decides
+        nothing; the broad story is the oldest, so recency alone would bury it."""
+        cluster = StoryCluster(
+            title="Summit ends in agreement",
+            first_seen_at=datetime.now(UTC),
+            last_seen_at=datetime.now(UTC),
+            article_count=5,
+            source_count=5,
+            language_count=3,
+        )
+        session.add(cluster)
+        await session.flush()
+        wire = await make_source(session, slug="wire-broad")
+        lead = await make_article(session, wire, title="Summit ends in agreement", minutes_ago=45)
+        lead.story_cluster_id = cluster.id
+        fillers = [await make_source(session, slug=f"filler-{i}") for i in range(6)]
+        for i in range(MIN_ARTICLES_FOR_ISSUE + 6):
+            await make_article(session, fillers[i % 6], title=f"Brief {i}", minutes_ago=20 + i)
+        await session.commit()
+
+        result = await compose_issue(session, locale="en", edition_slot="morning")
+        await session.commit()
+
+        led = await session.scalar(
+            select(IssueSlot.article_id)
+            .join(IssuePage, IssuePage.id == IssueSlot.page_id)
+            .where(
+                IssuePage.issue_id == result.issue_id,
+                IssuePage.page_no == 1,
+                IssueSlot.role == "lead",
+            )
+        )
+        assert led == lead.id
+
     async def test_no_source_dominates_a_page(self, session: AsyncSession) -> None:
         """The per-source cap is shared across a page's roles, not per role."""
         loud = await make_source(session, slug="loud-outlet")

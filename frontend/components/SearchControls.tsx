@@ -114,6 +114,7 @@ export function SearchControls({
   // What is in the box right now, for the type-ahead. The input itself stays
   // uncontrolled (defaultValue) so the form still submits without JS.
   const [draft, setDraft] = useState(query);
+  const activeFilters = [topic, language, source, date].filter(Boolean).length;
   const recent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   // Records the query that actually ran, not what was typed - so a search
@@ -175,9 +176,24 @@ export function SearchControls({
           autoComplete="off"
           onChange={(event) => setDraft(event.target.value)}
         />
-        <button className="button" type="submit">
+        <button className="button button--primary" type="submit">
           {t(locale, "search.submit")}
         </button>
+
+        {/* On a phone the filters fold behind this toggle, so results start
+            near the top. A checkbox and its label rather than a scripted
+            button: it opens without JavaScript and cannot shift the layout
+            while the page hydrates. */}
+        <input
+          type="checkbox"
+          id="search-filters-toggle"
+          className="search-filters__toggle-input visually-hidden"
+        />
+        <label htmlFor="search-filters-toggle" className="search-filters__toggle">
+          {activeFilters > 0
+            ? t(locale, "search.filters.count", { count: activeFilters })
+            : t(locale, "search.filters")}
+        </label>
 
         <div className="search-filters">
           <label className="search-filter">

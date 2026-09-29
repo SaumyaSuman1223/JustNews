@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { OutletIcon, originOf } from "@/components/discover/OutletIcon";
 import { ExternalIcon, HeartIcon, MoreIcon, ShareIcon } from "@/components/icons";
 import type { Article } from "@/lib/api";
 import type { DiscoverItem } from "@/lib/discoverView";
-import { formatRelativeTime, locales, t, tPlural, type LocaleCode } from "@/lib/i18n";
+import { formatRelativeTime, languageName, locales, t, tPlural, type LocaleCode } from "@/lib/i18n";
 import { formatRankReason } from "@/lib/rankReason";
 import { useHydrated } from "@/lib/useHydrated";
 
@@ -90,12 +91,14 @@ export function StoryCard({
     );
   }
 
+  // Generous enough for the widest page these cards sit on - a source or
+  // story page has no rail, so its cards run wider than Discover's.
   const imageSizes =
     variant === "lead"
-      ? "(max-width: 48rem) 100vw, 26rem"
+      ? "(max-width: 48rem) 100vw, 36rem"
       : variant === "wide"
-        ? "(max-width: 48rem) 100vw, 22rem"
-        : "(max-width: 48rem) 100vw, 16rem";
+        ? "(max-width: 48rem) 100vw, 30rem"
+        : "(max-width: 40rem) 100vw, 24rem";
 
   return (
     <article className={`story story--${variant}`}>
@@ -174,28 +177,19 @@ function languageTag(code: string): string {
   return locales.find((option) => option.code === code)?.htmlLang ?? code;
 }
 
-function languageLabel(code: string): string {
-  return locales.find((option) => option.code === code)?.label ?? code.toUpperCase();
-}
-
 /**
  * When the story was published, and which languages it is in: "3 hours ago
- * · also in हिन्दी, Español" for a story reported across languages, or the
- * card's own language when it is not the interface's. Language names are
- * set in their own script and tagged, so a screen reader says each one in
- * its own voice.
+ * · also in Hindi, Spanish" for a story reported across languages, or the
+ * card's own language when it is not the interface's - named in the
+ * reader's language, since this is a sentence they have to read.
  */
 function StoryMeta({ article, locale }: { article: Article; locale: LocaleCode }) {
   const others = (article.coverage?.language_codes ?? []).filter(
     (code) => code !== article.language,
   );
-  const names = (codes: string[]) =>
-    codes.map((code, index) => (
-      <span key={code}>
-        {index > 0 && ", "}
-        <span lang={languageTag(code)}>{languageLabel(code)}</span>
-      </span>
-    ));
+  // Named in the reader's language - "also in Hindi, Spanish" - since
+  // this is a sentence the reader has to be able to read.
+  const names = (codes: string[]) => codes.map((code) => languageName(code, locale)).join(", ");
   // "also in {languages}", with the names placed where each language's
   // grammar puts them ("{languages} में भी").
   const [before, after] = t(locale, "discover.alsoIn").split("{languages}");
@@ -215,7 +209,7 @@ function StoryMeta({ article, locale }: { article: Article; locale: LocaleCode }
       ) : article.language !== locale ? (
         <span className="story__langs">
           <span aria-hidden="true"> · </span>
-          {names([article.language])}
+          {languageName(article.language, locale, { capitalize: true })}
         </span>
       ) : null}
     </p>
@@ -247,7 +241,7 @@ function SourcesLine({ article, locale }: { article: Article; locale: LocaleCode
     <>
       <span className="sources__icons" aria-hidden="true">
         {outlets.map((outlet) => (
-          <Favicon key={outlet.slug} name={outlet.name} homepage={outlet.homepage_url} />
+          <OutletIcon key={outlet.slug} name={outlet.name} homepage={outlet.homepage_url} />
         ))}
       </span>
       <span className="sources__label">
@@ -264,43 +258,6 @@ function SourcesLine({ article, locale }: { article: Article; locale: LocaleCode
     <Link className="sources" href={`/${locale}/source/${encodeURIComponent(article.source_slug)}`}>
       {content}
     </Link>
-  );
-}
-
-function originOf(url: string): string {
-  try {
-    return new URL(url).origin;
-  } catch {
-    return "";
-  }
-}
-
-/** The outlet's own favicon, from its own site - the same hotlinking the
- * product already does for article images. Its initial when there is no
- * homepage to ask, or the icon does not load. */
-function Favicon({ name, homepage }: { name: string; homepage: string }) {
-  const [failed, setFailed] = useState(false);
-  let src: string | null = null;
-  if (homepage) {
-    try {
-      src = new URL("/favicon.ico", homepage).toString();
-    } catch {
-      src = null;
-    }
-  }
-  if (!src || failed) {
-    return <span className="sources__icon sources__icon--letter">{name.slice(0, 1)}</span>;
-  }
-  return (
-    <Image
-      className="sources__icon"
-      src={src}
-      alt=""
-      width={18}
-      height={18}
-      unoptimized
-      onError={() => setFailed(true)}
-    />
   );
 }
 

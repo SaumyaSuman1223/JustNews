@@ -7,7 +7,7 @@ import { FeedList } from "@/components/FeedList";
 import { PageHeaderSkeleton } from "@/components/PageHeaderSkeleton";
 import { Pagination } from "@/components/Pagination";
 import { getArticles, getEditions } from "@/lib/api";
-import { getLocale, isLocaleCode, locales, t } from "@/lib/i18n";
+import { getLocale, isLocaleCode, t, languageName } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
@@ -84,8 +84,7 @@ async function EditionBody({
         <p>
           {t(locale, "edition.intro", {
             name: edition.name,
-            language:
-              locales.find((option) => option.code === edition.language)?.label ?? edition.language,
+            language: languageName(edition.language, locale),
           })}
         </p>
       </div>

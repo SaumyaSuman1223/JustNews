@@ -3,20 +3,53 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { StoryGrid } from "@/components/discover/StoryGrid";
+import { StoryCoverage, type CoverageColumn } from "@/components/discover/StoryCoverage";
 import { CoverageChips } from "@/components/CoverageChips";
 import { FollowStoryButton } from "@/components/FollowStoryButton";
 import { Perspectives } from "@/components/Perspectives";
-import { getSaves, getStory, getStoryFollowState, getTopicStories, markStorySeen } from "@/lib/api";
+import {
+  getStory,
+  getStoryFollowState,
+  getTopicStories,
+  markStorySeen,
+  type StoryDetail,
+} from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { discoverReader } from "@/lib/discover";
+import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { viewHref } from "@/lib/discoverView";
-import { formatRelativeTime, getLocale, isLocaleCode, locales, t, tPlural } from "@/lib/i18n";
+import {
+  formatRelativeTime,
+  getLocale,
+  isLocaleCode,
+  locales,
+  t,
+  tPlural,
+  languageName,
+} from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 interface RouteParams {
   locale: string;
   id: string;
+}
+
+/**
+ * The report that speaks for the story on this page: the first one in the
+ * reader's interface language, or the first report at all. Its headline is
+ * the page's title and its snippet the standfirst - a Hindi reader of a
+ * story first reported in English gets the Hindi headline, tagged as Hindi.
+ */
+function voiceOf(detail: StoryDetail, locale: string) {
+  const inLocale = detail.articles.find((article) => article.language === locale);
+  const first = detail.articles[0];
+  const voice = inLocale ?? first;
+  return {
+    title: voice?.title ?? detail.story.title,
+    language: voice?.language ?? first?.language,
+    snippet: voice?.snippet ?? null,
+    image: (voice?.image_url ? voice : detail.articles.find((article) => article.image_url))
+      ?.image_url,
+  };
 }
 
 async function loadStory(id: string, language: string) {
@@ -37,10 +70,11 @@ export async function generateMetadata({
   if (!detail) {
     return { title: t(active, "article.notFound") };
   }
-  const leadImage = detail.articles[0]?.image_url;
+  const voice = voiceOf(detail, active);
+  const leadImage = voice.image;
   return {
-    title: detail.story.title,
-    description: detail.articles[0]?.snippet ?? undefined,
+    title: voice.title,
+    description: voice.snippet ?? undefined,
     alternates: { canonical: `/${locale}/story/${detail.story.id}` },
     // The lead article's own photo - same reasoning as the article page:
     // falls through to the generated default when there isn't one.
@@ -80,49 +114,44 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
   const auth = session
     ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
     : null;
-  const [savedIds, following] = await Promise.all([
-    auth
-      ? getSaves(auth).then((page) => new Set(page.data.items.map((item) => item.article.id)))
-      : Promise.resolve(new Set<number>()),
-    auth ? getStoryFollowState(auth, detail.story.id) : Promise.resolve(null),
-  ]);
+  const following = auth ? await getStoryFollowState(auth, detail.story.id) : null;
   // Opening the story is what "seen" means for "N new reports since you
   // looked" (fifth pass F2) - so a follower's visit resets their count.
   if (auth && following) await markStorySeen(auth, detail.story.id);
-  const canPersonalise = Boolean(auth) && (await discoverReader(active.code)).hasBetaAccess;
 
-  // The lead article - earliest reported, since list_articles_in_cluster
-  // orders that way - stands in for the story's own image and standfirst.
-  // Not an editorial pick, just the article that got here first.
-  const lead = detail.articles[0];
+  const voice = voiceOf(detail, active.code);
+  const titleLang = locales.find((option) => option.code === voice.language)?.htmlLang;
+  const category = detail.category
+    ? {
+        ...detail.category,
+        label: curatedTopicLabel(detail.category.id, detail.category.label, active.code),
+      }
+    : null;
 
   // Grouped by language rather than listed flat: the point of this page is
   // that the same event reads differently depending on where it is reported
-  // from, and a flat list buries that. Ordered by the coverage breakdown, so
-  // the language carrying the story leads.
-  const order = detail.coverage.map((entry) => entry.language);
-  const byLanguage = order.map((language) => ({
+  // from, and a flat list buries that. The reader's own language leads; the
+  // rest follow the coverage breakdown, most-covered first.
+  const order = [
+    ...detail.coverage.filter((entry) => entry.language === active.code),
+    ...detail.coverage.filter((entry) => entry.language !== active.code),
+  ].map((entry) => entry.language);
+  const columns: CoverageColumn[] = order.map((language) => ({
     language,
-    label: locales.find((locale) => locale.code === language)?.label ?? language,
+    label: languageName(language, active.code, { capitalize: true }),
     htmlLang: locales.find((locale) => locale.code === language)?.htmlLang ?? language,
     articles: detail.articles.filter((article) => article.language === language),
   }));
 
-  // Every source in the cluster, once each - built from `detail.articles`
-  // (complete by construction, matches `source_count` exactly) rather than
-  // `detail.perspectives` (only the sources with a recorded role, which the
-  // live data shows can be a strict subset). Each name links to that
-  // source's own article in this cluster: a real link, without adding a
-  // homepage field this endpoint doesn't otherwise need.
-  const sources = Array.from(
-    new Map(detail.articles.map((article) => [article.source_id, article])).values(),
-  ).sort((a, b) => a.source_name.localeCompare(b.source_name, active.code));
-
   return (
     <>
       <div className="page-header story-header">
-        <h1>{detail.story.title}</h1>
-        {lead?.snippet && <p className="article-snippet">{lead.snippet}</p>}
+        <h1 lang={titleLang}>{voice.title}</h1>
+        {voice.snippet && (
+          <p className="article-snippet" lang={titleLang}>
+            {voice.snippet}
+          </p>
+        )}
         {/* Reports and sources counted separately: one outlet filing twice
             is two reports from one source, and saying only "1 source" beside
             a count of 2 read as a contradiction. */}
@@ -136,10 +165,10 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
           ].join(" · ")}
         </p>
         <p className="story-header__facts">
-          {detail.category && (
+          {category && (
             <>
-              <Link href={viewHref(active.code, { kind: "topic", topicId: detail.category.id })}>
-                {detail.category.label}
+              <Link href={viewHref(active.code, { kind: "topic", topicId: category.id })}>
+                {category.label}
               </Link>
               {" · "}
             </>
@@ -152,18 +181,13 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
             time: formatRelativeTime(detail.story.last_seen_at, active.code),
           })}
         </p>
-        {sources.length > 0 && (
-          <ul className="story-sources" aria-label={t(active.code, "story.sources.label")}>
-            {sources.map((article) => (
-              <li key={article.source_id}>
-                <Link href={`/${active.code}/a/${article.id}`}>{article.source_name}</Link>
-              </li>
-            ))}
-          </ul>
-        )}
         {/* One language says nothing the line above does not. */}
         {detail.story.language_count > 1 && (
-          <CoverageChips coverage={detail.coverage} locale={active.code} />
+          <CoverageChips
+            coverage={detail.coverage}
+            locale={active.code}
+            linkTo={(language) => `#coverage-${language}`}
+          />
         )}
         {/* Null when it cannot be known (signed out, no beta access): no
             control at all rather than one that cannot work. */}
@@ -179,10 +203,10 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
         )}
       </div>
 
-      {lead?.image_url && (
+      {voice.image && (
         <Image
           className="article-media story-media"
-          src={lead.image_url}
+          src={voice.image}
           alt=""
           width={1200}
           sizes="(max-width: 48rem) 100vw, 44rem"
@@ -191,29 +215,10 @@ export default async function StoryPage({ params }: { params: Promise<RouteParam
         />
       )}
 
-      {byLanguage.map((group) => (
-        <section key={group.language} className="coverage-group">
-          <h2 className="coverage-group__heading">
-            <span lang={group.htmlLang}>{group.label}</span>
-            <span className="coverage-group__count">
-              {tPlural(active.code, "story.reports", group.articles.length)}
-            </span>
-          </h2>
-          {/* This page is the story's coverage: each card opens its report
-              at the publisher, not a JustNews page repeating the card. */}
-          <StoryGrid
-            articles={group.articles}
-            locale={active.code}
-            surface="topic"
-            signedIn={Boolean(session)}
-            canPersonalise={canPersonalise}
-            initialSaved={[...savedIds]}
-            lead={false}
-            features={false}
-            openAtPublisher
-          />
-        </section>
-      ))}
+      {/* This page is the story's coverage, laid out to compare: who
+          reported it, in which language, and when - each report opening at
+          its publisher. */}
+      <StoryCoverage locale={active.code} columns={columns} />
 
       {detail.perspectives.length > 0 && (
         <section className="coverage-group">

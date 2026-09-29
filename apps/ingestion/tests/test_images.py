@@ -21,6 +21,10 @@ class TestUsableImageUrl:
         assert usable_image_url("https://www.youtube.com/watch?v=7LaH1dfjRG8") is None
         assert usable_image_url("https://cdn.example/stream/index.m3u8") is None
 
+    def test_drops_a_host_that_refuses_embedding(self) -> None:
+        url = "https://c.ndtvimg.com/2026-09/x_625x300.jpg?im=FeatureCrop,width=1280"
+        assert usable_image_url(url) is None
+
     def test_drops_what_is_not_a_web_url(self) -> None:
         assert usable_image_url("data:image/png;base64,AAAA") is None
         assert usable_image_url("/relative/picture.jpg") is None

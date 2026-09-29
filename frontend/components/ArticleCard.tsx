@@ -260,7 +260,9 @@ export function ArticleCard({
             sizes={
               variant === "lead" || variant === "feature"
                 ? "(max-width: 60rem) 100vw, 40rem"
-                : "(max-width: 60rem) 50vw, 20rem"
+                : variant === "list"
+                  ? "8rem"
+                  : "(max-width: 60rem) 50vw, 20rem"
             }
             priority={priority}
           />

@@ -166,6 +166,7 @@ export function ReaderUtility({
                       hour: "2-digit",
                       minute: "2-digit",
                       hour12: false,
+                      timeZoneName: "short",
                     }).format(new Date(edition.published_at)),
                   })}
                 </span>

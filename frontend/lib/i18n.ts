@@ -106,6 +106,8 @@ const en = {
 
   "search.placeholder": "Search headlines",
   "search.submit": "Search",
+  "search.filters": "Filters",
+  "search.filters.count": "Filters ({count})",
 
   "account.signIn": "Sign in",
   "account.signOut": "Sign out",
@@ -130,7 +132,7 @@ const en = {
   "signIn.history.body":
     "Stories you open while signed in are listed here, so you can find one again.",
   "signIn.settings.body":
-    "Your reading languages, your privacy choices, and a copy of your data are kept here.",
+    "Your account's reading languages, your privacy choices, and a copy of your data are kept here.",
   "signIn.onboarding.body":
     "Choose the languages you read and the sources you trust, and For You starts from them.",
 
@@ -174,7 +176,7 @@ const en = {
   "aquila.pageLabel": "Page {page}",
   "aquila.pageEmpty": "Nothing was set on this page.",
   "aquila.pageFailed": "That page would not load. Try again.",
-  "aquila.backHome": "Back to the front page",
+  "aquila.backHome": "Back to Discover",
   "aquila.none.title": "No edition has been published yet",
   "aquila.none.body":
     "The Tribune is composed three times a day, at 6am, 2pm and 10pm. The next edition will appear here.",
@@ -202,6 +204,7 @@ const en = {
   "source.articleCount.other": "{count} articles on JustNews",
   "story.reports.one": "{count} report",
   "story.reports.other": "{count} reports",
+  "story.coverage.opensAtPublisher": "Each report opens on its publisher's site.",
   "story.firstReported": "First reported {time}",
   "story.lastUpdated": "Last updated {time}",
   "story.sources.label": "Sources covering this story",
@@ -292,7 +295,7 @@ const en = {
 
   "search.heading": "Search",
   "search.titleWithQuery": "Search: {query}",
-  "search.intro": "Headlines and summaries from every source, in the languages you read.",
+  "search.intro": "Headlines from every source, in the languages you read.",
   "search.results": "Results",
   "search.resultCount.one": "{count} result",
   "search.resultCount.other": "{count} results",
@@ -336,7 +339,7 @@ const en = {
 
   "consent.label": "Cookie choice",
   "consent.body":
-    "We'd like to remember your visit so we can measure whether the feed actually works and, later, personalise it. Nothing you save or mark isn't affected either way.",
+    "We'd like to remember your visit so we can measure whether the feed actually works and, later, personalise it. Your saved stories and settings stay the same either way.",
   "consent.accept": "Accept",
   "consent.decline": "Decline",
   "consent.settings.label": "Analytics",
@@ -535,6 +538,7 @@ const en = {
   "discover.actionFailed": "That didn't work. Try again.",
   "rail.label": "Your Discover rail",
   "rail.customize": "Customize",
+  "rail.customize.nothingYet": "Nothing to show yet",
   "rail.customize.title": "Customize your rail",
   "rail.customize.up": "Move {widget} up",
   "rail.customize.down": "Move {widget} down",
@@ -569,7 +573,7 @@ const en = {
   "markets.note": "Index-tracking ETFs, and Bitcoin. Prices may be delayed.",
   "markets.empty": "Market data isn't available yet.",
   "markets.tile": "{label}: {price}, {change} today",
-  "companies.title": "Trending Companies",
+  "companies.title": "Companies in the news",
   "companies.subtitle": "Most named in the last day's news",
   "companies.stories.one": "{count} story today",
   "companies.stories.other": "{count} stories today",
@@ -595,6 +599,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "search.placeholder": "Buscar titulares",
     "search.submit": "Buscar",
+    "search.filters": "Filtros",
+    "search.filters.count": "Filtros ({count})",
 
     "account.signIn": "Iniciar sesión",
     "account.signOut": "Cerrar sesión",
@@ -620,7 +626,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "signIn.history.body":
       "Las historias que abras con la sesión iniciada aparecen aquí para que puedas volver a encontrarlas.",
     "signIn.settings.body":
-      "Aquí están tus idiomas de lectura, tus opciones de privacidad y una copia de tus datos.",
+      "Aquí están los idiomas de lectura de tu cuenta, tus opciones de privacidad y una copia de tus datos.",
     "signIn.onboarding.body":
       "Elige los idiomas que lees y los medios en que confías, y Para ti empieza por ellos.",
 
@@ -664,7 +670,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.pageLabel": "Página {page}",
     "aquila.pageEmpty": "No se compuso nada en esta página.",
     "aquila.pageFailed": "Esa página no se ha cargado. Inténtalo de nuevo.",
-    "aquila.backHome": "Volver a la portada",
+    "aquila.backHome": "Volver a Descubrir",
     "aquila.none.title": "Aún no se ha publicado ninguna edición",
     "aquila.none.body":
       "El Tribune se compone tres veces al día: a las 6:00, las 14:00 y las 22:00. La próxima edición aparecerá aquí.",
@@ -692,6 +698,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "source.articleCount.other": "{count} artículos en JustNews",
     "story.reports.one": "{count} información",
     "story.reports.other": "{count} informaciones",
+    "story.coverage.opensAtPublisher": "Cada información se abre en el sitio de su medio.",
     "story.firstReported": "Primer informe {time}",
     "story.lastUpdated": "Última actualización {time}",
     "story.sources.label": "Fuentes que cubren esta historia",
@@ -784,7 +791,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "search.heading": "Buscar",
     "search.titleWithQuery": "Buscar: {query}",
-    "search.intro": "Titulares y resúmenes de todos los medios, en los idiomas que lees.",
+    "search.intro": "Titulares de todos los medios, en los idiomas que lees.",
     "search.results": "Resultados",
     "search.resultCount.one": "{count} resultado",
     "search.resultCount.other": "{count} resultados",
@@ -830,7 +837,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "consent.label": "Elección de cookies",
     "consent.body":
-      "Nos gustaría recordar tu visita para poder medir si el feed realmente funciona y, más adelante, personalizarlo. Nada que guardes o marques se ve afectado en ningún caso.",
+      "Nos gustaría recordar tu visita para medir si el feed realmente funciona y, más adelante, personalizarlo. Tus historias guardadas y tus ajustes no cambian en ningún caso.",
     "consent.accept": "Aceptar",
     "consent.decline": "Rechazar",
     "consent.settings.label": "Analítica",
@@ -1029,6 +1036,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "discover.actionFailed": "No funcionó. Inténtalo de nuevo.",
     "rail.label": "Tu panel de Descubrir",
     "rail.customize": "Personalizar",
+    "rail.customize.nothingYet": "Nada que mostrar todavía",
     "rail.customize.title": "Personaliza tu panel",
     "rail.customize.up": "Subir {widget}",
     "rail.customize.down": "Bajar {widget}",
@@ -1064,7 +1072,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "markets.note": "ETF que siguen índices, y bitcóin. Los precios pueden ir con retraso.",
     "markets.empty": "Aún no hay datos del mercado.",
     "markets.tile": "{label}: {price}, {change} hoy",
-    "companies.title": "Empresas en tendencia",
+    "companies.title": "Empresas en las noticias",
     "companies.subtitle": "Las más citadas en las noticias del último día",
     "companies.stories.one": "{count} noticia hoy",
     "companies.stories.other": "{count} noticias hoy",
@@ -1085,6 +1093,8 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "search.placeholder": "सुर्ख़ियाँ खोजें",
     "search.submit": "खोजें",
+    "search.filters": "फ़िल्टर",
+    "search.filters.count": "फ़िल्टर ({count})",
 
     "account.signIn": "साइन इन",
     "account.signOut": "साइन आउट",
@@ -1108,7 +1118,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "signIn.history.body":
       "साइन इन रहते हुए खोली गई ख़बरें यहाँ दिखती हैं, ताकि आप उन्हें फिर ढूँढ सकें।",
     "signIn.settings.body":
-      "आपकी पढ़ने की भाषाएँ, निजता के विकल्प और आपके डेटा की प्रति यहाँ रहती है।",
+      "आपके खाते की पढ़ने की भाषाएँ, निजता के विकल्प और आपके डेटा की प्रति यहाँ रहती है।",
     "signIn.onboarding.body":
       "अपनी पढ़ी जाने वाली भाषाएँ और भरोसेमंद स्रोत चुनें, और आपके लिए उन्हीं से शुरू होगा।",
 
@@ -1152,7 +1162,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "aquila.pageLabel": "पृष्ठ {page}",
     "aquila.pageEmpty": "इस पृष्ठ पर कुछ नहीं रखा गया।",
     "aquila.pageFailed": "वह पृष्ठ लोड नहीं हुआ। फिर कोशिश करें।",
-    "aquila.backHome": "मुखपृष्ठ पर वापस",
+    "aquila.backHome": "डिस्कवर पर लौटें",
     "aquila.none.title": "अभी कोई संस्करण प्रकाशित नहीं हुआ",
     "aquila.none.body":
       "ट्रिब्यून दिन में तीन बार तैयार होता है — सुबह 6, दोपहर 2 और रात 10 बजे। अगला संस्करण यहाँ दिखेगा।",
@@ -1180,6 +1190,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "source.articleCount.other": "JustNews पर {count} लेख",
     "story.reports.one": "{count} रिपोर्ट",
     "story.reports.other": "{count} रिपोर्ट",
+    "story.coverage.opensAtPublisher": "हर रिपोर्ट उसके प्रकाशक की साइट पर खुलती है।",
     "story.firstReported": "पहली बार रिपोर्ट {time}",
     "story.lastUpdated": "आख़िरी अपडेट {time}",
     "story.sources.label": "इस कहानी को कवर करने वाले स्रोत",
@@ -1272,7 +1283,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "search.heading": "खोज",
     "search.titleWithQuery": "खोज: {query}",
-    "search.intro": "हर स्रोत की सुर्ख़ियाँ और सार, आपकी पढ़ी जाने वाली भाषाओं में।",
+    "search.intro": "हर स्रोत की सुर्ख़ियाँ, आपकी पढ़ी जाने वाली भाषाओं में।",
     "search.results": "परिणाम",
     "search.resultCount.one": "{count} परिणाम",
     "search.resultCount.other": "{count} परिणाम",
@@ -1316,7 +1327,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "consent.label": "कुकी विकल्प",
     "consent.body":
-      "हम आपकी विज़िट याद रखना चाहते हैं ताकि यह माप सकें कि फ़ीड वाकई काम करती है या नहीं, और आगे चलकर इसे वैयक्तिकृत कर सकें। आप जो कुछ सहेजते या चिह्नित करते हैं, वह दोनों ही स्थिति में प्रभावित नहीं होता।",
+      "हम आपकी विज़िट याद रखना चाहते हैं ताकि यह माप सकें कि फ़ीड वाकई काम करती है या नहीं, और आगे चलकर इसे वैयक्तिकृत कर सकें। आपकी सहेजी ख़बरें और सेटिंग दोनों ही स्थिति में वैसी ही रहेंगी।",
     "consent.accept": "स्वीकार करें",
     "consent.decline": "अस्वीकार करें",
     "consent.settings.label": "एनालिटिक्स",
@@ -1512,6 +1523,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "discover.actionFailed": "यह नहीं हुआ। फिर कोशिश करें।",
     "rail.label": "आपका डिस्कवर पैनल",
     "rail.customize": "अनुकूलित करें",
+    "rail.customize.nothingYet": "अभी दिखाने को कुछ नहीं",
     "rail.customize.title": "अपना पैनल अनुकूलित करें",
     "rail.customize.up": "{widget} ऊपर ले जाएँ",
     "rail.customize.down": "{widget} नीचे ले जाएँ",
@@ -1547,7 +1559,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "markets.note": "सूचकांक ट्रैक करने वाले ETF और बिटकॉइन। कीमतें देर से हो सकती हैं।",
     "markets.empty": "बाज़ार का डेटा अभी उपलब्ध नहीं है।",
     "markets.tile": "{label}: {price}, आज {change}",
-    "companies.title": "चर्चा में कंपनियाँ",
+    "companies.title": "ख़बरों में कंपनियाँ",
     "companies.subtitle": "पिछले दिन की खबरों में सबसे ज़्यादा ज़िक्र",
     "companies.stories.one": "आज {count} खबर",
     "companies.stories.other": "आज {count} खबरें",
@@ -1674,6 +1686,38 @@ export function formatAbsoluteTime(iso: string, locale: LocaleCode): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "long", timeStyle: "short" }).format(
     new Date(iso),
   );
+}
+
+const displayNames = new Map<LocaleCode, Intl.DisplayNames>();
+
+/**
+ * A language's name in the reader's language: "Hindi" on an English page,
+ * "inglés" on a Spanish one, "अंग्रेज़ी" on a Hindi one - for anywhere a
+ * language is named in running text or a label. A picker, where a reader
+ * looks for their own language, shows each language's own name instead
+ * (`locales[].label`): "हिन्दी" in a sentence is a riddle to an English
+ * reader, and "Hindi" in a picker is a riddle to a Hindi one.
+ *
+ * `capitalize` for a label that stands alone; Spanish names a language in
+ * lower case mid-sentence, and a chip is not mid-sentence.
+ */
+export function languageName(
+  code: string,
+  locale: LocaleCode,
+  { capitalize = false }: { capitalize?: boolean } = {},
+): string {
+  let names = displayNames.get(locale);
+  if (!names) {
+    names = new Intl.DisplayNames([locale], { type: "language" });
+    displayNames.set(locale, names);
+  }
+  let name = code.toUpperCase();
+  try {
+    name = names.of(code) ?? name;
+  } catch {
+    // Not a language code at all; its upper-cased code is the honest label.
+  }
+  return capitalize ? name.charAt(0).toLocaleUpperCase(locale) + name.slice(1) : name;
 }
 
 /** Locale-aware relative time, e.g. "3 hours ago" / "منذ ٣ ساعات". */

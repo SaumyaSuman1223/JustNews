@@ -79,6 +79,8 @@
      controls get the softer corner. One token cannot serve both, and the
      failure mode of trying is `rounded-2xl` on everything. */
   --radius-editorial: 3px;
+  /* The phone tab bar's height, shared with what must sit above it. */
+  --tabbar-block-size: 4.25rem;
   --radius: 6px;
 
   /* Modular scale, named by role rather than by size, in the vocabulary
@@ -588,9 +590,7 @@ a.card__source:focus-visible {
 }
 
 .article-topics__label {
-  font-size: var(--type-micro);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: var(--type-label);
   color: var(--text-muted);
 }
 
@@ -752,6 +752,8 @@ a.card__source:focus-visible {
 
 .not-found__wordmark {
   display: inline-block;
+  /* Smaller than the page title below it, which it outranked on a phone. */
+  font-size: 1.2rem;
   margin-block-end: var(--space-12);
   color: var(--text);
   text-decoration: none;
@@ -1563,7 +1565,7 @@ a.card__source:focus-visible {
   align-items: center;
   gap: 0.15rem;
   /* Spec §46: a 68-78px bar, comfortably past the 44px touch-target floor. */
-  min-block-size: 4.25rem;
+  min-block-size: var(--tabbar-block-size);
   padding-block: var(--space-3);
   color: var(--text-muted);
   transition: color var(--dur-micro) var(--ease);
@@ -2282,7 +2284,10 @@ a.chip:active {
 /* A rule above, not a bar down the side of a box: the same "rules and type,
    not boxes" language as every other section heading on the page (§32), with
    the accent carrying the emphasis (fifth pass, detector finding). */
+/* As wide as the sections under it, so the page keeps one edge. */
 .callout {
+  max-inline-size: min(100%, 62rem);
+  margin-inline: auto;
   border-block-start: 2px solid var(--accent);
   padding-block: var(--space-4) 0;
   margin-block: var(--space-8);
@@ -2300,14 +2305,26 @@ a.chip:active {
    No shadow: nothing else in this file uses one, and the border plus the
    surface/ground contrast already reads as "a different layer" without
    introducing elevation as a first here. */
+/* Above the page and above the phone tab bar: a choice the reader cannot
+   reach is not a choice. It sat under the tab bar (z-index 20 to its 40),
+   and a tap on Decline or Accept landed on the tab bar instead. */
 .consent-banner {
   position: fixed;
   inset-block-end: 0;
   inset-inline: 0;
-  z-index: 20;
+  z-index: 45;
   background: var(--surface);
   border-block-start: 3px solid var(--accent);
   padding: var(--space-4);
+}
+
+/* Where the phone tab bar shows, the banner sits on top of it rather than
+   over it, so both stay usable. */
+@media (max-width: 56.1875rem) {
+  .consent-banner {
+    inset-block-end: calc(var(--tabbar-block-size) + 1px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 0.35);
+  }
 }
 
 .consent-banner__inner {
@@ -2332,6 +2349,26 @@ a.chip:active {
 }
 
 /* --- target size ---------------------------------------------------------- */
+
+/* Text links that sat under the 24px minimum (WCAG 2.2, 2.5.8): padded to
+   it, the padding taken back out of the line so nothing moves. */
+a.card__source,
+.search-recent__clear,
+.story-header__facts a {
+  display: inline-block;
+}
+
+.sources,
+a.card__source,
+.search-recent__clear,
+.story-header__facts a {
+  padding-block: 0.35rem;
+  margin-block: -0.35rem;
+}
+
+.rail-link-button {
+  min-block-size: 1.5rem;
+}
 
 /* WCAG 2.2 AA is 2.5.8 Target Size (Minimum): 24x24 CSS pixels. Three
    controls sat under it - the admin status pill, the masthead links, whose
@@ -3907,6 +3944,53 @@ span.paper__pageref {
   gap: var(--space-4);
 }
 
+/* The toggle, and its checkbox, exist only where the filters fold: on a
+   wide screen a checkbox whose label is hidden is an unlabelled control. */
+.search-filters__toggle,
+.search-filters__toggle-input {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .search-filters__toggle-input {
+    display: block;
+  }
+
+  .search-filters__toggle {
+    grid-column: 1 / -1;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: var(--type-body-s);
+    font-weight: 600;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+
+  .search-filters__toggle-input:checked + .search-filters__toggle {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .search-filters__toggle-input:focus-visible + .search-filters__toggle {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .search-filters {
+    display: none;
+  }
+
+  .search-filters__toggle-input:checked ~ .search-filters {
+    display: grid;
+    gap: var(--space-3);
+  }
+}
+
 .search-filter {
   display: flex;
   align-items: center;
@@ -3965,7 +4049,8 @@ span.paper__pageref {
    where these were letter-spaced capitals from an older design. */
 .home-tier,
 .coverage-group__heading,
-.search-group__heading {
+.search-group__heading,
+.coverage-column__heading {
   margin: 0 0 var(--space-4);
   padding-block-start: var(--space-3);
   border-block-start: 2px solid var(--text);
@@ -3983,6 +4068,106 @@ span.paper__pageref {
 
 .home-tier a:hover {
   text-decoration: underline;
+}
+
+/* --- a story's coverage, laid out to compare ------------------------------ */
+
+.coverage-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-8);
+  margin-block: var(--space-8);
+}
+
+/* The header's language chips jump here; clear the sticky phone bar. */
+.coverage-column {
+  scroll-margin-block-start: var(--space-16);
+}
+
+.coverage-column__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.coverage-column__count,
+.coverage-group__count {
+  font-family: var(--font-ui);
+  font-size: var(--type-label);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.coverage-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.coverage-row {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.coverage-row:first-child {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.coverage-row__link {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.coverage-row__outlet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--type-label);
+  font-weight: 600;
+  color: var(--text-mid);
+}
+
+.coverage-row__title {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.coverage-row__link:hover .coverage-row__title {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.coverage-row__time {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip--link {
+  color: var(--text-mid);
+  text-decoration: none;
+  transition: border-color var(--dur-micro) var(--ease);
+}
+
+.chip--link:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* The callout draws its own brass rule; its heading does not add a second. */
+.callout .coverage-group__heading {
+  border-block-start: 0;
+  padding-block-start: 0;
 }
 
 .story-grid {
@@ -4300,7 +4485,9 @@ span.paper__pageref {
       visibility 0s;
   }
 
-  .sidebar__collapse {
+  /* Collapsing is a wide-screen control. Scoped under .sidebar so the
+     base rule further down, which sets its display, cannot win the tie. */
+  .sidebar .sidebar__collapse {
     display: none;
   }
 }
@@ -4566,6 +4753,7 @@ html[data-drawer-open] {
   position: sticky;
   inset-block-start: 0;
   z-index: 30;
+  transition: transform var(--dur-standard) var(--ease);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -4574,6 +4762,22 @@ html[data-drawer-open] {
   background: color-mix(in srgb, var(--ground) 92%, transparent);
   backdrop-filter: saturate(1.4) blur(10px);
   border-block-end: 1px solid var(--border);
+}
+
+/* Hidden while the reader scrolls down (components/SidebarControls.tsx);
+   Discover's bar moves up into the space it leaves. */
+html[data-topbar-hidden] .topbar {
+  transform: translateY(-100%);
+}
+
+@media (max-width: 56.1875rem) {
+  .discover__bar {
+    transition: inset-block-start var(--dur-standard) var(--ease);
+  }
+
+  html[data-topbar-hidden] .discover__bar {
+    inset-block-start: 0;
+  }
 }
 
 .topbar__wordmark {
@@ -6190,6 +6394,11 @@ html[data-drawer-open] {
   outline: none;
 }
 
+.rail-customize__empty {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
 .rail-customize__list {
   list-style: none;
   margin: 0;
@@ -6244,4 +6453,62 @@ html[data-drawer-open] {
   .rail-customize {
     animation: none;
   }
+}
+
+/* --- Devanagari ------------------------------------------------------------
+ *
+ * Three things Latin typography does that Hindi must not inherit. Last in
+ * the file so each wins its ties.
+ */
+
+/* Tracking pulls apart letters that Devanagari joins with its headline bar
+   and conjuncts; a tracked label in Hindi reads as broken type. */
+:is(
+  .card__new,
+  .badge,
+  .eyebrow,
+  .auth-divider,
+  .reading-mix__subheading,
+  .paper__masthead-side,
+  .paper__strap,
+  .paper__folio,
+  .paper__rule,
+  .paper__label,
+  .paper__byline,
+  .paper__pageref,
+  .paper__footer,
+  .aquila__folio,
+  .aquila__contents-toggle,
+  .aquila-teaser__edition
+):lang(hi) {
+  letter-spacing: normal;
+}
+
+/* Latin figures inside a Hindi headline come from Cormorant, whose default
+   old-style figures sit small and low beside Devanagari. */
+:lang(hi) {
+  font-variant-numeric: lining-nums;
+}
+
+/* Noto Serif Devanagari at a given weight is far darker than Cormorant at
+   the same number, so a mixed feed read Hindi as bold and English as light.
+   A step lighter puts the two on one colour. */
+:is(
+  .story--card .story__title,
+  .story--wide .story__title,
+  .across__headline,
+  .coverage-row__title,
+  .aquila-teaser__lead,
+  .most-read__title
+):lang(hi) {
+  font-weight: 500;
+}
+
+.story--lead .story__title:lang(hi) {
+  font-weight: 400;
+}
+
+/* A page title is set bold (the browser's h1 weight) in Latin. */
+.page-header h1:lang(hi) {
+  font-weight: 500;
 }

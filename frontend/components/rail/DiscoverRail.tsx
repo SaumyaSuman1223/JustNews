@@ -159,6 +159,7 @@ export function DiscoverRail({
       {customizing && (
         <CustomizePanel
           locale={locale}
+          data={data}
           prefs={prefs}
           onChange={update}
           onClose={() => setCustomizing(false)}
@@ -321,11 +322,13 @@ function MakeItYours({
 
 function CustomizePanel({
   locale,
+  data,
   prefs,
   onChange,
   onClose,
 }: {
   locale: LocaleCode;
+  data: RailData;
   prefs: RailPrefs;
   onChange: (prefs: RailPrefs) => void;
   onClose: () => void;
@@ -379,6 +382,13 @@ function CustomizePanel({
                   onChange={() => toggle(id)}
                 />
                 <span>{name}</span>
+                {/* On, but with nothing to show: said here, since the rail
+                    leaves an empty module out. */}
+                {WIDGETS[id].empty?.(data) && (
+                  <span className="rail-customize__empty">
+                    {t(locale, "rail.customize.nothingYet")}
+                  </span>
+                )}
               </label>
               <span className="rail-customize__moves">
                 <button

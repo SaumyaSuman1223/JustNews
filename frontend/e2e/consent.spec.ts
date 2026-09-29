@@ -41,6 +41,20 @@ test.describe("consent", () => {
     expect((await context.cookies()).find((c) => c.name === "jn_sid")).toBeUndefined();
   });
 
+  // The banner once sat under the phone tab bar: visible, but a tap on
+  // either button landed on the tab bar. Playwright's click refuses a
+  // covered element, so this fails if that comes back.
+  test("on a phone, both choices can be tapped", async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/en");
+    const banner = page.getByRole("region", { name: "Cookie choice" });
+    await expect(banner).toBeVisible();
+    await expect(page.getByRole("button", { name: "Accept" })).toBeInViewport();
+    await page.getByRole("button", { name: "Decline", exact: true }).click();
+    await expect(banner).toBeHidden();
+    expect((await context.cookies()).find((c) => c.name === "jn_sid")).toBeUndefined();
+  });
+
   test("a choice returns the reader to the page they were on", async ({ page }) => {
     await page.goto("/en/search?q=climate");
     await page.getByRole("button", { name: "Decline" }).click();

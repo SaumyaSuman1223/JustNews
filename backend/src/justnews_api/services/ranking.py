@@ -30,6 +30,10 @@ MMR_LAMBDA = 0.7  # relevance vs diversity trade-off
 # How much a story gains per doubling of the outlets carrying it, in the
 # signed-out importance order (`score_for_everyone`).
 BREADTH_WEIGHT = 0.5
+# How much a story gains per extra language it is reported in, in the same
+# order. Cross-language coverage is the thing this product exists to show; a
+# story three languages are carrying is news in a way one outlet's is not.
+LANGUAGE_WEIGHT = 0.35
 
 # How far back "recent" reaches for the popularity signal (recent_click_counts).
 # Lives here, not in feed.py, so services.exploration_deck can share it
@@ -105,7 +109,8 @@ def score_for_everyone(
     recency x breadth x source trust: the same recency decay and trust term
     the personal ranker uses, times how widely the story is being carried -
     ``1 + BREADTH_WEIGHT * log2(outlets)``, so a story five outlets are
-    running outranks a comparable one only one is. Arithmetic over columns
+    running outranks a comparable one only one is - and by how many languages
+    carry it, ``1 + LANGUAGE_WEIGHT * (languages - 1)``. Arithmetic over columns
     already on the row (ADR 0004); nothing here knows or guesses what a story
     is about. ``topic_ids`` stay empty, so `diversify` spreads the result
     across sources rather than topics.
@@ -114,9 +119,11 @@ def score_for_everyone(
     scored: list[ScoredCandidate] = []
     for article in candidates:
         outlets = article.coverage.sources if article.coverage is not None else 1
+        languages = article.coverage.languages if article.coverage is not None else 1
         breadth = 1.0 + BREADTH_WEIGHT * math.log2(max(outlets, 1))
+        reach = 1.0 + LANGUAGE_WEIGHT * (max(languages, 1) - 1)
         trust = SOURCE_TRUST_FLOOR + (1 - SOURCE_TRUST_FLOOR) * article.source_trust_score
-        score = _recency_score(article.published_at, now=now) * breadth * trust
+        score = _recency_score(article.published_at, now=now) * breadth * reach * trust
         scored.append(ScoredCandidate(article=article, score=score, topic_ids=frozenset()))
     return scored
 
@@ -191,3 +198,19 @@ def diversify(candidates: list[ScoredCandidate], *, limit: int | None = None) ->
             for candidate, current in zip(pool, redundancy, strict=True)
         ]
     return [candidate.article for candidate in selected]
+
+
+def cap_per_source(articles: list[ArticleRow], *, cap: int, limit: int) -> list[ArticleRow]:
+    """The first `limit` of an ordered list with at most `cap` from any one
+    source. MMR's same-source penalty is a nudge, and a publisher filing forty
+    regional briefs an hour outweighs it: this is the hard rule behind it."""
+    counts: dict[str, int] = {}
+    chosen: list[ArticleRow] = []
+    for article in articles:
+        if len(chosen) >= limit:
+            break
+        if counts.get(article.source_slug, 0) >= cap:
+            continue
+        counts[article.source_slug] = counts.get(article.source_slug, 0) + 1
+        chosen.append(article)
+    return chosen
