@@ -4,7 +4,16 @@ import { notFound } from "next/navigation";
 
 import { Discover, type DiscoverTopic } from "@/components/discover/Discover";
 import { DiscoverRail } from "@/components/rail/DiscoverRail";
-import { getMarketTiles, getTopics, getTrendingCompanies } from "@/lib/api";
+import {
+  getAcrossLanguages,
+  getIssueFrontPage,
+  getLatestIssue,
+  getMarketTiles,
+  getTopics,
+  getTrending,
+  getTrendingCompanies,
+  type Issue,
+} from "@/lib/api";
 import { curatedTopicLabel, curatedTopics } from "@/lib/curatedTopics";
 import { discoverReader, loadDiscoverPage, savedArticleIds } from "@/lib/discover";
 import { parseView, viewTitle, type DiscoverView } from "@/lib/discoverView";
@@ -17,6 +26,16 @@ import {
   parseRailPrefs,
   parseWeatherPlace,
 } from "@/lib/railPrefs";
+
+/** Today's edition and its front page, for the rail's teaser. Read without
+ * the reader's session: the teaser is not the reader opening Aquila, so it
+ * logs nothing. */
+async function todaysAquila(
+  locale: LocaleCode,
+): Promise<{ issue: Issue | null; front: Awaited<ReturnType<typeof getIssueFrontPage>> }> {
+  const issue = await getLatestIssue(null, { locale });
+  return { issue, front: issue ? await getIssueFrontPage(issue.id, locale) : null };
+}
 
 /** A topic's label: the curated one where there is one, the API's otherwise. */
 async function topicLabelFor(view: DiscoverView, locale: LocaleCode): Promise<string | undefined> {
@@ -69,16 +88,20 @@ export default async function DiscoverRoute({
   const view = parseView(await searchParams);
   const reader = await discoverReader(active.code);
 
-  const [page, topicList, saved, markets, companies, cookieStore] = await Promise.all([
-    loadDiscoverPage(reader, view, active.code),
-    getTopics(active.code),
-    savedArticleIds(reader),
-    // Both served from the API's Redis cache (ADR 0014) - fast enough to
-    // render with the page rather than pop in after it.
-    getMarketTiles(),
-    getTrendingCompanies(),
-    cookies(),
-  ]);
+  const [page, topicList, saved, across, aquila, mostRead, markets, companies, cookieStore] =
+    await Promise.all([
+      loadDiscoverPage(reader, view, active.code),
+      getTopics(active.code),
+      savedArticleIds(reader),
+      // The rail's reads are all shared and cached (ADR 0014) - fast enough
+      // to render with the page rather than pop in after it.
+      getAcrossLanguages(reader.languages),
+      todaysAquila(active.code),
+      getTrending(reader.languages, 5),
+      getMarketTiles(),
+      getTrendingCompanies(),
+      cookies(),
+    ]);
   // The API's list when it has one; the curated ids otherwise, so the menu
   // and "Make it yours" never render empty just because the API is down.
   const source =
@@ -122,21 +145,30 @@ export default async function DiscoverRoute({
           canPersonalise={Boolean(reader.auth) && reader.hasBetaAccess}
           hasInterests={reader.interests.length > 0}
           initialSaved={saved}
+          readLanguages={reader.languages}
+          rail={
+            <DiscoverRail
+              data={{
+                locale: active.code,
+                acrossLanguages: across.data,
+                issue: aquila.issue,
+                issueFront: aquila.front,
+                mostRead: mostRead.data,
+                markets: markets.data,
+                companies: companies.data,
+                weatherPlace: parseWeatherPlace(cookieStore.get(WEATHER_COOKIE)?.value),
+                tempUnit: cookieStore.get(TEMP_UNIT_COOKIE)?.value === "f" ? "f" : "c",
+              }}
+              initialPrefs={parseRailPrefs(cookieStore.get(RAIL_COOKIE)?.value)}
+              // Asked until the reader answers - by choosing, or by closing it.
+              askInterests={
+                reader.interests.length === 0 && !cookieStore.get(INTERESTS_DISMISSED_COOKIE)
+              }
+              interestTopics={menuTopics}
+            />
+          }
         />
       </div>
-      <DiscoverRail
-        data={{
-          locale: active.code,
-          markets: markets.data,
-          companies: companies.data,
-          weatherPlace: parseWeatherPlace(cookieStore.get(WEATHER_COOKIE)?.value),
-          tempUnit: cookieStore.get(TEMP_UNIT_COOKIE)?.value === "f" ? "f" : "c",
-        }}
-        initialPrefs={parseRailPrefs(cookieStore.get(RAIL_COOKIE)?.value)}
-        // Asked until the reader answers - by choosing, or by closing it.
-        askInterests={reader.interests.length === 0 && !cookieStore.get(INTERESTS_DISMISSED_COOKIE)}
-        interestTopics={menuTopics}
-      />
     </div>
   );
 }

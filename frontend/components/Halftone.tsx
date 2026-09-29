@@ -77,18 +77,8 @@ export function HalftoneImage({
 }) {
   return (
     <span className={`halftone halftone--${scale} ${className}`}>
-      {/* `unoptimized`, like every other image in the product: the source is
-          the publisher's own CDN and next/image would need each of those
-          hosts in remotePatterns. */}
-      <Image
-        src={src}
-        alt=""
-        width={width}
-        height={height}
-        sizes={sizes}
-        unoptimized
-        priority={priority}
-      />
+      {/* Sized by the publisher's own image service - lib/imageLoader.ts. */}
+      <Image src={src} alt="" width={width} height={height} sizes={sizes} priority={priority} />
     </span>
   );
 }

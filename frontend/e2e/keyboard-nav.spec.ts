@@ -59,6 +59,9 @@ test("the sidebar is keyboard-reachable, and collapsed it keeps every name", asy
 test("Discover's views swap in place and keep a real URL", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/en");
+  // Under a busy test run the click could land before hydration, when the
+  // tab is still a plain link.
+  await page.waitForLoadState("networkidle");
   const tabs = page.getByRole("navigation", { name: "Discover views" });
   await expect(tabs.getByRole("link", { name: "For You" })).toHaveAttribute("aria-current", "page");
 

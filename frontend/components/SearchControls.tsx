@@ -132,7 +132,10 @@ export function SearchControls({
   // lists this page already loaded for its filters, so typing costs no
   // requests. Plain links under the box rather than an ARIA combobox: a
   // keyboard reader tabs to them, a screen reader hears them as a list.
-  const needle = draft.trim().toLocaleLowerCase(locale);
+  // Only while typing something new: for the query the page already shows,
+  // its results carry their own Topics and Sources groups, and these would
+  // repeat them.
+  const needle = draft.trim() === query.trim() ? "" : draft.trim().toLocaleLowerCase(locale);
   const topicSuggestions =
     needle.length >= 2
       ? topics

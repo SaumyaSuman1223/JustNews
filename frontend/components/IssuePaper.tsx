@@ -191,14 +191,6 @@ export function IssuePaper({
         <div className={isFront ? "paper__body paper__body--front" : "paper__body"}>
           {isFront && (focus || briefs.length > 0) && (
             <section className="paper__focus">
-              {/* §11's standing line. The paper's own motto, set as a
-                  newspaper sets one - not a pull quote lifted from a story,
-                  which this product has no body text to take. */}
-              <p className="paper__motto">
-                {t(locale, "aquila.motto")}
-                <span>{t(locale, "aquila.mottoAttribution")}</span>
-              </p>
-
               {focus && (
                 <>
                   <h2 className="paper__label">{t(locale, "aquila.inFocus")}</h2>

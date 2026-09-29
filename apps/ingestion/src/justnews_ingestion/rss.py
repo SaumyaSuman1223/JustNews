@@ -132,7 +132,10 @@ def _entry_image(entry: object) -> str | None:
         if str(link.get("type", "")).startswith("image/") and link.get("href"):
             return str(link["href"])
     for media in getattr(entry, "media_content", []) or []:
-        if media.get("url"):
+        # Media enclosures are videos as often as pictures; a typed one that
+        # is not an image is skipped, and an untyped one is checked by URL.
+        kind = str(media.get("type") or media.get("medium") or "")
+        if media.get("url") and (not kind or kind.startswith("image")):
             return str(media["url"])
     for thumbnail in getattr(entry, "media_thumbnail", []) or []:
         if thumbnail.get("url"):

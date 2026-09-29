@@ -50,6 +50,10 @@ class ClusterCoverage:
     #: favicons on a Discover card's "26 sources" line. Empty until
     #: `attach_outlets` fills it; `sources` is the full count either way.
     outlets: tuple[Outlet, ...] = ()
+    #: Which languages the story is reported in, the most-covered first - a
+    #: card's "also in हिन्दी, Español". Filled by `attach_outlets` for
+    #: stories in more than one language; empty otherwise.
+    language_codes: tuple[str, ...] = ()
 
     @classmethod
     def from_cluster(cls, cluster: StoryCluster) -> ClusterCoverage:
@@ -656,6 +660,114 @@ async def list_blindspot_clusters(
     return list((await session.execute(query)).scalars().all())
 
 
+async def list_multilingual_clusters(
+    session: AsyncSession, *, languages: list[str], since: datetime, limit: int
+) -> list[StoryCluster]:
+    """Recent stories reported in more than one language, at least one of
+    them a language this reader reads - the front page's "Across languages".
+
+    The mirror of `list_blindspot_clusters`: that one asks what is covered
+    only elsewhere, this one what is covered both here and elsewhere. Widest
+    first: a story in three languages says more about how the world is
+    reading an event than one in two.
+    """
+    if not languages:
+        return []
+    covered_here = (
+        select(Article.story_cluster_id)
+        .where(
+            Article.story_cluster_id.is_not(None),
+            Article.language.in_(languages),
+            Article.removed_at.is_(None),
+        )
+        .scalar_subquery()
+    )
+    query = (
+        select(StoryCluster)
+        .where(
+            StoryCluster.last_seen_at >= since,
+            StoryCluster.language_count >= 2,
+            StoryCluster.id.in_(covered_here),
+        )
+        .order_by(
+            StoryCluster.language_count.desc(),
+            StoryCluster.source_count.desc(),
+            StoryCluster.last_seen_at.desc(),
+        )
+        .limit(limit)
+    )
+    return list((await session.execute(query)).scalars().all())
+
+
+@dataclass(frozen=True, slots=True)
+class Headline:
+    """One language's headline for a story: its earliest report in it."""
+
+    story_id: int
+    language: str
+    article_id: int
+    title: str
+    source_name: str
+
+
+async def first_headlines(
+    session: AsyncSession, story_ids: list[int], languages: list[str]
+) -> dict[int, list[Headline]]:
+    """Per story, the first live report in each of `languages` - one query.
+
+    Only the reader's own languages: a headline is content, and no query
+    returns content in a language the reader did not ask for. Other
+    languages are still counted (`language_coverage`), just not quoted.
+    """
+    if not story_ids or not languages:
+        return {}
+    ranked = (
+        select(
+            Article.story_cluster_id.label("story_id"),
+            Article.language,
+            Article.id.label("article_id"),
+            Article.title,
+            Source.name.label("source_name"),
+            func.row_number()
+            .over(
+                partition_by=(Article.story_cluster_id, Article.language),
+                order_by=(Article.published_at.asc(), Article.id.asc()),
+            )
+            .label("rank"),
+        )
+        .join(Source, Source.id == Article.source_id)
+        .where(
+            Article.story_cluster_id.in_(story_ids),
+            Article.language.in_(languages),
+            Article.removed_at.is_(None),
+        )
+        .subquery()
+    )
+    result = await session.execute(
+        select(
+            ranked.c.story_id,
+            ranked.c.language,
+            ranked.c.article_id,
+            ranked.c.title,
+            ranked.c.source_name,
+        )
+        .where(ranked.c.rank == 1)
+        .order_by(ranked.c.story_id, ranked.c.language)
+    )
+    headlines: dict[int, list[Headline]] = {}
+    for story_id, language, article_id, title, source_name in result.all():
+        headlines.setdefault(story_id, []).append(
+            Headline(
+                story_id=story_id,
+                language=language,
+                article_id=article_id,
+                title=title,
+                source_name=source_name,
+            )
+        )
+    return headlines
+
+
 async def list_trending(
     session: AsyncSession, *, languages: list[str] | None, since: datetime, limit: int
 ) -> list[ArticleRow]:
@@ -760,6 +872,14 @@ async def attach_outlets(session: AsyncSession, rows: list[ArticleRow]) -> list[
     cluster_ids = {row.story_cluster_id for row in rows if row.story_cluster_id is not None}
     if not cluster_ids:
         return rows
+    multilingual = [
+        row.story_cluster_id
+        for row in rows
+        if row.story_cluster_id is not None
+        and row.coverage is not None
+        and row.coverage.languages > 1
+    ]
+    languages = await language_coverage(session, sorted(set(multilingual)))
     distinct = (
         select(
             Article.story_cluster_id.label("cluster_id"),
@@ -795,11 +915,16 @@ async def attach_outlets(session: AsyncSession, rows: list[ArticleRow]) -> list[
         )
     return [
         replace(
-            row, coverage=replace(row.coverage, outlets=tuple(by_cluster[row.story_cluster_id]))
+            row,
+            coverage=replace(
+                row.coverage,
+                outlets=tuple(by_cluster.get(row.story_cluster_id, ())),
+                language_codes=tuple(
+                    entry.language for entry in languages.get(row.story_cluster_id, [])
+                ),
+            ),
         )
-        if row.coverage is not None
-        and row.story_cluster_id is not None
-        and row.story_cluster_id in by_cluster
+        if row.coverage is not None and row.story_cluster_id is not None
         else row
         for row in rows
     ]

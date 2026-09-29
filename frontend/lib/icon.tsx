@@ -1,19 +1,41 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { ImageResponse } from "next/og";
 
 /**
- * The "JN" monogram behind every generated app icon - the same "Just" /
- * "News" split as the masthead wordmark (globals.css), just without room for
- * the full word at icon sizes. No custom font is loaded here (the edge
- * image-generation runtime doesn't have the site's self-hosted display
- * serif available without embedding it), so this falls back to a generic
- * serif stack - a deliberate, visible trade-off rather than a silent one.
+ * The brand's own face and colours, for every image the site generates: the
+ * app icons, the favicon and the share card. They were a generic serif in
+ * the green of an earlier identity; these are the masthead's - Cormorant
+ * Garamond on warm paper, "News" in brass.
  *
- * `maskable` shrinks the mark so it survives an OS's circular/rounded-square
- * icon mask without clipping - the standard maskable-icon safe-zone practice
- * (content kept inside the inner ~80% of the canvas).
+ * The font is a Latin subset of Cormorant Garamond SemiBold (SIL OFL, see
+ * assets/fonts/OFL-CormorantGaramond.txt), small enough to read on every request. It covers
+ * the wordmark and the English tagline; nothing else is drawn in it.
  */
-export function monogramIcon(size: number, { maskable = false }: { maskable?: boolean } = {}) {
-  const scale = maskable ? 0.42 : 0.56;
+export const BRAND = {
+  paper: "#f5f1e8",
+  ink: "#171717",
+  brass: "#7a6444",
+  muted: "#6b675f",
+};
+
+let font: Promise<Buffer> | null = null;
+
+export function brandFont(): Promise<Buffer> {
+  font ??= readFile(join(process.cwd(), "assets/fonts/CormorantGaramond-600-latin.ttf"));
+  return font;
+}
+
+/**
+ * The "JN" monogram behind every app icon and the favicon. `maskable` keeps
+ * the mark inside the inner 80% an OS may crop to a circle or squircle.
+ */
+export async function monogramIcon(
+  size: number,
+  { maskable = false }: { maskable?: boolean } = {},
+) {
+  const scale = maskable ? 0.46 : 0.62;
   return new ImageResponse(
     <div
       style={{
@@ -22,30 +44,30 @@ export function monogramIcon(size: number, { maskable = false }: { maskable?: bo
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f7f8f7",
+        background: BRAND.paper,
       }}
     >
       <div
         style={{
           display: "flex",
-          fontFamily: "serif",
-          fontWeight: 700,
+          fontFamily: "Cormorant Garamond",
+          fontWeight: 600,
           fontSize: size * scale,
           lineHeight: 1,
-          letterSpacing: "-0.02em",
-          // The fallback serif's reserved descender space outweighs "J"'s
-          // actual descender, so flex-centering the line box (not the
-          // glyph ink) sits visibly low. Nudged up empirically, measured
-          // against the rendered pixel bounding box rather than guessed.
-          // Only this inner wrapper moves - the outer div keeps the
-          // background pinned to the full canvas.
-          transform: "translateY(-13%)",
+          letterSpacing: "-0.03em",
+          // Centre the ink rather than the line box: Cormorant's line box
+          // carries more space below the baseline than "J" uses.
+          transform: "translateY(-6%)",
         }}
       >
-        <span style={{ color: "#121614" }}>J</span>
-        <span style={{ color: "#0f6b53" }}>N</span>
+        <span style={{ color: BRAND.ink }}>J</span>
+        <span style={{ color: BRAND.brass }}>N</span>
       </div>
     </div>,
-    { width: size, height: size },
+    {
+      width: size,
+      height: size,
+      fonts: [{ name: "Cormorant Garamond", data: await brandFont(), weight: 600 }],
+    },
   );
 }

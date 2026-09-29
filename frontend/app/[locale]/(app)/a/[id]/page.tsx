@@ -4,10 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ArticleActions } from "@/components/ArticleActions";
-import { ArticleCard } from "@/components/ArticleCard";
 import { CoverageChips } from "@/components/CoverageChips";
 import { FollowSourceButton } from "@/components/FollowSourceButton";
-import { FeedList } from "@/components/FeedList";
+import { StoryGrid } from "@/components/discover/StoryGrid";
 import {
   getArticle,
   getArticleTopicLinks,
@@ -17,6 +16,7 @@ import {
   getStory,
 } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
+import { discoverReader } from "@/lib/discover";
 import { viewHref } from "@/lib/discoverView";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
 import {
@@ -125,9 +125,11 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
         !shown.has(item.id) &&
         (article.story_cluster_id === null || item.story_cluster_id !== article.story_cluster_id),
     )
-    .slice(0, 5);
+    .slice(0, 3);
   moreInTopic.forEach((item) => shown.add(item.id));
-  const moreFromSource = fromSource.data.items.filter((item) => !shown.has(item.id)).slice(0, 4);
+  const moreFromSource = fromSource.data.items.filter((item) => !shown.has(item.id)).slice(0, 3);
+  // Saving from the cards below needs beta access, as on Discover.
+  const canPersonalise = Boolean(auth) && (await discoverReader(active.code)).hasBetaAccess;
   // Only languages other than the one being read: telling someone the article
   // in front of them is available in the language it is written in is noise.
   const otherLanguages =
@@ -186,8 +188,8 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
             src={article.image_url}
             alt=""
             width={1200}
+            sizes="(max-width: 48rem) 100vw, 44rem"
             height={675}
-            unoptimized
             priority
           />
         )}
@@ -253,26 +255,22 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
       )}
 
       {related.length > 0 && (
-        <section aria-labelledby="related-heading">
+        <section className="read-next" aria-labelledby="related-heading">
           <h2 id="related-heading" className="related-heading">
             {tPlural(active.code, "article.otherSources", related.length)} ·{" "}
             <Link href={`/${active.code}/story/${article.story_cluster_id}`}>
               {t(active.code, "article.seeFullCoverage")}
             </Link>
           </h2>
-          <ul className="feed">
-            {related.map((item, index) => (
-              <ArticleCard
-                key={item.id}
-                article={item}
-                locale={active.code}
-                surface="topic"
-                position={index}
-                signedIn={Boolean(session)}
-                revalidatePath={`/${active.code}/a/${article.id}`}
-              />
-            ))}
-          </ul>
+          <StoryGrid
+            articles={related}
+            locale={active.code}
+            surface="topic"
+            signedIn={Boolean(session)}
+            canPersonalise={canPersonalise}
+            lead={false}
+            features={false}
+          />
         </section>
       )}
 
@@ -283,13 +281,14 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
               {t(active.code, "article.moreIn", { topic: primaryTopic.label })}
             </Link>
           </h2>
-          <FeedList
-            items={moreInTopic.map((item) => ({ article: item }))}
+          <StoryGrid
+            articles={moreInTopic}
             locale={active.code}
             surface="topic"
             signedIn={Boolean(session)}
-            revalidatePath={`/${active.code}/a/${article.id}`}
-            layout="list"
+            canPersonalise={canPersonalise}
+            lead={false}
+            features={false}
           />
         </section>
       )}
@@ -301,13 +300,14 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
               {t(active.code, "article.moreFrom", { source: article.source_name })}
             </Link>
           </h2>
-          <FeedList
-            items={moreFromSource.map((item) => ({ article: item }))}
+          <StoryGrid
+            articles={moreFromSource}
             locale={active.code}
             surface="topic"
             signedIn={Boolean(session)}
-            revalidatePath={`/${active.code}/a/${article.id}`}
-            layout="list"
+            canPersonalise={canPersonalise}
+            lead={false}
+            features={false}
           />
         </section>
       )}

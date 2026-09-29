@@ -3,9 +3,11 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { StoryCard, type StoryVariant } from "@/components/discover/StoryCard";
-import { ChevronDownIcon, ShareIcon, SlidersIcon } from "@/components/icons";
-import { CUSTOMIZE_EVENT, INTERESTS_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
+import { ReadingLanguages } from "@/components/discover/ReadingLanguages";
+import { StoryCard } from "@/components/discover/StoryCard";
+import { arrange, type Block } from "@/components/discover/storyLayout";
+import { ChevronDownIcon } from "@/components/icons";
+import { INTERESTS_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
 import {
   parseView,
   viewHref,
@@ -17,6 +19,9 @@ import {
   type DiscoverView,
 } from "@/lib/discoverView";
 import { t, type LocaleCode } from "@/lib/i18n";
+
+/** The lead and its row of three come before the rail on a narrow screen. */
+const FIRST_BLOCKS = 2;
 
 /** A view revisited within this long is shown as it was; older than this,
  * it is shown and quietly refreshed. */
@@ -41,14 +46,19 @@ type Entry = {
  * rendered into the next reader's page, and one language's stories into
  * another's. The server renders from `initialPage` and nothing else.
  *
- * Keyed by language and by whether the feed is personal as well as by view
- * (`scopedKey`), so switching language, or signing in, in the same tab never
- * shows the other feed from memory.
+ * Keyed by interface language, reading languages and whether the feed is
+ * personal as well as by view (`scopedKey`), so changing any of them in the
+ * same tab never shows the other feed from memory.
  */
 const cache = new Map<string, Entry>();
 
-function scopedKey(locale: LocaleCode, personal: boolean, view: DiscoverView): string {
-  return `${locale}|${personal ? "personal" : "shared"}|${viewKey(view)}`;
+function scopedKey(
+  locale: LocaleCode,
+  personal: boolean,
+  languages: string,
+  view: DiscoverView,
+): string {
+  return `${locale}|${personal ? "personal" : "shared"}|${languages}|${viewKey(view)}`;
 }
 
 export interface DiscoverTopic {
@@ -74,6 +84,8 @@ export function Discover({
   canPersonalise,
   hasInterests,
   initialSaved,
+  readLanguages,
+  rail,
 }: {
   locale: LocaleCode;
   initialView: DiscoverView;
@@ -84,13 +96,19 @@ export function Discover({
   /** Whether For You has chosen interests to rank by. */
   hasInterests: boolean;
   initialSaved: number[];
+  /** The languages this feed is in, e.g. "en,hi" - part of the cache key. */
+  readLanguages: string;
+  /** The rail, placed after the first stories: beside the feed on a wide
+   * screen, and in the flow after the lead and its row on a narrow one, so
+   * a phone opens on the news rather than on the rail. */
+  rail?: React.ReactNode;
 }) {
   const searchParams = useSearchParams();
   const view = parseView({ view: searchParams.get("view"), topic: searchParams.get("topic") });
-  const key = scopedKey(locale, canPersonalise, view);
+  const key = scopedKey(locale, canPersonalise, readLanguages, view);
 
   // The server's page seeds the cache once, under the view it rendered.
-  useState(() => seed(scopedKey(locale, canPersonalise, initialView), initialPage));
+  useState(() => seed(scopedKey(locale, canPersonalise, readLanguages, initialView), initialPage));
 
   const [, setVersion] = useState(0);
   const rerender = useCallback(() => setVersion((value) => value + 1), []);
@@ -102,7 +120,7 @@ export function Discover({
 
   const load = useCallback(
     async (target: DiscoverView, cursor?: string) => {
-      const targetKey = scopedKey(locale, canPersonalise, target);
+      const targetKey = scopedKey(locale, canPersonalise, readLanguages, target);
       const loadingKey = `${targetKey}|${cursor ?? ""}`;
       if (inFlight.current.has(loadingKey)) return;
       inFlight.current.add(loadingKey);
@@ -141,7 +159,7 @@ export function Discover({
         rerender();
       }
     },
-    [locale, canPersonalise, rerender],
+    [locale, canPersonalise, readLanguages, rerender],
   );
 
   // The server has no cache (see above); it renders exactly what it fetched.
@@ -194,7 +212,7 @@ export function Discover({
   const [switched, setSwitched] = useState(false);
 
   function go(next: DiscoverView) {
-    if (scopedKey(locale, canPersonalise, next) === key) return;
+    if (scopedKey(locale, canPersonalise, readLanguages, next) === key) return;
     setSwitched(true);
     window.history.pushState(null, "", viewHref(locale, next));
     window.scrollTo({ top: 0 });
@@ -228,10 +246,39 @@ export function Discover({
 
   const surface = view.kind === "topic" ? "topic" : "feed";
   const blocks = useMemo(() => arrange(entry?.items ?? []), [entry?.items]);
+  const feedClass = switched ? "discover__feed discover__feed--enter" : "discover__feed";
+
+  function renderBlock(block: Block, blockIndex: number) {
+    return (
+      <div className={`discover__block discover__block--${block.variant}`} key={blockIndex}>
+        {block.items.map(({ item, position }) => (
+          <StoryCard
+            key={item.article.id}
+            item={item}
+            variant={block.variant}
+            locale={locale}
+            position={position}
+            surface={surface}
+            signedIn={signedIn}
+            canPersonalise={canPersonalise}
+            saved={saved.has(item.article.id)}
+            onSavedChange={onSavedChange}
+            priority={position === 0}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="discover">
-      <DiscoverTabs locale={locale} view={view} topics={topics} onChange={go} />
+      <DiscoverTabs
+        locale={locale}
+        view={view}
+        topics={topics}
+        onChange={go}
+        readLanguages={readLanguages.split(",")}
+      />
 
       {/* With nothing to personalise by, For You is Top - said plainly, so
           two tabs showing the same stories read as a choice not yet made
@@ -249,11 +296,9 @@ export function Discover({
         </p>
       )}
 
-      <div
-        className={switched ? "discover__feed discover__feed--enter" : "discover__feed"}
-        key={key}
-        aria-busy={!entry || undefined}
-      >
+      {/* The first stories, then the rail, then the rest. The rail sits
+          outside both keyed halves, so switching view does not remount it. */}
+      <div className={feedClass} key={key} aria-busy={!entry || undefined}>
         {!entry ? (
           <FeedSkeleton />
         ) : entry.items.length === 0 ? (
@@ -263,43 +308,33 @@ export function Discover({
             <p className="discover__empty">{t(locale, "discover.empty")}</p>
           )
         ) : (
-          <>
-            {blocks.map((block, blockIndex) => (
-              <div className={`discover__block discover__block--${block.variant}`} key={blockIndex}>
-                {block.items.map(({ item, position }) => (
-                  <StoryCard
-                    key={item.article.id}
-                    item={item}
-                    variant={block.variant}
-                    locale={locale}
-                    position={position}
-                    surface={surface}
-                    signedIn={signedIn}
-                    canPersonalise={canPersonalise}
-                    saved={saved.has(item.article.id)}
-                    onSavedChange={onSavedChange}
-                    priority={position === 0}
-                  />
-                ))}
-              </div>
-            ))}
-            <div ref={sentinel} className="discover__sentinel" aria-hidden="true" />
-            {entry.error ? (
-              <FeedError
-                locale={locale}
-                onRetry={() => void load(view, entry.nextCursor ?? undefined)}
-              />
-            ) : pagePending ? (
-              <p className="discover__status" role="status">
-                <span className="discover__spinner" aria-hidden="true" />
-                {t(locale, "discover.loadingMore")}
-              </p>
-            ) : entry.nextCursor === null ? (
-              <p className="discover__status">{t(locale, "discover.end")}</p>
-            ) : null}
-          </>
+          blocks.slice(0, FIRST_BLOCKS).map(renderBlock)
         )}
       </div>
+
+      {rail && <div className="discover__rail-slot">{rail}</div>}
+
+      {entry && entry.items.length > 0 && (
+        <div className={feedClass} key={`${key}|rest`}>
+          {blocks
+            .slice(FIRST_BLOCKS)
+            .map((block, index) => renderBlock(block, index + FIRST_BLOCKS))}
+          <div ref={sentinel} className="discover__sentinel" aria-hidden="true" />
+          {entry.error ? (
+            <FeedError
+              locale={locale}
+              onRetry={() => void load(view, entry.nextCursor ?? undefined)}
+            />
+          ) : pagePending ? (
+            <p className="discover__status" role="status">
+              <span className="discover__spinner" aria-hidden="true" />
+              {t(locale, "discover.loadingMore")}
+            </p>
+          ) : entry.nextCursor === null ? (
+            <p className="discover__status">{t(locale, "discover.end")}</p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -318,39 +353,18 @@ function seed(key: string, page: DiscoverPage): true {
   return true;
 }
 
-type Block = { variant: StoryVariant; items: { item: DiscoverItem; position: number }[] };
-
-/**
- * The feed's rhythm: one lead, then a row of three cards and a wide feature,
- * repeating. A picture-less story never takes the lead or the feature slot
- * when one with a picture is near - those shapes are built around the photo.
- */
-function arrange(items: DiscoverItem[]): Block[] {
-  const queue = items.map((item, position) => ({ item, position }));
-  const blocks: Block[] = [];
-  // Only called while the queue is non-empty, so `splice` always yields one.
-  const takeWithImage = () => {
-    const index = queue.findIndex((entry, i) => i < 4 && entry.item.article.image_url);
-    return queue.splice(index >= 0 ? index : 0, 1);
-  };
-  if (queue.length > 0) blocks.push({ variant: "lead", items: takeWithImage() });
-  while (queue.length > 0) {
-    blocks.push({ variant: "card", items: queue.splice(0, 3) });
-    if (queue.length > 0) blocks.push({ variant: "wide", items: takeWithImage() });
-  }
-  return blocks;
-}
-
 function DiscoverTabs({
   locale,
   view,
   topics,
   onChange,
+  readLanguages,
 }: {
   locale: LocaleCode;
   view: DiscoverView;
   topics: DiscoverTopic[];
   onChange: (view: DiscoverView) => void;
+  readLanguages: string[];
 }) {
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
@@ -440,42 +454,9 @@ function DiscoverTabs({
         </div>
       </nav>
       <div className="discover__tools">
-        <button
-          type="button"
-          className="discover__tool discover__tool--customize"
-          onClick={() => window.dispatchEvent(new Event(CUSTOMIZE_EVENT))}
-          aria-label={t(locale, "rail.customize")}
-          title={t(locale, "rail.customize")}
-        >
-          <SlidersIcon />
-        </button>
-        <SharePage locale={locale} />
+        <ReadingLanguages locale={locale} selected={readLanguages} />
       </div>
     </div>
-  );
-}
-
-function SharePage({ locale }: { locale: LocaleCode }) {
-  const [copied, setCopied] = useState(false);
-  async function share() {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: document.title, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch {
-      // Closed the share sheet.
-    }
-  }
-  return (
-    <button type="button" className="discover__tool discover__share" onClick={share}>
-      <ShareIcon />
-      <span>{t(locale, copied ? "discover.copied" : "discover.sharePage")}</span>
-    </button>
   );
 }
 

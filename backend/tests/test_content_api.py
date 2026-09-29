@@ -243,9 +243,10 @@ class TestArticleCoverage:
             "countries": 2,
             "first_seen_at": "2026-09-01T06:00:00Z",
             "last_seen_at": "2026-09-03T18:00:00Z",
-            # One article's own page lists no outlets - that line belongs to
-            # feed cards, which fetch it for a whole page at once.
+            # One article's own page lists no outlets or languages - those
+            # belong to feed cards, which fetch them for a whole page at once.
             "outlets": [],
+            "language_codes": [],
         }
 
     async def test_a_single_source_cluster_reports_one_honestly(

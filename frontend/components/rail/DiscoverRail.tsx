@@ -5,10 +5,23 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { DiscoverTopic } from "@/components/discover/Discover";
 import { ChevronDownIcon, CloseIcon, SlidersIcon } from "@/components/icons";
 import { CompaniesWidget, MarketsWidget } from "@/components/rail/MarketWidgets";
+import {
+  AcrossLanguagesModule,
+  MostReadModule,
+  TodaysAquilaModule,
+} from "@/components/rail/NewsModules";
+import { TopicPerspectives } from "@/components/rail/TopicPerspectives";
 import { WeatherWidget } from "@/components/rail/WeatherWidget";
-import type { MarketTile, TrendingCompany } from "@/lib/api";
+import type {
+  AcrossLanguages,
+  Article,
+  Issue,
+  IssuePageContent,
+  MarketTile,
+  TrendingCompany,
+} from "@/lib/api";
 import { CUSTOMIZE_EVENT, INTERESTS_EVENT, REFRESH_EVENT } from "@/lib/discoverEvents";
-import { t, type LocaleCode, type MessageKey } from "@/lib/i18n";
+import { t, tPlural, type LocaleCode, type MessageKey } from "@/lib/i18n";
 import {
   RAIL_COOKIE,
   serializeRailPrefs,
@@ -20,18 +33,48 @@ import {
 
 export interface RailData {
   locale: LocaleCode;
+  acrossLanguages: AcrossLanguages[];
+  issue: Issue | null;
+  issueFront: IssuePageContent | null;
+  mostRead: Article[];
   markets: MarketTile[];
   companies: TrendingCompany[];
   weatherPlace: WeatherPlace | null;
   tempUnit: "c" | "f";
 }
 
+type Widget = {
+  titleKey: MessageKey;
+  render: (data: RailData) => ReactNode;
+  /** A news module with nothing to say is left out rather than shown empty;
+   * the customize panel still lists it. */
+  empty?: (data: RailData) => boolean;
+};
+
 /**
- * The rail's widgets. Adding one is a component and an entry here (plus its
+ * The rail's modules. Adding one is a component and an entry here (plus its
  * id in lib/railPrefs.ts): the rail, the customize panel and the reader's
  * saved order all read this.
  */
-const WIDGETS: Record<WidgetId, { titleKey: MessageKey; render: (data: RailData) => ReactNode }> = {
+const WIDGETS: Record<WidgetId, Widget> = {
+  languages: {
+    titleKey: "across.title",
+    render: (data) => <AcrossLanguagesModule locale={data.locale} stories={data.acrossLanguages} />,
+    empty: (data) => data.acrossLanguages.length === 0,
+  },
+  aquila: {
+    titleKey: "aquila.today",
+    render: (data) =>
+      data.issue ? (
+        <TodaysAquilaModule locale={data.locale} issue={data.issue} front={data.issueFront} />
+      ) : null,
+    empty: (data) => data.issue === null,
+  },
+  trending: {
+    titleKey: "mostRead.title",
+    render: (data) => <MostReadModule locale={data.locale} articles={data.mostRead} />,
+    empty: (data) => data.mostRead.length === 0,
+  },
   weather: {
     titleKey: "weather.title",
     render: (data) => (
@@ -53,9 +96,12 @@ const WIDGETS: Record<WidgetId, { titleKey: MessageKey; render: (data: RailData)
 };
 
 /**
- * Discover's right rail: "Make it yours" for a reader who has not chosen
- * yet, then their widgets in their own order. Every widget renders from data
- * the page already fetched, except the weather, which asks for its city.
+ * Discover's rail: the topics question for a reader who has not answered it,
+ * then their modules in their own order - what only JustNews has first
+ * (the same story across languages, today's Aquila, what readers are
+ * opening), and weather or markets for a reader who turns them on. Every
+ * module renders from data the page already fetched, except the weather,
+ * which asks for its city.
  */
 export function DiscoverRail({
   data,
@@ -95,7 +141,9 @@ export function DiscoverRail({
     writePreferenceCookie(RAIL_COOKIE, serializeRailPrefs(next));
   }
 
-  const visible = prefs.order.filter((id) => !prefs.hidden.includes(id));
+  const visible = prefs.order.filter(
+    (id) => !prefs.hidden.includes(id) && !WIDGETS[id].empty?.(data),
+  );
 
   return (
     <aside className="discover-rail" aria-label={t(locale, "rail.label")}>
@@ -117,11 +165,17 @@ export function DiscoverRail({
         />
       )}
 
+      <TopicPerspectives locale={locale} />
+
       {/* One group, so a narrow screen can scroll the widgets sideways
           beneath the interests card rather than beside it. */}
       <div className="discover-rail__widgets">
         {visible.map((id) => (
-          <section className="rail-widget" key={id} aria-labelledby={`rail-${id}`}>
+          <section
+            className={`rail-widget rail-widget--${id}`}
+            key={id}
+            aria-labelledby={`rail-${id}`}
+          >
             <h2 className="rail-widget__title" id={`rail-${id}`}>
               {t(locale, WIDGETS[id].titleKey)}
             </h2>
@@ -142,6 +196,17 @@ export function DiscoverRail({
   );
 }
 
+/** The topics offered first: the ones most of the day's reporting falls
+ * under, so the short list serves most readers without "More". */
+const FIRST_TOPICS = [
+  "medtop:11000000", // politics
+  "medtop:16000000", // conflict
+  "medtop:04000000", // economy and business
+  "medtop:13000000", // science and technology
+  "medtop:06000000", // environment and climate
+  "medtop:15000000", // sport
+];
+
 function MakeItYours({
   locale,
   topics,
@@ -160,6 +225,11 @@ function MakeItYours({
   const [chosen, setChosen] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  // A short list first: twenty topics at once is a form, not a question.
+  const leading = FIRST_TOPICS.flatMap((id) => topics.filter((topic) => topic.id === id));
+  const rest = topics.filter((topic) => !FIRST_TOPICS.includes(topic.id));
+  const shown = showAll || leading.length === 0 ? [...leading, ...rest] : leading;
 
   async function send(body: object): Promise<boolean> {
     const response = await fetch("/api/interests", {
@@ -212,7 +282,7 @@ function MakeItYours({
       </h2>
       <p className="interests__body">{t(locale, "interests.body")}</p>
       <ul className="interests__chips">
-        {topics.map((topic) => (
+        {shown.map((topic) => (
           <li key={topic.id}>
             <button
               type="button"
@@ -224,10 +294,17 @@ function MakeItYours({
             </button>
           </li>
         ))}
+        {!showAll && leading.length > 0 && rest.length > 0 && (
+          <li>
+            <button type="button" className="chip interests__more" onClick={() => setShowAll(true)}>
+              {tPlural(locale, "interests.more", rest.length)}
+            </button>
+          </li>
+        )}
       </ul>
       <button
         type="button"
-        className="button interests__save"
+        className="button button--primary interests__save"
         disabled={chosen.length === 0 || saving}
         onClick={save}
       >

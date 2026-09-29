@@ -26,6 +26,7 @@ from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.content import repair_snippets
 from justnews_ingestion.dedup import repair_cluster_counts, repair_programme_episodes
 from justnews_ingestion.gnews import get_quota, search
+from justnews_ingestion.images import repair_images
 from justnews_ingestion.pipeline import run_ingestion
 from justnews_ingestion.rss import PROGRAMME_PATH_MARKERS
 from justnews_ingestion.seed import retire_unshipped_languages, seed_all
@@ -144,6 +145,12 @@ async def _cmd_repair_snippets(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _cmd_repair_images(args: argparse.Namespace) -> int:
+    async with session_scope() as session:
+        _print(await repair_images(session, dry_run=args.dry_run))
+    return 0
+
+
 async def _cmd_repair_cluster_counts(args: argparse.Namespace) -> int:
     async with session_scope() as session:
         _print(await repair_cluster_counts(session, dry_run=args.dry_run))
@@ -253,6 +260,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="report what would change, with samples, and write nothing",
     )
 
+    repair_images_cmd = sub.add_parser(
+        "repair-images",
+        help="clear stored image URLs that are videos, watch pages or a source's placeholder",
+    )
+    repair_images_cmd.add_argument(
+        "--dry-run", action="store_true", help="report how many rows would change, write nothing"
+    )
+
     repair_clusters = sub.add_parser(
         "repair-cluster-counts",
         help="recompute story-cluster article/source/language/country counts",
@@ -293,6 +308,7 @@ _COMMANDS = {
     "compose-aquila": _cmd_compose_aquila,
     "repair-edition-times": _cmd_repair_edition_times,
     "repair-snippets": _cmd_repair_snippets,
+    "repair-images": _cmd_repair_images,
     "repair-cluster-counts": _cmd_repair_cluster_counts,
     "repair-programme-episodes": _cmd_repair_programme_episodes,
     "stats": _cmd_stats,

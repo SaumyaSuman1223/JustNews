@@ -97,7 +97,7 @@
   --type-body-m: 0.95rem; /* reading text */
   --type-body-s: 0.875rem; /* supporting text */
   --type-label: 0.76rem; /* category, source, timestamp */
-  --type-micro: 0.68rem; /* edition, page number */
+  --type-micro: 0.7rem; /* edition, page number - 11.2px, above the 11px floor */
 
   /* Previous names, kept as aliases so this chunk changes the system without
      rewriting every component that references the old step. Components move
@@ -147,11 +147,11 @@
      by next/font; each already carries its own metric-matched local fallback,
      which is what makes the swap shift-free. */
   --font-display:
-    var(--font-display-latin), var(--font-display-deva), ui-serif, Georgia, "Noto Serif Devanagari",
-    "Kohinoor Devanagari", "Times New Roman", serif;
+    var(--font-display-latin), var(--font-display-latin-ext), var(--font-display-deva), ui-serif,
+    Georgia, "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
   --font-ui:
-    var(--font-ui-latin), var(--font-ui-deva), system-ui, -apple-system, "Segoe UI", Roboto,
-    "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
+    var(--font-ui-latin), var(--font-ui-latin-ext), var(--font-ui-deva), system-ui, -apple-system,
+    "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
 }
 
 /* Designed, not inverted. Warm dark: the ground is a shade below Deep
@@ -237,6 +237,16 @@ html[dir="rtl"] {
      the point of leading being a token in the first place. */
   --leading-tight: 1.4;
   --leading-snug: 1.5;
+}
+
+/* Buttons and fields default to the platform's font, not the page's: a
+   topic chip rendered in Arial, and a Hindi one in whatever Devanagari the
+   system had, or in empty boxes where it had none. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 body {
@@ -586,8 +596,9 @@ a.card__source:focus-visible {
 
 /* The same centred column as the article above it, so the page reads as
    one piece that continues rather than a second page stuck underneath. */
+/* Wider than the article's measure: a row of three cards, not a list. */
 .read-next {
-  max-inline-size: var(--measure);
+  max-inline-size: min(100%, 62rem);
   margin-inline: auto;
   margin-block: var(--space-12) 0;
 }
@@ -605,7 +616,7 @@ a.card__source:focus-visible {
   margin-block-start: var(--space-4);
 }
 
-/* --- My Desk: followed stories (fifth pass F2) ----------------------------- */
+/* --- Following: followed stories (fifth pass F2) -------------------------- */
 
 .following__note {
   margin-block: 0 var(--space-4);
@@ -732,10 +743,89 @@ a.card__source:focus-visible {
 
 /* --- display page (fifth pass F8) ------------------------------------------ */
 
+/* --- 404 ------------------------------------------------------------------ */
+
+.not-found {
+  max-inline-size: 36rem;
+  padding-block: var(--space-8);
+}
+
+.not-found__wordmark {
+  display: inline-block;
+  margin-block-end: var(--space-12);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.not-found__wordmark span {
+  color: var(--accent);
+}
+
+.not-found__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+}
+
+.not-found__note {
+  color: var(--text-mid);
+}
+
+.not-found__search {
+  display: flex;
+  gap: var(--space-2);
+  margin-block: var(--space-4) var(--space-6);
+}
+
+.not-found__search .input {
+  flex: 1;
+  min-inline-size: 0;
+  font: inherit;
+  padding: 0.55rem var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Long-form reading pages - the privacy policy, how JustNews works - in
+   the product's own type rather than the browser's default headings. */
+.prose {
+  max-inline-size: 42rem;
+  margin-inline: auto;
+  line-height: var(--leading-body);
+}
+
+.prose h1 {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  line-height: var(--leading-tight);
+  margin-block: var(--space-6) var(--space-4);
+}
+
+.prose h2 {
+  margin-block: var(--space-8) var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+}
+
+.prose p,
+.prose li {
+  color: var(--text-mid);
+}
+
 .display-form {
   display: grid;
   gap: var(--space-6);
   justify-items: start;
+}
+
+.submit-on-change {
+  display: grid;
+  gap: var(--space-6);
 }
 
 .display-form__group {
@@ -1314,9 +1404,10 @@ a.card__source:focus-visible {
   margin-inline: auto;
 }
 
+/* A narrow page is still a page: its heading is a page's, a step below the
+   wide pages' lead size rather than shrunk to a section's. */
 .narrow .page-header h1 {
-  font-size: var(--type-section);
-  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2rem);
 }
 
 /* --- auth card -------------------------------------------------------------
@@ -1627,9 +1718,8 @@ a.chip:active {
   background: var(--accent-soft);
 }
 
-/* My Desk's curated topic selector (§24): a word list, not a tag cloud - no
-   pill, no bubble fill. Following is a rule under the word, the way an
-   active section reads in a masthead nav, not a filled badge. */
+/* A topic as a word, not a tag: the article page's "Filed under" and
+   search's topic matches. No pill, no bubble fill. */
 
 .topic-chip {
   display: inline-flex;
@@ -2077,11 +2167,6 @@ a.chip:active {
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: baseline;
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--border);
-  margin-block-end: var(--space-4);
 }
 
 .coverage-group__count {
@@ -2127,35 +2212,8 @@ a.chip:active {
   color: var(--accent);
 }
 
-/* --- blindspot rail ------------------------------------------------------ */
-
-.blindspot {
-  border-block-start: 2px solid var(--accent);
-  padding-block: var(--space-4) 0;
-  margin-block-end: var(--space-8);
-}
-
 /* The chip row sits under each title; it should read as metadata, not as a
    second row of controls. */
-
-/* --- trending rail ------------------------------------------------------- */
-
-/* A closing module, not a header. It sits below the feed because the front
-   page's job is to lead with the news; what other readers clicked is context
-   you reach after that, not the thing you are greeted by. */
-.trending {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: var(--space-6);
-  margin-block: var(--space-12) var(--space-8);
-}
-
-.trending__heading {
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  margin: 0 0 var(--space-3);
-}
 
 /* --- skeletons ------------------------------------------------------------
  * Reserving the exact final space, per the design system's zero-CLS rule -
@@ -2215,19 +2273,6 @@ a.chip:active {
   block-size: 2rem;
   inline-size: 40%;
   margin-block-end: var(--space-2);
-}
-
-/* A rail module's reserved footprint (glance, trending, the brief, topic
-   overview) - not a pixel match for any one of them, just enough height that
-   the rail doesn't collapse to nothing and then jump wide once real content
-   lands. */
-.skeleton--panel {
-  block-size: 9rem;
-}
-
-.skeleton--tab {
-  inline-size: 4.5rem;
-  block-size: 1rem;
 }
 
 /* Editorially interesting, not a problem: the accent rule rather than the
@@ -2297,7 +2342,6 @@ a.chip:active {
    project committed to. Applying it everywhere would inflate a design whose
    whole argument is ordered density. So it lands only where a finger is
    doing the pointing, which is where the size actually matters. */
-.tabbar__link,
 .locale-switcher a,
 .account-menu__trigger,
 .account-menu__panel a,
@@ -2312,8 +2356,26 @@ a.chip:active {
   align-items: center;
 }
 
+/* Under a finger: the card's buttons, the menu button and the search
+   filters at 44px, where a mouse is fine with less. */
 @media (pointer: coarse) {
-  .tabbar__link,
+  .story__action,
+  .topbar__menu {
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+  }
+
+  .search-filter select,
+  .rail-link-button {
+    min-block-size: 2.75rem;
+  }
+
+  .sources {
+    padding-block: 0.6rem;
+  }
+}
+
+@media (pointer: coarse) {
   .locale-switcher a,
   .account-menu__trigger,
   .account-menu__panel a,
@@ -2769,12 +2831,6 @@ a.chip:active {
     margin-block-end: var(--space-2);
   }
 
-  .paper__body--front .paper__motto {
-    font-size: 0.85rem;
-    margin-block-end: var(--space-3);
-    padding-block-end: var(--space-2);
-  }
-
   .paper__body--front .paper__brief-list {
     gap: var(--space-2);
   }
@@ -2894,31 +2950,6 @@ a.chip:active {
 }
 
 /* --- the front page's left rail ------------------------------------------ */
-
-/* §11's standing line. Not boxed like a magazine sidebar, which that section
-   rules out - it is set as a newspaper sets its own motto: small, italic,
-   with a rule under it and the attribution in caps beneath. */
-.paper__motto {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 0.95rem;
-  line-height: 1.3;
-  color: var(--paper-mid);
-  margin: 0 0 var(--space-4);
-  padding-block-end: var(--space-3);
-  border-block-end: 1px solid var(--paper-rule);
-}
-
-.paper__motto span {
-  display: block;
-  margin-block-start: var(--space-2);
-  font-family: var(--font-ui);
-  font-style: normal;
-  font-size: var(--type-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--paper-muted);
-}
 
 .paper__focus-image {
   margin-block-end: var(--space-3);
@@ -3121,17 +3152,21 @@ a.chip:active {
    rather than as a UI control bolted onto the page. Reset from `<button>`
    where PageRefTag renders one: same visual result whether or not the reader
    has a live session to jump pages in. */
+/* The hit area is padded past the text and the padding taken back out of
+   the layout, so "Page 3" is a 24px target on a scaled sheet without moving
+   anything on it. */
 .paper__pageref {
   display: inline-flex;
   align-items: baseline;
-  margin-inline-start: var(--space-2);
+  margin-block: -0.55rem;
+  margin-inline: calc(var(--space-2) - 0.4rem) -0.4rem;
+  padding: 0.55rem 0.4rem;
   font: inherit;
   font-size: var(--type-micro);
   letter-spacing: 0.1em;
   color: var(--paper-accent);
   background: none;
   border: none;
-  padding: 0;
   cursor: pointer;
 }
 
@@ -3437,14 +3472,6 @@ span.paper__pageref {
 
 .reader-utility__editions a {
   justify-content: space-between;
-}
-
-.reader-utility__sign {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--type-body-s);
-  color: var(--text-muted);
-  margin-block-start: var(--space-8);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3932,15 +3959,35 @@ span.paper__pageref {
 
 /* The standing label above each of Home's three levels. A rule and a line of
    small caps, in the application's brass - Aquila's red stays in Aquila. */
-.home-tier {
-  font-size: var(--type-label);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 600;
+/* A section of a page - "More from BBC News", "Latest reporting",
+   "Stories" - set as the rail sets its modules: a heavy rule, then the
+   heading in the display face. One style for every list in the product,
+   where these were letter-spaced capitals from an older design. */
+.home-tier,
+.coverage-group__heading,
+.search-group__heading {
   margin: 0 0 var(--space-4);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--border);
+  padding-block-start: var(--space-3);
+  border-block-start: 2px solid var(--text);
+  font-family: var(--font-display);
+  font-size: var(--type-section);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+
+.home-tier a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-tier a:hover {
+  text-decoration: underline;
+}
+
+.story-grid {
+  display: grid;
+  gap: var(--space-8);
 }
 
 .home {
@@ -3971,80 +4018,6 @@ span.paper__pageref {
    unknown length and leave a ragged last row when the count is known and
    does not divide. */
 
-/* Tier one: the lead, then two beneath it - §17's diagram exactly. */
-
-/* The lead at full width needs different proportions from the lead in a
-   column. `.card--lead`'s general rule is 1.15fr of 4:3 photo against the
-   headline, which is right in an 800px column and wrong at 1320: the photo
-   resolves to 714x535 and the headline column runs out of things to say
-   three hundred pixels above the bottom of it.
-   16/9 and a bigger headline is what makes the top story read as the top
-   story rather than as a large picture with a caption. */
-
-/* Tier two: two picture stories across the top, then the text entries.
- *
- * This is §18's "varied compositions, avoid repeated identical cards" and
- * §31's rhythm, and it is a composition rather than a card style - the two
- * shapes are the same components at different weights, which is why nothing
- * here needs a new variant beyond the `compact` one the card set already had.
- */
-
-/* Tier three: the dense stream. Two columns of rows once there is width for
-   them, because §19 says this is the level where density is appropriate -
-   and because a third full-width single column after two other full-width
-   single columns is the flat rhythm §31 is complaining about. */
-
-/* --- today at a glance ----------------------------------------------------- */
-
-/* Audit §22: "can feel like generic SaaS dashboard cards", and option B -
-   render them as quiet editorial metadata instead.
-   Gone: the border, the fill, the card padding, and the 1.7rem display
-   numerals. What is left is a rule and a column of small caps, which is how a
-   newspaper prints its own circulation figures - present, checkable, and not
-   competing with an actual story. */
-.glance {
-  padding-block-start: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
-.glance__heading {
-  font-size: var(--type-micro);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-3);
-}
-
-.glance__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.glance__list > div {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.glance dd {
-  font-size: var(--type-label);
-  font-weight: 600;
-  color: var(--text-mid);
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.glance dt {
-  font-size: var(--type-label);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0;
-}
-
 /* The type-ahead: a quiet row of direct links under the box (fifth pass F5). */
 .search-suggest {
   display: flex;
@@ -4055,9 +4028,7 @@ span.paper__pageref {
 }
 
 .search-suggest__label {
-  font-size: var(--type-micro);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: var(--type-label);
   color: var(--text-muted);
 }
 
@@ -4120,12 +4091,6 @@ span.paper__pageref {
   margin-block-start: var(--space-6);
 }
 
-.search-group__heading {
-  font-family: var(--font-display);
-  font-size: var(--type-section);
-  margin: 0 0 var(--space-3);
-}
-
 .search-group__list {
   display: flex;
   flex-wrap: wrap;
@@ -4146,12 +4111,6 @@ span.paper__pageref {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- trending, inside the rail ---------------------------------------------- */
-
-.trending--rail {
-  margin-block: 0;
-}
-
 /* --- the daily brief --------------------------------------------------------
  *
  * §20/§33: numbered lines, not a bordered box - the same "structure through
@@ -4162,209 +4121,6 @@ span.paper__pageref {
  */
 .brief {
   padding-block-start: var(--space-2);
-}
-
-/* --- home tabs --------------------------------------------------------------- */
-
-.home-tabs {
-  border-block-end: 1px solid var(--border);
-  margin-block-end: var(--space-6);
-}
-
-.home-tabs ul {
-  display: flex;
-  gap: var(--space-6);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-x: auto;
-}
-
-.home-tabs a {
-  display: inline-flex;
-  align-items: center;
-  block-size: 3rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  white-space: nowrap;
-  border-block-end: 2px solid transparent;
-  margin-block-end: -1px;
-  transition:
-    color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
-}
-
-.home-tabs a:hover {
-  color: var(--text);
-}
-
-.home-tabs a[aria-current="page"] {
-  color: var(--text);
-  font-weight: 600;
-  border-block-end-color: var(--accent);
-}
-
-/* --- topic pages: understand ------------------------------------------ */
-
-/* Understand: §26's three modules. */
-.understand__title {
-  font-family: var(--font-display);
-  font-size: var(--type-display-m);
-  font-weight: 600;
-  margin: 0 0 var(--space-6);
-}
-
-.understand__module {
-  margin-block-end: var(--space-8);
-  padding-block-start: var(--space-6);
-  border-block-start: 1px solid var(--border);
-}
-
-.understand__module:first-of-type {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-.understand__heading {
-  font-size: var(--type-label);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-mid);
-  margin: 0;
-}
-
-.understand__note {
-  margin: var(--space-1) 0 var(--space-4);
-  color: var(--text-muted);
-  font-size: var(--type-body-s);
-}
-
-.understand__developments {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.understand__developments li {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  gap: var(--space-3);
-  padding-block: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
-.understand__developments li:first-child {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-/* The rank is the ordering made visible, not a decoration: this list is
-   sorted by how many publishers carried the story, and without the number
-   nothing on screen says the order means anything. */
-.understand__rank {
-  font-family: var(--font-display);
-  font-size: var(--type-body-l);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-  line-height: var(--leading-snug);
-}
-
-.understand__headline {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--type-body-l);
-  font-weight: 600;
-  line-height: var(--leading-snug);
-  max-inline-size: var(--measure);
-}
-
-.understand__meta {
-  margin: var(--space-1) 0 0;
-  color: var(--text-muted);
-  font-size: var(--type-meta);
-}
-
-/* The stand-ins for a topic with reporting but no stories yet (fifth pass
-   §2.1): the same rule-separated rows as the developments list, without the
-   rank column - newest-first is not an order worth numbering. */
-.understand__latest,
-.understand__outlets {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.understand__latest li,
-.understand__outlets li {
-  padding-block: var(--space-3);
-  border-block-start: 1px solid var(--border);
-}
-
-.understand__latest li:first-child,
-.understand__outlets li:first-child {
-  padding-block-start: 0;
-  border-block-start: none;
-}
-
-.understand__outlets li {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-4);
-}
-
-.understand__outlets .understand__meta {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.understand__outlet {
-  font-weight: 600;
-  color: var(--text);
-}
-
-/* §35's My Desk gesture: the tab body dims while the next tab streams in
-   (see TopicTabs), rather than a hard navigation flash. Standard tier
-   (240ms) - "navigation, panels, menus" per design-system.md - not the
-   editorial tier reserved for Aquila's page turn. `prefers-reduced-motion`
-   is handled by the global rule that zeroes every transition duration. */
-.topic-unfold {
-  transition: opacity var(--dur-standard) var(--ease);
-}
-
-.topic-unfold[data-pending] {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.desk-layout {
-  display: grid;
-  gap: var(--space-6);
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.desk-layout__main {
-  min-width: 0;
-}
-
-.desk-layout__rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  min-width: 0;
-}
-
-@media (min-width: 64rem) {
-  .desk-layout {
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    column-gap: var(--space-6);
-  }
 }
 
 .related-topics {
@@ -4403,63 +4159,6 @@ span.paper__pageref {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.timeline__item {
-  display: grid;
-  grid-template-columns: 0.5rem 1fr;
-  column-gap: var(--space-4);
-  padding-block-end: var(--space-6);
-  position: relative;
-}
-
-.timeline__item::before {
-  /* The connecting line, drawn from this dot down to the next one. */
-  content: "";
-  position: absolute;
-  inset-inline-start: 0.2rem;
-  inset-block-start: 1rem;
-  inset-block-end: 0;
-  inline-size: 1px;
-  background: var(--border);
-}
-
-.timeline__item:last-child {
-  padding-block-end: 0;
-}
-
-.timeline__item:last-child::before {
-  display: none;
-}
-
-.timeline__dot {
-  inline-size: 0.5rem;
-  block-size: 0.5rem;
-  border-radius: 999px;
-  background: var(--accent);
-  margin-block-start: 0.35rem;
-}
-
-.timeline__date {
-  font-size: var(--type-micro);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-1);
-}
-
-.timeline__title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 var(--space-1);
-  line-height: 1.3;
-}
-
-.timeline__meta {
-  font-size: var(--type-label);
-  color: var(--text-muted);
-  margin: 0;
 }
 
 /* --- topic stub (perspectives, analysis) ---------------------------------- */
@@ -4788,7 +4487,10 @@ html[data-drawer-open] {
   font-size: var(--type-label);
 }
 
+/* Padded to a 24px target (WCAG 2.2, 2.5.8) - the text alone was 15px. */
 .sidebar__small a {
+  display: inline-block;
+  padding-block: 0.3rem;
   color: var(--text-muted);
   text-decoration: none;
 }
@@ -5145,7 +4847,7 @@ html[data-drawer-open] {
 .story__media {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-editorial);
   background: var(--surface-sub);
   aspect-ratio: 16 / 10;
 }
@@ -5197,7 +4899,7 @@ html[data-drawer-open] {
 .story:has(.story__link:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 6px;
-  border-radius: 12px;
+  border-radius: var(--radius-editorial);
 }
 
 .story:hover .story__link {
@@ -5206,13 +4908,15 @@ html[data-drawer-open] {
   text-underline-offset: 0.15em;
 }
 
-.story__published {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
+.story__meta {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--type-body-s);
+  font-size: var(--type-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.story__langs {
+  color: var(--text-mid);
 }
 
 .story__snippet {
@@ -5294,9 +4998,21 @@ html[data-drawer-open] {
   padding: var(--space-1);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
   animation: pop-in var(--dur-micro) var(--ease);
+}
+
+.story__popover--note {
+  max-inline-size: 17rem;
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
+.story__popover--note p {
+  margin: 0;
+  font-size: var(--type-body-s);
+  color: var(--text-mid);
 }
 
 .story__popover a,
@@ -5400,11 +5116,20 @@ html[data-drawer-open] {
   }
 }
 
+/* A lead or feature whose picture failed to load reads as text across the
+   full width, not beside an empty column. */
+@media (min-width: 48rem) {
+  .story--lead:not(:has(.story__media)),
+  .story--wide:not(:has(.story__media)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* A card in a row of three. */
 .story--card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-editorial);
   overflow: hidden;
   transition:
     border-color var(--dur-micro) var(--ease),
@@ -5424,18 +5149,12 @@ html[data-drawer-open] {
   padding: var(--space-4);
 }
 
+/* Headlines are never clipped - a snippet can be, a headline cut off
+   mid-word ("ends th…") is a different claim from the one the publisher
+   made. */
 .story--card .story__title {
-  font-size: 1.22rem;
+  font-size: var(--type-card);
   font-weight: 600;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-}
-
-.story--card:has(.story__link:focus-visible) {
-  border-radius: 14px;
 }
 
 /* A wide feature: picture beside text. */
@@ -5646,21 +5365,97 @@ html[data-drawer-open] {
   color: var(--text);
 }
 
-.discover__tool--customize {
-  inline-size: 2.25rem;
-  padding: 0;
-  justify-content: center;
+/* --- Read in -------------------------------------------------------------- */
+
+.read-in {
+  position: relative;
 }
 
+.read-in__chevron {
+  inline-size: 0.9em;
+  block-size: 0.9em;
+  transition: transform var(--dur-micro) var(--ease);
+}
+
+.read-in__trigger[aria-expanded="true"] .read-in__chevron {
+  transform: rotate(180deg);
+}
+
+.read-in__short {
+  display: none;
+  letter-spacing: 0.04em;
+}
+
+.read-in__panel {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-2));
+  inset-inline-end: 0;
+  z-index: 30;
+  inline-size: min(18rem, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 34px -20px rgb(0 0 0 / 0.45);
+}
+
+.read-in__fieldset {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.read-in__legend {
+  margin-block-end: var(--space-2);
+  padding: 0;
+  font-weight: 600;
+  font-size: var(--type-body-s);
+}
+
+.read-in__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 2.5rem;
+  font-size: var(--type-body-m);
+  cursor: pointer;
+}
+
+.read-in__option input {
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  accent-color: var(--accent);
+}
+
+.read-in__note {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.read-in__actions .button {
+  inline-size: 100%;
+}
+
+/* A phone's bar: the tabs, and "Read in" as its language codes. */
 @media (max-width: 56.1875rem) {
-  .discover__tools {
+  .discover__bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-content: stretch;
+  }
+
+  .discover__tab {
+    padding-inline: 0.6rem;
+  }
+
+  .read-in__long {
     display: none;
   }
-}
 
-@media (max-width: 74.9375rem) {
-  .discover__tool--customize {
-    display: none;
+  .read-in__short {
+    display: inline;
   }
 }
 
@@ -5671,6 +5466,28 @@ html[data-drawer-open] {
   display: grid;
   gap: var(--space-4);
   align-content: start;
+}
+
+/* The rail's place in the feed. Wide: lifted out of the flow into the
+   column beside it, spanning the feed's whole height so the rail can follow
+   the reader down. Narrow: where it sits in the markup, after the lead and
+   its row, so a phone opens on the news. */
+.discover {
+  position: relative;
+}
+
+.discover__rail-slot {
+  margin-block: var(--space-6);
+}
+
+@media (min-width: 75rem) {
+  .discover__rail-slot {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: calc(100% + var(--space-8));
+    inline-size: 20rem;
+    margin: 0;
+  }
 }
 
 /* Wide: beside the feed, following the reader down the page. */
@@ -5694,10 +5511,6 @@ html[data-drawer-open] {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-  }
-
-  .discover-rail {
-    order: -1;
   }
 
   .discover-rail__widgets {
@@ -5729,21 +5542,22 @@ html[data-drawer-open] {
   }
 }
 
+/* Modules under a rule, as a newspaper's side column sets them - not a
+   stack of rounded boxes, which is every dashboard's rail. */
 .rail-widget,
 .interests,
 .rail-customize {
   position: relative;
-  padding: var(--space-4);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  padding-block: var(--space-3) var(--space-2);
+  border-block-start: 2px solid var(--text);
 }
 
 .rail-widget__title {
   margin: 0 0 var(--space-3);
-  font-family: var(--font-ui);
-  font-size: var(--type-body-m);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
   font-weight: 600;
+  line-height: var(--leading-tight);
 }
 
 .rail-widget__sub {
@@ -5788,16 +5602,185 @@ html[data-drawer-open] {
   padding-block: var(--space-2);
 }
 
-/* --- Make it yours --------------------------------------------------------- */
+/* --- the rail's news modules ---------------------------------------------- */
 
-.interests {
-  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%);
+/* Across languages: each story's headline in the reader's languages, then
+   who is reporting it in every language, counted. */
+.across {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
 }
+
+.across__story {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.across__story + .across__story {
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.across__headline {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.across__headline:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.across__alt {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: var(--leading-snug);
+  color: var(--text-mid);
+}
+
+.across__coverage {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.across__count {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Today's Aquila: the one object in the rail that is a thing of its own - a
+   folded front page, with the stacked edge Aquila's own sheets carry. Its
+   masthead names it, so the module's heading steps back. */
+.rail-widget--aquila .rail-widget__title {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.aquila-teaser {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-editorial);
+  box-shadow:
+    0 3px 0 -1px var(--surface),
+    0 4px 0 -1px var(--border),
+    0 7px 0 -3px var(--surface),
+    0 8px 0 -3px var(--border);
+}
+
+.aquila-teaser__masthead {
+  padding-block-end: var(--space-2);
+  border-block-end: 3px double var(--text);
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.aquila-teaser__edition {
+  font-size: var(--type-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.aquila-teaser__lead {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+.aquila-teaser__sections {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+.aquila-teaser__open {
+  font-size: var(--type-body-s);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.aquila-teaser:hover .aquila-teaser__open {
+  text-decoration: underline;
+}
+
+/* Most read: ranked, so numbered - the rank is the information. */
+.most-read {
+  list-style: none;
+  counter-reset: most-read;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.most-read li {
+  counter-increment: most-read;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  column-gap: var(--space-2);
+}
+
+.most-read li::before {
+  content: counter(most-read);
+  grid-row: span 2;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--brass);
+  font-variant-numeric: lining-nums;
+}
+
+.most-read__title {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.most-read__title:hover {
+  text-decoration: underline;
+}
+
+.most-read__source {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
+/* --- Make it yours --------------------------------------------------------- */
 
 .interests__close {
   position: absolute;
-  inset-block-start: var(--space-3);
-  inset-inline-end: var(--space-3);
+  inset-block-start: var(--space-2);
+  inset-inline-end: 0;
   display: inline-grid;
   place-items: center;
   inline-size: 2rem;
@@ -5816,9 +5799,11 @@ html[data-drawer-open] {
 
 .interests__title {
   margin: 0 0 var(--space-1);
+  padding-inline-end: var(--space-8);
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   font-weight: 600;
+  line-height: var(--leading-tight);
 }
 
 .interests__body {
@@ -5839,6 +5824,12 @@ html[data-drawer-open] {
 
 .interests__chip {
   cursor: pointer;
+}
+
+.interests__more {
+  cursor: pointer;
+  border-style: dashed;
+  color: var(--text-muted);
 }
 
 .interests__chip[aria-pressed="true"] {

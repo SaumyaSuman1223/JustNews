@@ -29,11 +29,18 @@ export default async function FeedbackPage({
   const session = await getSession();
   if (!session) {
     return (
-      <SignInRequired
-        locale={locale}
-        path={`/${locale}/feedback`}
-        body={t(locale, "feedback.signInRequired")}
-      />
+      <div className="narrow">
+        <div className="page-header">
+          <h1>{t(locale, "feedback.heading")}</h1>
+        </div>
+        <SignInRequired
+          locale={locale}
+          path={`/${locale}/feedback`}
+          title={t(locale, "account.signIn")}
+          body={t(locale, "feedback.signInRequired")}
+          embedded
+        />
+      </div>
     );
   }
 

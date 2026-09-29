@@ -262,7 +262,6 @@ export function ArticleCard({
                 ? "(max-width: 60rem) 100vw, 40rem"
                 : "(max-width: 60rem) 50vw, 20rem"
             }
-            unoptimized
             priority={priority}
           />
         </div>
