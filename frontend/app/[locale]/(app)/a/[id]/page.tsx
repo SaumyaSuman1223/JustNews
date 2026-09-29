@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ArticleActions } from "@/components/ArticleActions";
 import { CoverageChips } from "@/components/CoverageChips";
 import { FollowSourceButton } from "@/components/FollowSourceButton";
+import { StoryCoverage, type CoverageColumn } from "@/components/discover/StoryCoverage";
 import { StoryGrid } from "@/components/discover/StoryGrid";
 import {
   getArticle,
@@ -101,6 +102,21 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
     : false;
 
   const related = story?.data?.articles.filter((item) => item.id !== article.id) ?? [];
+  const relatedLanguages = [
+    ...new Set([
+      ...related.filter((item) => item.language === active.code).map((item) => item.language),
+      ...related.map((item) => item.language),
+    ]),
+  ];
+  const relatedColumns: CoverageColumn[] = relatedLanguages.map((language) => {
+    const known = locales.find((option) => option.code === language);
+    return {
+      language,
+      label: known?.label ?? language,
+      htmlLang: known?.htmlLang ?? language,
+      articles: related.filter((item) => item.language === language),
+    };
+  });
 
   // Fifth pass F4: this page is where search and shared links land, and it
   // used to end at the outbound button. What to read next comes from facts
@@ -250,27 +266,28 @@ export default async function ArticleDetailPage({ params }: { params: Promise<Ro
           <h2 id="other-languages-heading" className="coverage-group__heading">
             {tPlural(active.code, "article.otherLanguages", otherLanguages.length)}
           </h2>
-          <CoverageChips coverage={otherLanguages} locale={active.code} />
+          <CoverageChips
+            coverage={otherLanguages}
+            locale={active.code}
+            linkTo={(language) =>
+              `/${active.code}/story/${article.story_cluster_id}#coverage-${language}`
+            }
+          />
         </section>
       )}
 
       {related.length > 0 && (
         <section className="read-next" aria-labelledby="related-heading">
-          <h2 id="related-heading" className="related-heading">
+          <h2 id="related-heading" className="home-tier">
             {tPlural(active.code, "article.otherSources", related.length)} ·{" "}
             <Link href={`/${active.code}/story/${article.story_cluster_id}`}>
               {t(active.code, "article.seeFullCoverage")}
             </Link>
           </h2>
-          <StoryGrid
-            articles={related}
-            locale={active.code}
-            surface="topic"
-            signedIn={Boolean(session)}
-            canPersonalise={canPersonalise}
-            lead={false}
-            features={false}
-          />
+          {/* The other reports on this story, by language, each naming its
+              outlet and opening at the publisher - not cards that each said
+              "7 sources" and led back to the story. */}
+          <StoryCoverage locale={active.code} columns={relatedColumns} headingLevel={3} />
         </section>
       )}
 

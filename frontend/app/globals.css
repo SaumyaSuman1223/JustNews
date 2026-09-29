@@ -2284,7 +2284,10 @@ a.chip:active {
 /* A rule above, not a bar down the side of a box: the same "rules and type,
    not boxes" language as every other section heading on the page (§32), with
    the accent carrying the emphasis (fifth pass, detector finding). */
+/* As wide as the sections under it, so the page keeps one edge. */
 .callout {
+  max-inline-size: min(100%, 62rem);
+  margin-inline: auto;
   border-block-start: 2px solid var(--accent);
   padding-block: var(--space-4) 0;
   margin-block: var(--space-8);
@@ -2302,6 +2305,9 @@ a.chip:active {
    No shadow: nothing else in this file uses one, and the border plus the
    surface/ground contrast already reads as "a different layer" without
    introducing elevation as a first here. */
+/* Above the page and above the phone tab bar: a choice the reader cannot
+   reach is not a choice. It sat under the tab bar (z-index 20 to its 40),
+   and a tap on Decline or Accept landed on the tab bar instead. */
 .consent-banner {
   position: fixed;
   inset-block-end: 0;
@@ -2312,12 +2318,6 @@ a.chip:active {
   padding: var(--space-4);
 }
 
-.consent-banner__inner {
-  max-width: 72rem;
-  margin-inline: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
 /* Where the phone tab bar shows, the banner sits on top of it rather than
    over it, so both stay usable. */
 @media (max-width: 56.1875rem) {
@@ -2327,6 +2327,12 @@ a.chip:active {
   }
 }
 
+.consent-banner__inner {
+  max-width: 72rem;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-4);
 }
 
@@ -3976,7 +3982,8 @@ span.paper__pageref {
    where these were letter-spaced capitals from an older design. */
 .home-tier,
 .coverage-group__heading,
-.search-group__heading {
+.search-group__heading,
+.coverage-column__heading {
   margin: 0 0 var(--space-4);
   padding-block-start: var(--space-3);
   border-block-start: 2px solid var(--text);
@@ -3994,6 +4001,106 @@ span.paper__pageref {
 
 .home-tier a:hover {
   text-decoration: underline;
+}
+
+/* --- a story's coverage, laid out to compare ------------------------------ */
+
+.coverage-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-8);
+  margin-block: var(--space-8);
+}
+
+/* The header's language chips jump here; clear the sticky phone bar. */
+.coverage-column {
+  scroll-margin-block-start: var(--space-16);
+}
+
+.coverage-column__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.coverage-column__count,
+.coverage-group__count {
+  font-family: var(--font-ui);
+  font-size: var(--type-label);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.coverage-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.coverage-row {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+
+.coverage-row:first-child {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.coverage-row__link {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.coverage-row__outlet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--type-label);
+  font-weight: 600;
+  color: var(--text-mid);
+}
+
+.coverage-row__title {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.coverage-row__link:hover .coverage-row__title {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.coverage-row__time {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip--link {
+  color: var(--text-mid);
+  text-decoration: none;
+  transition: border-color var(--dur-micro) var(--ease);
+}
+
+.chip--link:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* The callout draws its own brass rule; its heading does not add a second. */
+.callout .coverage-group__heading {
+  border-block-start: 0;
+  padding-block-start: 0;
 }
 
 .story-grid {

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { OutletIcon, originOf } from "@/components/discover/OutletIcon";
 import { ExternalIcon, HeartIcon, MoreIcon, ShareIcon } from "@/components/icons";
 import type { Article } from "@/lib/api";
 import type { DiscoverItem } from "@/lib/discoverView";
@@ -247,7 +248,7 @@ function SourcesLine({ article, locale }: { article: Article; locale: LocaleCode
     <>
       <span className="sources__icons" aria-hidden="true">
         {outlets.map((outlet) => (
-          <Favicon key={outlet.slug} name={outlet.name} homepage={outlet.homepage_url} />
+          <OutletIcon key={outlet.slug} name={outlet.name} homepage={outlet.homepage_url} />
         ))}
       </span>
       <span className="sources__label">
@@ -264,43 +265,6 @@ function SourcesLine({ article, locale }: { article: Article; locale: LocaleCode
     <Link className="sources" href={`/${locale}/source/${encodeURIComponent(article.source_slug)}`}>
       {content}
     </Link>
-  );
-}
-
-function originOf(url: string): string {
-  try {
-    return new URL(url).origin;
-  } catch {
-    return "";
-  }
-}
-
-/** The outlet's own favicon, from its own site - the same hotlinking the
- * product already does for article images. Its initial when there is no
- * homepage to ask, or the icon does not load. */
-function Favicon({ name, homepage }: { name: string; homepage: string }) {
-  const [failed, setFailed] = useState(false);
-  let src: string | null = null;
-  if (homepage) {
-    try {
-      src = new URL("/favicon.ico", homepage).toString();
-    } catch {
-      src = null;
-    }
-  }
-  if (!src || failed) {
-    return <span className="sources__icon sources__icon--letter">{name.slice(0, 1)}</span>;
-  }
-  return (
-    <Image
-      className="sources__icon"
-      src={src}
-      alt=""
-      width={18}
-      height={18}
-      unoptimized
-      onError={() => setFailed(true)}
-    />
   );
 }
 
