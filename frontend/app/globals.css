@@ -79,6 +79,8 @@
      controls get the softer corner. One token cannot serve both, and the
      failure mode of trying is `rounded-2xl` on everything. */
   --radius-editorial: 3px;
+  /* The phone tab bar's height, shared with what must sit above it. */
+  --tabbar-block-size: 4.25rem;
   --radius: 6px;
 
   /* Modular scale, named by role rather than by size, in the vocabulary
@@ -1563,7 +1565,7 @@ a.card__source:focus-visible {
   align-items: center;
   gap: 0.15rem;
   /* Spec §46: a 68-78px bar, comfortably past the 44px touch-target floor. */
-  min-block-size: 4.25rem;
+  min-block-size: var(--tabbar-block-size);
   padding-block: var(--space-3);
   color: var(--text-muted);
   transition: color var(--dur-micro) var(--ease);
@@ -2304,7 +2306,7 @@ a.chip:active {
   position: fixed;
   inset-block-end: 0;
   inset-inline: 0;
-  z-index: 20;
+  z-index: 45;
   background: var(--surface);
   border-block-start: 3px solid var(--accent);
   padding: var(--space-4);
@@ -2316,6 +2318,15 @@ a.chip:active {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+/* Where the phone tab bar shows, the banner sits on top of it rather than
+   over it, so both stay usable. */
+@media (max-width: 56.1875rem) {
+  .consent-banner {
+    inset-block-end: calc(var(--tabbar-block-size) + 1px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 0.35);
+  }
+}
+
   gap: var(--space-4);
 }
 

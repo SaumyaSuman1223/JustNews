@@ -336,7 +336,7 @@ const en = {
 
   "consent.label": "Cookie choice",
   "consent.body":
-    "We'd like to remember your visit so we can measure whether the feed actually works and, later, personalise it. Nothing you save or mark isn't affected either way.",
+    "We'd like to remember your visit so we can measure whether the feed actually works and, later, personalise it. Your saved stories and settings stay the same either way.",
   "consent.accept": "Accept",
   "consent.decline": "Decline",
   "consent.settings.label": "Analytics",
@@ -830,7 +830,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "consent.label": "Elección de cookies",
     "consent.body":
-      "Nos gustaría recordar tu visita para poder medir si el feed realmente funciona y, más adelante, personalizarlo. Nada que guardes o marques se ve afectado en ningún caso.",
+      "Nos gustaría recordar tu visita para medir si el feed realmente funciona y, más adelante, personalizarlo. Tus historias guardadas y tus ajustes no cambian en ningún caso.",
     "consent.accept": "Aceptar",
     "consent.decline": "Rechazar",
     "consent.settings.label": "Analítica",
@@ -1316,7 +1316,7 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "consent.label": "कुकी विकल्प",
     "consent.body":
-      "हम आपकी विज़िट याद रखना चाहते हैं ताकि यह माप सकें कि फ़ीड वाकई काम करती है या नहीं, और आगे चलकर इसे वैयक्तिकृत कर सकें। आप जो कुछ सहेजते या चिह्नित करते हैं, वह दोनों ही स्थिति में प्रभावित नहीं होता।",
+      "हम आपकी विज़िट याद रखना चाहते हैं ताकि यह माप सकें कि फ़ीड वाकई काम करती है या नहीं, और आगे चलकर इसे वैयक्तिकृत कर सकें। आपकी सहेजी ख़बरें और सेटिंग दोनों ही स्थिति में वैसी ही रहेंगी।",
     "consent.accept": "स्वीकार करें",
     "consent.decline": "अस्वीकार करें",
     "consent.settings.label": "एनालिटिक्स",
