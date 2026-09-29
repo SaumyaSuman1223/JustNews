@@ -51,6 +51,7 @@ from justnews_ingestion import dedup, gnews
 from justnews_ingestion.classify import assign_topics
 from justnews_ingestion.enrich import enrich
 from justnews_ingestion.http import PoliteClient
+from justnews_ingestion.images import placeholder_images, usable_image_url
 from justnews_ingestion.rss import (
     FeedResult,
     ParsedEntry,
@@ -224,7 +225,7 @@ async def store_entry(
             settings.ingest_snippet_max_chars,
             summary_max_chars=settings.ingest_summary_max_chars,
         ),
-        image_url=entry.image_url,
+        image_url=usable_image_url(entry.image_url),
         source_id=source_id,
         feed_id=feed_id,
         author_id=author_id,
@@ -566,6 +567,18 @@ async def _store_feed_entries(
         await _enrich_batch(
             to_enrich, client=client, settings=settings, stats=stats, deadline=deadline
         )
+
+    # A picture this source puts on every story is its placeholder: stored
+    # as no picture, so the card is a text card rather than the same crest.
+    async with session_scope() as session:
+        placeholders = await placeholder_images(
+            session,
+            source_id,
+            [url for entry in fresh if (url := usable_image_url(entry.image_url))],
+        )
+    for entry in fresh:
+        if usable_image_url(entry.image_url) in placeholders:
+            entry.image_url = None
 
     for entry in fresh:
         if deadline.expired:
