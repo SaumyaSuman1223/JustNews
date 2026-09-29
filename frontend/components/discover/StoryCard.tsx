@@ -4,10 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { ClockIcon, ExternalIcon, HeartIcon, MoreIcon, ShareIcon } from "@/components/icons";
+import { ExternalIcon, HeartIcon, MoreIcon, ShareIcon } from "@/components/icons";
 import type { Article } from "@/lib/api";
 import type { DiscoverItem } from "@/lib/discoverView";
-import { formatRelativeTime, t, tPlural, type LocaleCode } from "@/lib/i18n";
+import { formatRelativeTime, locales, t, tPlural, type LocaleCode } from "@/lib/i18n";
 import { formatRankReason } from "@/lib/rankReason";
 import { useHydrated } from "@/lib/useHydrated";
 
@@ -106,7 +106,7 @@ export function StoryCard({
         </div>
       )}
       <div className="story__body">
-        <h2 className="story__title">
+        <h2 className="story__title" lang={languageTag(article.language)}>
           {/* The stretched link: its ::after covers the card, so the whole
               card opens the article while the controls below stay their own
               targets. */}
@@ -114,17 +114,12 @@ export function StoryCard({
             {article.title}
           </Link>
         </h2>
-        {variant === "lead" && (
-          <p className="story__published" suppressHydrationWarning>
-            <ClockIcon className="story__clock" />
-            {t(locale, "discover.published", {
-              time: formatRelativeTime(article.published_at, locale),
-            })}
+        {(variant !== "card" || !article.image_url) && article.snippet && (
+          <p className="story__snippet" lang={languageTag(article.language)}>
+            {article.snippet}
           </p>
         )}
-        {(variant !== "card" || !article.image_url) && article.snippet && (
-          <p className="story__snippet">{article.snippet}</p>
-        )}
+        <StoryMeta article={article} locale={locale} />
         {item.why && <p className="story__why">{formatRankReason(locale, item.why)}</p>}
         <div className="story__foot">
           <SourcesLine article={article} locale={locale} />
@@ -151,6 +146,59 @@ export function StoryCard({
   );
 }
 
+/** The `lang` value for an article's language. */
+function languageTag(code: string): string {
+  return locales.find((option) => option.code === code)?.htmlLang ?? code;
+}
+
+function languageLabel(code: string): string {
+  return locales.find((option) => option.code === code)?.label ?? code.toUpperCase();
+}
+
+/**
+ * When the story was published, and which languages it is in: "3 hours ago
+ * · also in हिन्दी, Español" for a story reported across languages, or the
+ * card's own language when it is not the interface's. Language names are
+ * set in their own script and tagged, so a screen reader says each one in
+ * its own voice.
+ */
+function StoryMeta({ article, locale }: { article: Article; locale: LocaleCode }) {
+  const others = (article.coverage?.language_codes ?? []).filter(
+    (code) => code !== article.language,
+  );
+  const names = (codes: string[]) =>
+    codes.map((code, index) => (
+      <span key={code}>
+        {index > 0 && ", "}
+        <span lang={languageTag(code)}>{languageLabel(code)}</span>
+      </span>
+    ));
+  // "also in {languages}", with the names placed where each language's
+  // grammar puts them ("{languages} में भी").
+  const [before, after] = t(locale, "discover.alsoIn").split("{languages}");
+
+  return (
+    <p className="story__meta">
+      <time dateTime={article.published_at} suppressHydrationWarning>
+        {formatRelativeTime(article.published_at, locale)}
+      </time>
+      {others.length > 0 ? (
+        <span className="story__langs">
+          <span aria-hidden="true"> · </span>
+          {before}
+          {names(others)}
+          {after}
+        </span>
+      ) : article.language !== locale ? (
+        <span className="story__langs">
+          <span aria-hidden="true"> · </span>
+          {names([article.language])}
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
 /**
  * "26 sources" with the favicons of the first few - a real count from the
  * story cluster, leading to the story page that lists every outlet. A story
@@ -166,7 +214,9 @@ function SourcesLine({ article, locale }: { article: Article; locale: LocaleCode
           {
             slug: article.source_slug,
             name: article.source_name,
-            homepage_url: "",
+            // The article's own site is the publisher's: its favicon is the
+            // outlet's, where a blank homepage fell back to an initial.
+            homepage_url: originOf(article.url),
           },
         ];
 
@@ -192,6 +242,14 @@ function SourcesLine({ article, locale }: { article: Article; locale: LocaleCode
       {content}
     </Link>
   );
+}
+
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
 }
 
 /** The outlet's own favicon, from its own site - the same hotlinking the

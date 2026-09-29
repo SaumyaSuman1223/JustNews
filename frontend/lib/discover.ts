@@ -16,6 +16,7 @@ import { curatedTopicLabel } from "@/lib/curatedTopics";
 import type { DiscoverItem, DiscoverPage, DiscoverView } from "@/lib/discoverView";
 import { readerLanguages, type LocaleCode } from "@/lib/i18n";
 import { INTERESTS_COOKIE, parseInterests } from "@/lib/interests";
+import { READING_LANGUAGES_COOKIE, parseReadingLanguages } from "@/lib/readingLanguages";
 import type { RankReason } from "@/lib/rankReason";
 import { getSession } from "@/lib/session";
 
@@ -35,11 +36,17 @@ export async function discoverReader(locale: LocaleCode) {
     ? { accessToken: session.accessToken, sessionId: await getBrowsingSessionId() }
     : null;
   const profile = auth ? await getMe(auth) : null;
+  const store = await cookies();
+  // The account's languages when it has some; "Read in" otherwise; the
+  // interface language when the reader has said nothing.
+  const chosen = profile?.preferred_languages?.length
+    ? profile.preferred_languages
+    : parseReadingLanguages(store.get(READING_LANGUAGES_COOKIE)?.value);
   return {
     auth,
     hasBetaAccess: profile?.has_beta_access ?? false,
-    languages: readerLanguages(profile?.preferred_languages, locale),
-    interests: parseInterests((await cookies()).get(INTERESTS_COOKIE)?.value),
+    languages: readerLanguages(chosen, locale),
+    interests: parseInterests(store.get(INTERESTS_COOKIE)?.value),
   };
 }
 

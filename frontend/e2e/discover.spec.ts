@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Discover's rail. "Make it yours" is the first thing a new reader is asked
+ * Discover's rail. "What should lead For You?" is the first thing a new reader is asked
  * - and asked once: answering it, either way, is remembered.
  */
 test.describe("discover rail", () => {
@@ -14,9 +14,9 @@ test.describe("discover rail", () => {
   test("choosing interests saves them and stops asking", async ({ page, context }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/en");
-    const card = page.getByRole("region", { name: "Make it yours" });
+    const card = page.getByRole("region", { name: "What should lead For You?" });
     await expect(card).toBeVisible();
-    const save = card.getByRole("button", { name: "Save interests" });
+    const save = card.getByRole("button", { name: "Save topics" });
     await expect(save).toBeDisabled();
 
     await card.getByRole("button", { name: "Politics" }).click();
@@ -34,38 +34,73 @@ test.describe("discover rail", () => {
       .toBe("medtop:11000000");
 
     await page.reload();
-    await expect(page.getByRole("region", { name: "Make it yours" })).toBeHidden();
+    await expect(page.getByRole("region", { name: "What should lead For You?" })).toBeHidden();
   });
 
   test("closing the card is remembered too", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/en");
-    const card = page.getByRole("region", { name: "Make it yours" });
+    const card = page.getByRole("region", { name: "What should lead For You?" });
     await Promise.all([
       page.waitForResponse((response) => response.url().endsWith("/api/interests")),
       card.getByRole("button", { name: "Not now" }).click(),
     ]);
     await expect(card).toBeHidden();
     await page.reload();
-    await expect(page.getByRole("region", { name: "Make it yours" })).toBeHidden();
+    await expect(page.getByRole("region", { name: "What should lead For You?" })).toBeHidden();
   });
 
-  test("a widget can be hidden from the customize panel", async ({ page }) => {
+  test("weather is off until the reader turns it on, and stays on", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/en");
     const rail = page.getByRole("complementary", { name: "Your Discover rail" });
-    await expect(rail.getByRole("heading", { name: "Weather" })).toBeVisible();
-
-    await page.getByRole("button", { name: "Customize" }).first().click();
-    await rail.getByRole("checkbox", { name: "Weather" }).uncheck();
     await expect(rail.getByRole("heading", { name: "Weather", exact: true })).toBeHidden();
+
+    await rail.getByRole("button", { name: "Customize" }).click();
+    await rail.getByRole("checkbox", { name: "Weather" }).check();
+    await expect(rail.getByRole("heading", { name: "Weather", exact: true })).toBeVisible();
 
     await page.reload();
     await expect(
       page
         .getByRole("complementary", { name: "Your Discover rail" })
         .getByRole("heading", { name: "Weather", exact: true }),
-    ).toBeHidden();
+    ).toBeVisible();
+  });
+
+  test("the topics card offers six first, and the rest on request", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/en");
+    const card = page.getByRole("region", { name: "What should lead For You?" });
+    await expect(card.getByRole("button", { name: "Politics" })).toBeVisible();
+    await expect(card.getByRole("button", { name: "Religion" })).toBeHidden();
+    await card.getByRole("button", { name: /more topics/ }).click();
+    await expect(card.getByRole("button", { name: "Religion" })).toBeVisible();
+  });
+});
+
+test.describe("read in", () => {
+  test("a signed-out reader can read in two languages", async ({ page, context }) => {
+    await context.addCookies([
+      { name: "jn_consent", value: "denied", domain: "127.0.0.1", path: "/" },
+    ]);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/en");
+    await page.getByRole("button", { name: /Stories in English/ }).click();
+    await page.getByRole("checkbox", { name: "हिन्दी" }).check();
+    await Promise.all([
+      page.waitForResponse((response) => response.url().endsWith("/api/reading-languages")),
+      page.getByRole("button", { name: "Show these languages" }).click(),
+    ]);
+    await expect
+      .poll(async () => {
+        const value = (await context.cookies()).find((c) => c.name === "jn_read")?.value;
+        return value && decodeURIComponent(value);
+      })
+      .toBe("en,hi");
+    await expect(page.getByRole("button", { name: /Stories in English, हिन्दी/ })).toBeVisible();
+    // The interface stays English.
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
   });
 });
 
@@ -92,14 +127,14 @@ test.describe("discover", () => {
   test("For You says it is showing Top until interests are chosen", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/en");
-    const card = page.getByRole("region", { name: "Make it yours" });
+    const card = page.getByRole("region", { name: "What should lead For You?" });
     await card.getByRole("button", { name: "Not now" }).click();
-    const note = page.getByText("For You shows Top stories until you choose some interests.");
+    const note = page.getByText("For You shows Top stories until you pick some topics.");
     await expect(note).toBeVisible();
 
-    await page.getByRole("button", { name: "Choose interests" }).click();
+    await page.getByRole("button", { name: "Pick topics" }).click();
     await expect(card).toBeVisible();
-    await expect(card.getByRole("heading", { name: "Make it yours" })).toBeFocused();
+    await expect(card.getByRole("heading", { name: "What should lead For You?" })).toBeFocused();
     await expect(note).toBeHidden();
   });
 });

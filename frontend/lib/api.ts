@@ -53,6 +53,7 @@ export type Story = components["schemas"]["StoryOut"];
 export type StoryDetail = components["schemas"]["StoryDetailOut"];
 export type LanguageCoverage = components["schemas"]["LanguageCoverageOut"];
 export type Blindspot = components["schemas"]["BlindspotOut"];
+export type AcrossLanguages = components["schemas"]["AcrossLanguagesOut"];
 export type Edition = components["schemas"]["EditionOut"];
 export type Issue = components["schemas"]["IssueOut"];
 export type IssuePageContent = components["schemas"]["PageOut"];
@@ -224,6 +225,19 @@ export function getTopicPerspectives(topicId: string): Promise<Degradable<Perspe
 export function getBlindspots(languages: string, limit = 4): Promise<Degradable<Blindspot[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });
   return get<Blindspot[]>(`/v1/blindspots?${query}`, [], 300);
+}
+
+/**
+ * Stories reported in the reader's languages and in others: the same event,
+ * and how many outlets in each language have it. Headlines come only in the
+ * languages asked for; others are counted, not quoted.
+ */
+export function getAcrossLanguages(
+  languages: string,
+  limit = 4,
+): Promise<Degradable<AcrossLanguages[]>> {
+  const query = new URLSearchParams({ languages, limit: String(limit) });
+  return get<AcrossLanguages[]>(`/v1/across-languages?${query}`, [], 120);
 }
 
 /** Signed-out "What matters": recency x breadth of coverage x source trust,
@@ -408,6 +422,24 @@ export async function getIssue(
   } catch {
     return null;
   }
+}
+
+/**
+ * An edition's front page for Discover's "Today's Aquila" - read without the
+ * consent header, so it logs no impressions (it is not the reader opening
+ * Aquila) and is the cacheable, unconsented read (ADR 0014).
+ */
+export async function getIssueFrontPage(
+  issueId: number,
+  locale: string,
+): Promise<IssuePageContent | null> {
+  const query = new URLSearchParams({ locale });
+  const page = await get<IssuePageContent | null>(
+    `/v1/issues/${issueId}/pages/1?${query}`,
+    null,
+    300,
+  );
+  return page.data;
 }
 
 /** One page, with its articles. Logs impressions, so it is never cached. */

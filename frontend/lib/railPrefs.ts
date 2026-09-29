@@ -1,18 +1,30 @@
 /**
- * The order and visibility of Discover's rail widgets.
+ * The order and visibility of Discover's rail modules.
  *
  * A cookie, so the server renders the reader's rail in their order on the
- * first request; written by the customize panel. `weather,-markets,companies`
- * is weather first, markets hidden, companies last. A widget added later that
- * the cookie does not mention appears at the end, shown - a new feature is
- * visible until the reader says otherwise.
+ * first request; written by the customize panel. `languages,-markets,aquila`
+ * is Across languages first, markets hidden, Today's Aquila last. A module
+ * the cookie does not mention is added at the end, in its default state.
+ *
+ * The news modules are on by default; weather, markets and companies are
+ * there for a reader who wants them, off until they say so.
  */
 export const RAIL_COOKIE = "jn_rail";
 export const WEATHER_COOKIE = "jn_weather";
 export const TEMP_UNIT_COOKIE = "jn_temp_unit";
 
-export const WIDGET_IDS = ["weather", "markets", "companies"] as const;
+export const WIDGET_IDS = [
+  "languages",
+  "aquila",
+  "trending",
+  "weather",
+  "markets",
+  "companies",
+] as const;
 export type WidgetId = (typeof WIDGET_IDS)[number];
+
+/** Off until the reader turns them on. */
+const HIDDEN_BY_DEFAULT: readonly WidgetId[] = ["weather", "markets", "companies"];
 
 export interface RailPrefs {
   order: WidgetId[];
@@ -33,7 +45,11 @@ export function parseRailPrefs(value: string | undefined): RailPrefs {
     order.push(id);
     if (off) hidden.push(id);
   }
-  for (const id of WIDGET_IDS) if (!order.includes(id)) order.push(id);
+  for (const id of WIDGET_IDS) {
+    if (order.includes(id)) continue;
+    order.push(id);
+    if (HIDDEN_BY_DEFAULT.includes(id)) hidden.push(id);
+  }
   return { order, hidden };
 }
 

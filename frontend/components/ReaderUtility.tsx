@@ -168,8 +168,6 @@ export function ReaderUtility({
             </li>
           ))}
         </ul>
-
-        <p className="reader-utility__sign">{t(locale, "aquila.sign")}</p>
       </aside>
     </div>
   );
