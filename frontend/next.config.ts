@@ -62,9 +62,11 @@ const config: NextConfig = {
     staleTimes: { dynamic: 30, static: 300 },
   },
   images: {
-    // Publisher images are hot-linked from wherever the source hosts them, so
-    // the allow-list has to be open. Sizes are constrained instead, and every
-    // card reserves its space through a fixed aspect ratio.
+    // Publisher images are hot-linked from wherever the source hosts them.
+    // The loader asks each publisher's own image service for the width a
+    // layout needs (lib/imageLoader.ts); there is no image proxy.
+    loader: "custom",
+    loaderFile: "./lib/imageLoader.ts",
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
   async headers() {
