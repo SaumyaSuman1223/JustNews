@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { ProfileIcon } from "@/components/icons";
 import { t, type LocaleCode } from "@/lib/i18n";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 /**
  * A disclosure, not a menu.
@@ -76,6 +75,9 @@ export function AccountMenu({
   }
 
   async function signOut() {
+    // Loaded on the click, not with the page: Supabase's browser client is
+    // about 64 KB compressed, and this button is its only use on most pages.
+    const { createBrowserSupabaseClient } = await import("@/lib/supabase/client");
     const supabase = createBrowserSupabaseClient();
     await supabase.auth.signOut();
     setOpen(false);

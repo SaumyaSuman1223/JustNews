@@ -50,6 +50,9 @@ const securityHeaders = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // The brand font the icons and share image read from disk (lib/icon.tsx);
+  // named so the deployed functions carry it.
+  outputFileTracingIncludes: { "/**": ["./assets/fonts/*.ttf"] },
   experimental: {
     // The client router keeps a page it has shown for 30s (dynamic) or 5
     // minutes (static), so Back, and switching between tabs already visited,
