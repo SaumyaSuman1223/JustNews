@@ -313,3 +313,36 @@ class TestHeuristicFeedEndpoint:
 
         assert len(seen) == 25
         assert len(set(seen)) == 25
+
+
+class TestEveryoneOrder:
+    def test_a_story_in_more_languages_outranks_a_comparable_one(self) -> None:
+        from dataclasses import replace
+
+        from justnews_api.repositories.content import ClusterCoverage
+
+        def covered(article_id: int, languages: int) -> ArticleRow:
+            coverage = ClusterCoverage(
+                articles=3,
+                sources=3,
+                languages=languages,
+                countries=1,
+                first_seen_at=NOW,
+                last_seen_at=NOW,
+            )
+            return replace(_article(article_id, story_cluster_id=article_id), coverage=coverage)
+
+        scores = {
+            candidate.article.id: candidate.score
+            for candidate in ranking.score_for_everyone(
+                [covered(1, languages=1), covered(2, languages=3)], now=NOW
+            )
+        }
+        assert scores[2] > scores[1]
+
+    def test_no_source_takes_more_than_its_cap(self) -> None:
+        flood = [_article(i, source_slug="the-hindu") for i in range(10)]
+        others = [_article(100 + i, source_slug=f"other-{i}") for i in range(5)]
+        capped = ranking.cap_per_source(flood + others, cap=3, limit=8)
+        assert [a.source_slug for a in capped].count("the-hindu") == 3
+        assert len(capped) == 8

@@ -17,14 +17,22 @@ import type { DiscoverItem, DiscoverPage, DiscoverView } from "@/lib/discoverVie
 import { readerLanguages, type LocaleCode } from "@/lib/i18n";
 import { INTERESTS_COOKIE, parseInterests } from "@/lib/interests";
 import { READING_LANGUAGES_COOKIE, parseReadingLanguages } from "@/lib/readingLanguages";
+import { spreadRuns } from "@/lib/spreadRuns";
 import type { RankReason } from "@/lib/rankReason";
 import { getSession } from "@/lib/session";
 
 /** A Discover page: large enough that one scroll is several screens, small
  * enough that the first byte is not waiting on a long ranking. */
 const PAGE_SIZE = 24;
-/** How many of the importance order lead the first page of a stream. */
-const TOP_LEAD = 12;
+/** How many of the importance order lead the first page of a stream. Top's
+ * whole first page is importance-ordered; a topic or interests stream leads
+ * with a dozen and continues newest-first. */
+const TOP_LEAD = 24;
+const TOPIC_LEAD = 12;
+/** The most any one source may take of a page of Top. A publisher filing
+ * regional briefs by the dozen took 18 of the first 30 cards; Top is what
+ * matters now, not who posts most. */
+const TOP_PER_SOURCE = 5;
 
 type ApiReason = { kind: "followed_topic" | "trending" | "exploration"; topic_id?: string | null };
 
@@ -97,21 +105,42 @@ export async function loadDiscoverPage(
   return stream(reader.languages, topics, cursor);
 }
 
+/**
+ * A page's articles with no source running more than twice in a row - the
+ * next article from another source is brought forward instead - and, when
+ * `cap` is set, no source more than `cap` times on the page. Order is
+ * otherwise kept: this spreads a run, it does not re-rank.
+ */
+export function spreadSources(articles: Article[], cap?: number): Article[] {
+  const counts = new Map<string, number>();
+  const kept = articles.filter((article) => {
+    const seen = counts.get(article.source_slug) ?? 0;
+    if (cap !== undefined && seen >= cap) return false;
+    counts.set(article.source_slug, seen + 1);
+    return true;
+  });
+  return spreadRuns(kept, (article) => article.source_slug);
+}
+
 async function stream(
   languages: string,
   topics: string[] | undefined,
   cursor: string | undefined,
 ): Promise<DiscoverPage> {
-  const [page, top] = await Promise.all([
+  // No topics is Top, or For You before a reader has chosen any.
+  const top = topics === undefined;
+  const [page, ranked] = await Promise.all([
     getArticles({ languages, topics, cursor, pageSize: PAGE_SIZE }),
-    cursor ? Promise.resolve(null) : getTopArticles(languages, TOP_LEAD, topics),
+    cursor ? Promise.resolve(null) : getTopArticles(languages, top ? TOP_LEAD : TOPIC_LEAD, topics),
   ]);
-  const lead = top && !top.degraded ? top.data : [];
+  const lead = ranked && !ranked.degraded ? ranked.data : [];
   const placed = new Set(lead.map((article) => article.id));
-  const articles: Article[] = [
-    ...lead,
-    ...page.data.items.filter((article) => !placed.has(article.id)),
-  ];
+  // Spread and capped over the whole page - the ranked lead as well as the
+  // newest-first rest - so neither half can stack one source.
+  const articles: Article[] = spreadSources(
+    [...lead, ...page.data.items.filter((article) => !placed.has(article.id))],
+    top ? TOP_PER_SOURCE : undefined,
+  );
   return {
     items: articles.map((article): DiscoverItem => ({ article, impressionId: null, why: null })),
     nextCursor: page.data.next_cursor ?? null,

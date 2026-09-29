@@ -6,6 +6,7 @@ Anonymous browsing over the corpus - no ranking, no personalisation. That is
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -277,7 +278,11 @@ async def get_top_articles(
         topic_ids=topics,
     )
     scored = ranking.dedupe_story_clusters(ranking.score_for_everyone(pool, now=now))
-    return await repo.attach_outlets(session, ranking.diversify(scored, limit=limit))
+    # Diversify a margin past `limit`, then hold each source to about a fifth
+    # of the list: 18 of the first 30 on Top were one publisher's briefs.
+    ordered = ranking.diversify(scored, limit=limit * 3)
+    capped = ranking.cap_per_source(ordered, cap=max(2, math.ceil(limit / 5)), limit=limit)
+    return await repo.attach_outlets(session, capped)
 
 
 #: The most topics one Discover request may filter to - "Make it yours" picks

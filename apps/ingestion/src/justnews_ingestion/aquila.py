@@ -23,6 +23,7 @@ widens (see `_window_start`) rather than publishing an empty paper.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
@@ -30,7 +31,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from justnews_core.logging import get_logger
-from justnews_core.models import Article, ArticleTopic, Issue, IssuePage, IssueSlot, Source
+from justnews_core.models import (
+    Article,
+    ArticleTopic,
+    Issue,
+    IssuePage,
+    IssueSlot,
+    Source,
+    StoryCluster,
+)
 
 log = get_logger(__name__)
 
@@ -111,6 +120,11 @@ MIN_SECTION_ARTICLES = 3
 # No page may run more than this many pieces from one outlet. A section where
 # one publisher supplies everything is a press release, not a page.
 MAX_PER_SOURCE_PER_PAGE = 2
+# How much a story's breadth counts in choosing what leads: per doubling of
+# the outlets carrying it, and per extra language. The API's importance order
+# uses the same two terms (backend services/ranking.py).
+BREADTH_WEIGHT = 0.5
+LANGUAGE_WEIGHT = 0.35
 # How far back to look when the slot's own window is too thin to fill a paper.
 FALLBACK_WINDOW_HOURS = 48
 # Below this, the corpus cannot support an issue and the composer publishes
@@ -161,27 +175,36 @@ async def _candidates(
     Ordering is recency weighted by source trust rather than recency alone:
     on a corpus built from hundreds of feeds, "newest" is dominated by
     whichever aggregator posts most often, which is not the same as
-    "most worth the front page".
+    "most worth the front page". It is also weighted by how widely the story
+    is carried - by how many outlets, and in how many languages - the same
+    terms as the API's importance order (services/ranking.py), so a story
+    three languages are reporting can lead the paper over a newer brief.
 
     `has_image` rides along rather than being fetched later because the slot
     that will print an image has to be *chosen* with that in mind - see
     `_select_for_page`. Whether an image exists is all the composer needs; the
     URL itself is the renderer's business.
     """
+    outlets = func.greatest(func.coalesce(StoryCluster.source_count, 1), 1)
+    languages = func.greatest(func.coalesce(StoryCluster.language_count, 1), 1)
+    breadth = 1 + BREADTH_WEIGHT * func.ln(outlets) / math.log(2)
+    reach = 1 + LANGUAGE_WEIGHT * (languages - 1)
     stmt = (
         select(Article.id, Article.source_id, Article.story_cluster_id, Article.image_url)
         .join(Source, Source.id == Article.source_id)
+        .outerjoin(StoryCluster, StoryCluster.id == Article.story_cluster_id)
         .where(
             Article.language == language,
             Article.published_at >= since,
             Article.removed_at.is_(None),
         )
-        # Recency in hours, discounted by trust: a trusted source's two-hour-
-        # old piece outranks an untrusted source's one-hour-old piece.
+        # Age, discounted by trust and by breadth: a trusted source's two-
+        # hour-old piece outranks an untrusted source's one-hour-old piece,
+        # and a story many outlets and languages carry outranks both.
         .order_by(
             (
                 func.extract("epoch", func.now() - Article.published_at)
-                / (0.5 + Source.trust_score)
+                / ((0.5 + Source.trust_score) * breadth * reach)
             ).asc()
         )
         .limit(limit)

@@ -552,6 +552,23 @@ class TestTopArticles:
         assert ids[0] in {article.id for article in broad}
         assert lone.id in ids[1:]
 
+    async def test_one_prolific_source_cannot_fill_the_list(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        # A publisher filing regional briefs by the dozen took 18 of the first
+        # 30 on Top. Each source is held to about a fifth of the list.
+        flood = await make_source(session, slug="the-hindu")
+        for i in range(12):
+            await make_article(session, flood, title=f"District brief {i}", minutes_ago=i)
+        for i in range(6):
+            other = await make_source(session, slug=f"other-{i}")
+            await make_article(session, other, title=f"Other story {i}", minutes_ago=60 + i)
+        await session.commit()
+
+        body = (await client.get("/v1/articles/top?languages=en&limit=10")).json()
+        assert sum(1 for item in body if item["source_slug"] == "the-hindu") <= 2
+        assert len(body) == 8
+
     async def test_one_article_per_story(self, client: AsyncClient, session: AsyncSession) -> None:
         wires = [await make_source(session, slug=f"desk-{i}") for i in range(3)]
         members = [
