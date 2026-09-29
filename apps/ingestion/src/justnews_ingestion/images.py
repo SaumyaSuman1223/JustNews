@@ -30,6 +30,15 @@ PLACEHOLDER_REPEATS = 3
 _NOT_IMAGES = (".mp4", ".m4v", ".mov", ".webm", ".m3u8", ".mpd", ".mp3", ".m4a", ".wav", ".ogg")
 _VIDEO_HOSTS = ("youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "vimeo.com")
 
+#: Image hosts that refuse to be embedded on another site. NDTV's CDN answers
+#: every request from outside ndtv.com with a 403 - with or without a
+#: referrer, from a server and from Chrome alike (checked 2026-09-29) - so its
+#: pictures render as broken images, or at best as text cards after the
+#: browser gives up. Stored as no picture instead. Add a host only with that
+#: kind of evidence: a host that merely blocks data centres still works for
+#: readers.
+REFUSES_EMBEDDING = frozenset({"c.ndtvimg.com", "i.ndtvimg.com"})
+
 
 def usable_image_url(url: str | None) -> str | None:
     """`url` if it can be an image a card shows; None otherwise."""
@@ -38,7 +47,8 @@ def usable_image_url(url: str | None) -> str | None:
     parts = urlsplit(url.strip())
     if parts.scheme not in ("http", "https") or not parts.netloc:
         return None
-    if parts.netloc.lower() in _VIDEO_HOSTS:
+    host = parts.netloc.lower()
+    if host in _VIDEO_HOSTS or host in REFUSES_EMBEDDING:
         return None
     if parts.path.lower().endswith(_NOT_IMAGES):
         return None
@@ -69,8 +79,9 @@ async def placeholder_images(session: AsyncSession, source_id: int, urls: list[s
 
 
 async def repair_images(session: AsyncSession, *, dry_run: bool = False) -> dict[str, Any]:
-    """Clear stored image URLs that are not pictures of their story: videos
-    and watch pages, and any picture a source repeats across
+    """Clear stored image URLs that are not pictures of their story: videos,
+    watch pages and hosts that refuse embedding (counted together as
+    `articles_with_a_non_image`), and any picture a source repeats across
     `PLACEHOLDER_REPEATS` or more of its articles. Idempotent."""
     repeated = (
         await session.execute(
