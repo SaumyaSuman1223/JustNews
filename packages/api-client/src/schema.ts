@@ -38,6 +38,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/across-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Across Languages
+         * @description Stories reported in the reader's languages and in others - the same
+         *     event, and how widely each language is covering it.
+         *
+         *     Cache: 120s fresh + 600s stale (ADR 0014) - clusters gain languages as
+         *     ingest runs every 15 minutes, not by the second.
+         */
+        get: operations["across_languages_v1_across_languages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/analytics/dau": {
         parameters: {
             query?: never;
@@ -1290,6 +1314,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AcrossLanguagesOut
+         * @description A story reported both in the reader's languages and in others.
+         */
+        AcrossLanguagesOut: {
+            /**
+             * Coverage
+             * @description Every language the story is reported in, counted, most-covered first.
+             */
+            coverage: components["schemas"]["LanguageCoverageOut"][];
+            /**
+             * Headlines
+             * @description Its first headline in each of the reader's languages - never others.
+             */
+            headlines: components["schemas"]["HeadlineOut"][];
+            story: components["schemas"]["StoryOut"];
+        };
         /** ActiveUsersBucketOut */
         ActiveUsersBucketOut: {
             /** Active Users */
@@ -1528,6 +1569,11 @@ export interface components {
              * Format: date-time
              */
             first_seen_at: string;
+            /**
+             * Language Codes
+             * @description The languages the story is reported in, most-covered first. Filled for stories in more than one language; empty otherwise.
+             */
+            language_codes?: string[];
             /** Languages */
             languages: number;
             /**
@@ -1674,6 +1720,17 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HeadlineOut */
+        HeadlineOut: {
+            /** Article Id */
+            article_id: number;
+            /** Language */
+            language: string;
+            /** Source Name */
+            source_name: string;
+            /** Title */
+            title: string;
         };
         /** Health */
         Health: {
@@ -2454,6 +2511,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Readiness"];
+                };
+            };
+        };
+    };
+    across_languages_v1_across_languages_get: {
+        parameters: {
+            query: {
+                /** @description The reader's languages. Headlines are quoted only in these. */
+                languages: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcrossLanguagesOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

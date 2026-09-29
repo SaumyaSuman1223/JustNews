@@ -1,6 +1,37 @@
 {
   "components": {
     "schemas": {
+      "AcrossLanguagesOut": {
+        "description": "A story reported both in the reader's languages and in others.",
+        "properties": {
+          "coverage": {
+            "description": "Every language the story is reported in, counted, most-covered first.",
+            "items": {
+              "$ref": "#/components/schemas/LanguageCoverageOut"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "headlines": {
+            "description": "Its first headline in each of the reader's languages - never others.",
+            "items": {
+              "$ref": "#/components/schemas/HeadlineOut"
+            },
+            "title": "Headlines",
+            "type": "array"
+          },
+          "story": {
+            "$ref": "#/components/schemas/StoryOut"
+          }
+        },
+        "required": [
+          "story",
+          "coverage",
+          "headlines"
+        ],
+        "title": "AcrossLanguagesOut",
+        "type": "object"
+      },
       "ActiveUsersBucketOut": {
         "properties": {
           "active_users": {
@@ -636,6 +667,14 @@
             "title": "First Seen At",
             "type": "string"
           },
+          "language_codes": {
+            "description": "The languages the story is reported in, most-covered first. Filled for stories in more than one language; empty otherwise.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Language Codes",
+            "type": "array"
+          },
           "languages": {
             "title": "Languages",
             "type": "integer"
@@ -1041,6 +1080,34 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HeadlineOut": {
+        "properties": {
+          "article_id": {
+            "title": "Article Id",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "article_id",
+          "title",
+          "source_name"
+        ],
+        "title": "HeadlineOut",
         "type": "object"
       },
       "Health": {
@@ -2965,6 +3032,70 @@
         "summary": "Readiness",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/across-languages": {
+      "get": {
+        "description": "Stories reported in the reader's languages and in others - the same\nevent, and how widely each language is covering it.\n\nCache: 120s fresh + 600s stale (ADR 0014) - clusters gain languages as\ningest runs every 15 minutes, not by the second.",
+        "operationId": "across_languages_v1_across_languages_get",
+        "parameters": [
+          {
+            "description": "The reader's languages. Headlines are quoted only in these.",
+            "in": "query",
+            "name": "languages",
+            "required": true,
+            "schema": {
+              "description": "The reader's languages. Headlines are quoted only in these.",
+              "examples": [
+                "en,hi"
+              ],
+              "title": "Languages",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 4,
+              "maximum": 10,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AcrossLanguagesOut"
+                  },
+                  "title": "Response Across Languages V1 Across Languages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Across Languages",
+        "tags": [
+          "content"
         ]
       }
     },

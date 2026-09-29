@@ -58,6 +58,7 @@ Option 2:
 | `GET /v1/articles` (first page, per filter set) | 60s | 300s | A new report should appear within a minute; later cursor pages are not cached |
 | `GET /v1/articles/top` | 60s | 300s | Same as the list it ranks |
 | `GET /v1/trending` | 60s | 300s | Clicks move by the minute, not the second |
+| `GET /v1/across-languages` | 120s | 600s | Stories gain languages as ingest runs every 15 minutes |
 | `GET /v1/stories/{id}` | 60s | 300s | A developing story gains reports quickly |
 | `GET /v1/stats` | 300s | 900s | A count, not a headline |
 | `GET /v1/sources/{slug}` | 300s | 900s | Publisher metadata barely changes |

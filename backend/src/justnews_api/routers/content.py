@@ -55,6 +55,13 @@ class CoverageOut(BaseModel):
             "for a card's favicons. `sources` is the full count."
         ),
     )
+    language_codes: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The languages the story is reported in, most-covered first. Filled for "
+            "stories in more than one language; empty otherwise."
+        ),
+    )
 
 
 class ArticleOut(BaseModel):
@@ -96,6 +103,7 @@ class ArticleOut(BaseModel):
                     OutletOut(slug=o.slug, name=o.name, homepage_url=o.homepage_url)
                     for o in row.coverage.outlets
                 ],
+                language_codes=list(row.coverage.language_codes),
             )
             if row.coverage is not None
             else None
@@ -198,6 +206,25 @@ class BlindspotOut(BaseModel):
 
     story: StoryOut
     coverage: list[LanguageCoverageOut]
+
+
+class HeadlineOut(BaseModel):
+    language: str
+    article_id: int
+    title: str
+    source_name: str
+
+
+class AcrossLanguagesOut(BaseModel):
+    """A story reported both in the reader's languages and in others."""
+
+    story: StoryOut
+    coverage: list[LanguageCoverageOut] = Field(
+        description="Every language the story is reported in, counted, most-covered first."
+    )
+    headlines: list[HeadlineOut] = Field(
+        description="Its first headline in each of the reader's languages - never others."
+    )
 
 
 class StatsOut(BaseModel):
@@ -413,6 +440,54 @@ async def blindspots(
         )
         for item in found
     ]
+
+
+@router.get("/across-languages", response_model=list[AcrossLanguagesOut])
+async def across_languages(
+    session: AsyncSession = Depends(get_session),
+    languages: str = Query(
+        examples=["en,hi"],
+        description="The reader's languages. Headlines are quoted only in these.",
+    ),
+    limit: int = Query(default=4, ge=1, le=10),
+) -> list[AcrossLanguagesOut]:
+    """Stories reported in the reader's languages and in others - the same
+    event, and how widely each language is covering it.
+
+    Cache: 120s fresh + 600s stale (ADR 0014) - clusters gain languages as
+    ingest runs every 15 minutes, not by the second.
+    """
+    requested = service.parse_languages(languages) or []
+    if not requested:
+        raise ValidationError("languages must name at least one language")
+
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        found = await service.get_across_languages(s, languages=requested, limit=limit)
+        return [
+            AcrossLanguagesOut(
+                story=StoryOut.from_cluster(item.cluster),
+                coverage=[LanguageCoverageOut.from_row(entry) for entry in item.coverage],
+                headlines=[
+                    HeadlineOut(
+                        language=h.language,
+                        article_id=h.article_id,
+                        title=h.title,
+                        source_name=h.source_name,
+                    )
+                    for h in item.headlines
+                ],
+            ).model_dump(mode="json")
+            for item in found
+        ]
+
+    payload = await cache.read_through(
+        f"across-languages:{','.join(sorted(requested))}:{limit}",
+        ttl=120,
+        stale=600,
+        session=session,
+        load=load,
+    )
+    return [AcrossLanguagesOut.model_validate(item) for item in payload]
 
 
 @router.get("/trending", response_model=list[ArticleOut])

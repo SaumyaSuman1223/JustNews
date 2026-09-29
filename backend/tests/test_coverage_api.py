@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from justnews_core.models import StoryCluster
 
 
-async def _cluster(session: AsyncSession, title: str, *, sources: int = 2) -> StoryCluster:
+async def _cluster(
+    session: AsyncSession, title: str, *, sources: int = 2, languages: int = 0
+) -> StoryCluster:
     now = datetime.now(UTC)
     cluster = StoryCluster(
         title=title,
@@ -25,7 +27,7 @@ async def _cluster(session: AsyncSession, title: str, *, sources: int = 2) -> St
         last_seen_at=now,
         article_count=0,
         source_count=sources,
-        language_count=0,
+        language_count=languages,
     )
     session.add(cluster)
     await session.flush()
@@ -132,3 +134,65 @@ class TestBlindspots:
         await session.commit()
 
         assert (await client.get("/v1/blindspots")).json() == []
+
+
+class TestAcrossLanguages:
+    async def test_quotes_only_the_readers_languages_and_counts_the_rest(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        cluster = await _cluster(session, "Airport drones", sources=3, languages=3)
+        await _cover(session, cluster, language="en", source_slug="bbc", title="Drones over Munich")
+        await _cover(session, cluster, language="hi", source_slug="ndtv", title="म्यूनिख पर ड्रोन")
+        await _cover(session, cluster, language="es", source_slug="pais", title="Drones en Múnich")
+        await session.commit()
+
+        body = (await client.get("/v1/across-languages", params={"languages": "en,hi"})).json()
+
+        assert [item["story"]["id"] for item in body] == [cluster.id]
+        assert {h["language"]: h["title"] for h in body[0]["headlines"]} == {
+            "en": "Drones over Munich",
+            "hi": "म्यूनिख पर ड्रोन",
+        }
+        # Spanish is counted, never quoted: the reader did not ask for it.
+        assert {row["language"] for row in body[0]["coverage"]} == {"en", "hi", "es"}
+        assert all(h["language"] != "es" for h in body[0]["headlines"])
+
+    async def test_skips_a_story_in_none_of_the_readers_languages(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        cluster = await _cluster(session, "Only elsewhere", languages=2)
+        await _cover(session, cluster, language="hi", source_slug="ndtv", title="एक")
+        await _cover(session, cluster, language="es", source_slug="pais", title="Uno")
+        await session.commit()
+
+        body = (await client.get("/v1/across-languages", params={"languages": "en"})).json()
+        assert body == []
+
+    async def test_skips_a_story_in_a_single_language(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        cluster = await _cluster(session, "English only", languages=1)
+        await _cover(session, cluster, language="en", source_slug="bbc", title="One")
+        await _cover(session, cluster, language="en", source_slug="npr", title="Two")
+        await session.commit()
+
+        body = (await client.get("/v1/across-languages", params={"languages": "en"})).json()
+        assert body == []
+
+    async def test_languages_are_required(self, client: AsyncClient) -> None:
+        response = await client.get("/v1/across-languages")
+        assert response.status_code == 422
+
+    async def test_an_articles_coverage_names_its_languages(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        cluster = await _cluster(session, "Named languages", sources=3, languages=2)
+        await _cover(session, cluster, language="en", source_slug="bbc", title="In English")
+        await _cover(session, cluster, language="hi", source_slug="ndtv", title="हिंदी में एक")
+        await _cover(session, cluster, language="hi", source_slug="aajtak", title="हिंदी में दो")
+        await session.commit()
+
+        body = (await client.get("/v1/articles", params={"languages": "en"})).json()
+
+        coverage = body["items"][0]["coverage"]
+        assert coverage["language_codes"] == ["hi", "en"]

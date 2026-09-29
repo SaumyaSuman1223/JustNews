@@ -185,6 +185,49 @@ async def get_blindspots(
     ]
 
 
+@dataclass(frozen=True, slots=True)
+class AcrossLanguages:
+    cluster: StoryCluster
+    #: Every language the story is reported in, counted - including ones the
+    #: reader does not read, which are named but never quoted.
+    coverage: list[repo.LanguageCoverage]
+    #: The story's first headline in each of the reader's languages.
+    headlines: list[repo.Headline]
+
+
+# Two days: long enough that a quiet morning still has a story reported
+# across languages, short enough that it is today's news.
+ACROSS_LANGUAGES_WINDOW = timedelta(hours=48)
+
+
+async def get_across_languages(
+    session: AsyncSession, *, languages: list[str], limit: int = 4
+) -> list[AcrossLanguages]:
+    """Stories reported both in the reader's languages and in others.
+
+    The product's cross-lingual clustering, made visible: the same event, and
+    how many outlets in each language are reporting it.
+    """
+    clusters = await repo.list_multilingual_clusters(
+        session,
+        languages=languages,
+        since=datetime.now(UTC) - ACROSS_LANGUAGES_WINDOW,
+        limit=limit,
+    )
+    ids = [cluster.id for cluster in clusters]
+    coverage = await repo.language_coverage(session, ids)
+    headlines = await repo.first_headlines(session, ids, languages)
+    return [
+        AcrossLanguages(
+            cluster=cluster,
+            coverage=coverage.get(cluster.id, []),
+            headlines=headlines.get(cluster.id, []),
+        )
+        for cluster in clusters
+        if headlines.get(cluster.id)
+    ]
+
+
 # Long enough that a quiet overnight window still has something in it, short
 # enough that "trending" means now rather than this week.
 TRENDING_WINDOW = timedelta(hours=24)
