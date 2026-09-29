@@ -80,6 +80,26 @@ export function MobileTopBar({ locale }: { locale: LocaleCode }) {
   const button = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
 
+  // On a phone the top bar, Discover's bar and the tab bar took a fifth of
+  // the screen. Scrolling down to read hides this one; any scroll back up
+  // brings it back, as a reader reaching for the menu expects.
+  useEffect(() => {
+    let last = window.scrollY;
+    function onScroll() {
+      const y = window.scrollY;
+      const root = document.documentElement;
+      if (root.hasAttribute("data-drawer-open")) return;
+      if (y > last + 8 && y > 80) root.setAttribute("data-topbar-hidden", "");
+      else if (y < last - 8 || y <= 80) root.removeAttribute("data-topbar-hidden");
+      if (Math.abs(y - last) > 8) last = y;
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      document.documentElement.removeAttribute("data-topbar-hidden");
+    };
+  }, []);
+
   useEffect(() => {
     const element = sidebar();
     element?.toggleAttribute("data-open", open);

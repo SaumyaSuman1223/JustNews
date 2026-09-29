@@ -590,9 +590,7 @@ a.card__source:focus-visible {
 }
 
 .article-topics__label {
-  font-size: var(--type-micro);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: var(--type-label);
   color: var(--text-muted);
 }
 
@@ -754,6 +752,8 @@ a.card__source:focus-visible {
 
 .not-found__wordmark {
   display: inline-block;
+  /* Smaller than the page title below it, which it outranked on a phone. */
+  font-size: 1.2rem;
   margin-block-end: var(--space-12);
   color: var(--text);
   text-decoration: none;
@@ -2350,6 +2350,26 @@ a.chip:active {
 
 /* --- target size ---------------------------------------------------------- */
 
+/* Text links that sat under the 24px minimum (WCAG 2.2, 2.5.8): padded to
+   it, the padding taken back out of the line so nothing moves. */
+a.card__source,
+.search-recent__clear,
+.story-header__facts a {
+  display: inline-block;
+}
+
+.sources,
+a.card__source,
+.search-recent__clear,
+.story-header__facts a {
+  padding-block: 0.35rem;
+  margin-block: -0.35rem;
+}
+
+.rail-link-button {
+  min-block-size: 1.5rem;
+}
+
 /* WCAG 2.2 AA is 2.5.8 Target Size (Minimum): 24x24 CSS pixels. Three
    controls sat under it - the admin status pill, the masthead links, whose
    box was only their text, and the trending headline links. The floor is set
@@ -3924,6 +3944,53 @@ span.paper__pageref {
   gap: var(--space-4);
 }
 
+/* The toggle, and its checkbox, exist only where the filters fold: on a
+   wide screen a checkbox whose label is hidden is an unlabelled control. */
+.search-filters__toggle,
+.search-filters__toggle-input {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .search-filters__toggle-input {
+    display: block;
+  }
+
+  .search-filters__toggle {
+    grid-column: 1 / -1;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: var(--type-body-s);
+    font-weight: 600;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+
+  .search-filters__toggle-input:checked + .search-filters__toggle {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .search-filters__toggle-input:focus-visible + .search-filters__toggle {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .search-filters {
+    display: none;
+  }
+
+  .search-filters__toggle-input:checked ~ .search-filters {
+    display: grid;
+    gap: var(--space-3);
+  }
+}
+
 .search-filter {
   display: flex;
   align-items: center;
@@ -4418,7 +4485,9 @@ span.paper__pageref {
       visibility 0s;
   }
 
-  .sidebar__collapse {
+  /* Collapsing is a wide-screen control. Scoped under .sidebar so the
+     base rule further down, which sets its display, cannot win the tie. */
+  .sidebar .sidebar__collapse {
     display: none;
   }
 }
@@ -4684,6 +4753,7 @@ html[data-drawer-open] {
   position: sticky;
   inset-block-start: 0;
   z-index: 30;
+  transition: transform var(--dur-standard) var(--ease);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -4692,6 +4762,22 @@ html[data-drawer-open] {
   background: color-mix(in srgb, var(--ground) 92%, transparent);
   backdrop-filter: saturate(1.4) blur(10px);
   border-block-end: 1px solid var(--border);
+}
+
+/* Hidden while the reader scrolls down (components/SidebarControls.tsx);
+   Discover's bar moves up into the space it leaves. */
+html[data-topbar-hidden] .topbar {
+  transform: translateY(-100%);
+}
+
+@media (max-width: 56.1875rem) {
+  .discover__bar {
+    transition: inset-block-start var(--dur-standard) var(--ease);
+  }
+
+  html[data-topbar-hidden] .discover__bar {
+    inset-block-start: 0;
+  }
 }
 
 .topbar__wordmark {
@@ -6308,6 +6394,11 @@ html[data-drawer-open] {
   outline: none;
 }
 
+.rail-customize__empty {
+  font-size: var(--type-label);
+  color: var(--text-muted);
+}
+
 .rail-customize__list {
   list-style: none;
   margin: 0;
@@ -6362,4 +6453,62 @@ html[data-drawer-open] {
   .rail-customize {
     animation: none;
   }
+}
+
+/* --- Devanagari ------------------------------------------------------------
+ *
+ * Three things Latin typography does that Hindi must not inherit. Last in
+ * the file so each wins its ties.
+ */
+
+/* Tracking pulls apart letters that Devanagari joins with its headline bar
+   and conjuncts; a tracked label in Hindi reads as broken type. */
+:is(
+  .card__new,
+  .badge,
+  .eyebrow,
+  .auth-divider,
+  .reading-mix__subheading,
+  .paper__masthead-side,
+  .paper__strap,
+  .paper__folio,
+  .paper__rule,
+  .paper__label,
+  .paper__byline,
+  .paper__pageref,
+  .paper__footer,
+  .aquila__folio,
+  .aquila__contents-toggle,
+  .aquila-teaser__edition
+):lang(hi) {
+  letter-spacing: normal;
+}
+
+/* Latin figures inside a Hindi headline come from Cormorant, whose default
+   old-style figures sit small and low beside Devanagari. */
+:lang(hi) {
+  font-variant-numeric: lining-nums;
+}
+
+/* Noto Serif Devanagari at a given weight is far darker than Cormorant at
+   the same number, so a mixed feed read Hindi as bold and English as light.
+   A step lighter puts the two on one colour. */
+:is(
+  .story--card .story__title,
+  .story--wide .story__title,
+  .across__headline,
+  .coverage-row__title,
+  .aquila-teaser__lead,
+  .most-read__title
+):lang(hi) {
+  font-weight: 500;
+}
+
+.story--lead .story__title:lang(hi) {
+  font-weight: 400;
+}
+
+/* A page title is set bold (the browser's h1 weight) in Latin. */
+.page-header h1:lang(hi) {
+  font-weight: 500;
 }

@@ -108,6 +108,8 @@ export function IssuePaper({
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    // Which zone the hour is in: the reader's own, named ("11:30 IST").
+    timeZoneName: "short",
   }).format(published);
   const editionName = t(locale, `aquila.edition.${issue.edition_slot}` as "aquila.edition.morning");
 
