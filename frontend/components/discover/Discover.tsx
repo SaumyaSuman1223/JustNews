@@ -83,6 +83,7 @@ export function Discover({
   signedIn,
   canPersonalise,
   hasInterests,
+  learnsFromReading = false,
   initialSaved,
   readLanguages,
   rail,
@@ -95,6 +96,9 @@ export function Discover({
   canPersonalise: boolean;
   /** Whether For You has chosen interests to rank by. */
   hasInterests: boolean;
+  /** Whether what the reader opens shapes For You - true with analytics
+   * consent, which is what lets their reading be remembered (ADR 0015). */
+  learnsFromReading?: boolean;
   initialSaved: number[];
   /** The languages this feed is in, e.g. "en,hi" - part of the cache key. */
   readLanguages: string;
@@ -281,12 +285,13 @@ export function Discover({
         readLanguages={readLanguages.split(",")}
       />
 
-      {/* With nothing to personalise by, For You is Top - said plainly, so
-          two tabs showing the same stories read as a choice not yet made
-          rather than a bug. */}
+      {/* Said plainly what For You goes on, so two tabs showing much the same
+          stories read as a choice not yet made rather than a bug: without
+          consent nothing is remembered and For You is Top; with it, For You
+          learns from what the reader opens. */}
       {view.kind === "for-you" && !canPersonalise && !interestsChosen && (
         <p className="discover__note">
-          {t(locale, "discover.forYouIsTop")}{" "}
+          {t(locale, learnsFromReading ? "discover.forYouLearns" : "discover.forYouIsTop")}{" "}
           <button
             type="button"
             className="rail-link-button"
