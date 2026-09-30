@@ -3,6 +3,7 @@ factor the heuristic ranker actually applied, never an invented one."""
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source, make_topic
@@ -17,6 +18,10 @@ async def _no_exploration(session: AsyncSession) -> None:
     # Exploration slots carry their own reason; off here so every card on the
     # page is one the ranker placed.
     session.add(FeatureFlag(key="exploration_deck", enabled=False, description="off for test"))
+
+
+# Ranker v1, still registered as the rollback (ADR 0015).
+pytestmark = pytest.mark.usefixtures("v1_in_experiment")
 
 
 class TestFeedReasons:

@@ -7,3 +7,4 @@ from justnews_testing.fixtures import (  # noqa: F401
     session,
     truncate,
 )
+from justnews_testing.policy import v1_in_experiment  # noqa: F401

@@ -4,6 +4,7 @@ that file's diff for this change stays small."""
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source, make_topic
@@ -23,6 +24,10 @@ from justnews_core.models import ArticleTopic, FeatureFlag, Impression
 async def _seed_mainstream(session: AsyncSession, source, count: int) -> None:
     for i in range(count):
         await make_article(session, source, title=f"Mainstream {i}", minutes_ago=i)
+
+
+# Ranker v1, still registered as the rollback (ADR 0015).
+pytestmark = pytest.mark.usefixtures("v1_in_experiment")
 
 
 class TestFeedExplorationMix:
