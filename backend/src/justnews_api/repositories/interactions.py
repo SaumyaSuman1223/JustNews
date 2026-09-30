@@ -41,8 +41,14 @@ async def log_impressions(
     locale: str,
     ranking_policy: str,
     items: list[ImpressionToLog],
+    served_at: datetime | None = None,
 ) -> list[int]:
     """Bulk insert, one row per served item.
+
+    ``served_at`` defaults to the database's clock. Ranker v2 passes its own:
+    it reads a reader's past impressions "as of" the moment a feed was
+    ranked, so the impressions of that feed's first page must fall after
+    that moment on the same clock, or the second page would count them.
 
     Returns the new impression ids in the same order as ``items`` - Postgres'
     insertmanyvalues preserves that ordering under RETURNING - so the caller
@@ -62,6 +68,7 @@ async def log_impressions(
                 "locale": locale,
                 "propensity": item.propensity,
                 "ranking_policy": ranking_policy,
+                **({"served_at": served_at} if served_at is not None else {}),
             }
             for item in items
         ],

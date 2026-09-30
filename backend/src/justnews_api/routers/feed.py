@@ -23,7 +23,14 @@ class RankReasonOut(BaseModel):
     """Why this card is on the feed - only a factor the ranker actually
     applied (see services.feed.RankReason)."""
 
-    kind: Literal["followed_topic", "trending", "exploration"]
+    kind: Literal[
+        "followed_topic",
+        "followed_source",
+        "followed_story",
+        "similar",
+        "trending",
+        "exploration",
+    ]
     topic_id: str | None = None
 
 
@@ -37,6 +44,8 @@ class FeedItemOut(BaseModel):
     # hand back.
     impression_id: int | None
     reason: RankReasonOut | None = None
+    #: Its place in the whole feed - the position to report a click with.
+    position: int = 0
 
 
 class FeedPageOut(BaseModel):
@@ -88,6 +97,7 @@ async def get_feed(
                     if item.reason is not None
                     else None
                 ),
+                position=item.position,
             )
             for item in page.items
         ],
