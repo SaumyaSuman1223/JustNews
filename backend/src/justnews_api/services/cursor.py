@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from justnews_core.errors import ValidationError
@@ -100,3 +101,61 @@ def decode_rank_cursor(cursor: str) -> tuple[datetime, int]:
     if offset < 0:
         raise ValidationError("Cursor is not valid.")
     return window_upper_bound, offset
+
+
+_FEED_CURSOR_VERSION = 3
+#: The most device-history ids a cursor carries (the web keeps 30).
+MAX_CURSOR_HISTORY = 30
+
+
+@dataclass(frozen=True, slots=True)
+class FeedCursor:
+    """Ranker v2's position in one feed (ADR 0015).
+
+    Everything the ranking was computed from that could change while the
+    reader scrolls: the moment it was ranked as of (``as_of`` - newer
+    articles and newer reader signals stay out), the random seed its sampled
+    order was drawn with, and, for a signed-out reader, the device history
+    it was personalised from. With those fixed, page 2 is the same ranking
+    page 1 was cut from, recomputed - no server-side state, and no row
+    repeated or skipped at the join.
+    """
+
+    as_of: datetime
+    offset: int
+    seed: int
+    history: tuple[int, ...] = ()
+
+
+def encode_feed_cursor(cursor: FeedCursor) -> str:
+    payload: dict[str, object] = {
+        "v": _FEED_CURSOR_VERSION,
+        "w": cursor.as_of.astimezone(UTC).isoformat(),
+        "o": cursor.offset,
+        "s": cursor.seed,
+    }
+    if cursor.history:
+        payload["h"] = list(cursor.history)
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def decode_feed_cursor(cursor: str) -> FeedCursor:
+    padding = "=" * (-len(cursor) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if payload["v"] != _FEED_CURSOR_VERSION:
+            raise ValidationError("Cursor is from an incompatible version.")
+        as_of = datetime.fromisoformat(payload["w"])
+        offset = int(payload["o"])
+        seed = int(payload["s"])
+        history = tuple(int(item) for item in payload.get("h", []))
+    except ValidationError:
+        raise
+    except (KeyError, ValueError, TypeError, binascii.Error, UnicodeDecodeError) as exc:
+        raise ValidationError("Cursor is not valid.") from exc
+    if as_of.tzinfo is None:
+        raise ValidationError("Cursor timestamp must be timezone-aware.")
+    if offset < 0 or seed < 0 or len(history) > MAX_CURSOR_HISTORY:
+        raise ValidationError("Cursor is not valid.")
+    return FeedCursor(as_of=as_of, offset=offset, seed=seed, history=history)
