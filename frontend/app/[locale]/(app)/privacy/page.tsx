@@ -58,9 +58,15 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         An account is identified by an id issued by our authentication provider (Supabase). We
         additionally store: the languages you choose for your feed, your role, whether and when you
         redeemed a beta invite, articles you save, topics you follow, and a log of articles you open
-        and headlines shown to you (which article, where on the page, when, and in which surface -
-        feed, search, a topic page). That last log is what lets us measure whether the product
-        actually works, and eventually rank a feed instead of just listing one.
+        and headlines shown to you (which article, where on the page, whether it actually came on
+        screen, when, and in which surface - For You, Top, a topic, Aquila, search). With each
+        headline we record the chance the ranking had of putting it there, which is what lets us
+        test a new way of ranking against the current one fairly. This log is what lets us measure
+        whether the product works and what ranks Discover for you.
+      </p>
+      <p>
+        Without an account, and only if you accept the choice below, the same log is kept against a
+        browsing-session id instead of an account.
       </p>
       <p>
         We do not store your email address outside our authentication provider, and we never put it
@@ -83,6 +89,12 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         us, not passive observation of you. Neither this nor the authentication cookie is used for
         advertising or shared with a third party for that purpose - we do not run advertising on
         this site.
+      </p>
+      <p>
+        If you accept, and are not signed in, a third cookie keeps the ids of up to 30 articles you
+        opened on this device, newest first, so Discover can put stories like them first without an
+        account. It holds nothing else. The server reads it to rank the page you asked for and
+        stores nothing from it, and declining or withdrawing deletes it.
       </p>
 
       <h2>How long we keep it</h2>

@@ -339,11 +339,12 @@ const en = {
 
   "consent.label": "Cookie choice",
   "consent.body":
-    "We'd like to remember your visit so we can measure whether the feed actually works and, later, personalise it. Your saved stories and settings stay the same either way.",
+    "We'd like to remember what you read here, to tailor Discover to it and to measure whether the feed works. Your saved stories and settings stay the same either way.",
   "consent.accept": "Accept",
   "consent.decline": "Decline",
   "consent.settings.label": "Analytics",
-  "consent.settings.currentlyOn": "On — we remember your visits to measure how the site is used.",
+  "consent.settings.currentlyOn":
+    "On — we remember what you read to tailor Discover and to measure how the site is used.",
   "consent.settings.currentlyOff": "Off — your visits aren't logged.",
   "consent.settings.turnOn": "Turn on",
   "consent.settings.turnOff": "Turn off",
@@ -414,6 +415,9 @@ const en = {
   "profile.byTopic": "By topic",
 
   "card.why.followedTopic": "Because you follow {topic}",
+  "card.why.followedSource": "From a source you follow",
+  "card.why.followedStory": "New on a story you follow",
+  "card.why.similar": "Like stories you've read",
   "card.why.trending": "Trending now",
   "card.why.exploration": "Something different, on purpose",
   "card.timeline.developing": "Developing since {time}",
@@ -837,12 +841,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "consent.label": "Elección de cookies",
     "consent.body":
-      "Nos gustaría recordar tu visita para medir si el feed realmente funciona y, más adelante, personalizarlo. Tus historias guardadas y tus ajustes no cambian en ningún caso.",
+      "Nos gustaría recordar lo que lees aquí, para adaptar Descubrir a ello y medir si el feed funciona. Tus historias guardadas y tus ajustes no cambian en ningún caso.",
     "consent.accept": "Aceptar",
     "consent.decline": "Rechazar",
     "consent.settings.label": "Analítica",
     "consent.settings.currentlyOn":
-      "Activada — recordamos tus visitas para medir cómo se usa el sitio.",
+      "Activada — recordamos lo que lees para adaptar Descubrir y medir cómo se usa el sitio.",
     "consent.settings.currentlyOff": "Desactivada — tus visitas no se registran.",
     "consent.settings.turnOn": "Activar",
     "consent.settings.turnOff": "Desactivar",
@@ -909,6 +913,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "profile.byTopic": "Por tema",
 
     "card.why.followedTopic": "Porque sigues {topic}",
+    "card.why.followedSource": "De una fuente que sigues",
+    "card.why.followedStory": "Novedad en una historia que sigues",
+    "card.why.similar": "Como otras historias que has leído",
     "card.why.trending": "Tendencia ahora",
     "card.why.exploration": "Algo distinto, a propósito",
     "card.timeline.developing": "En desarrollo desde {time}",
@@ -1327,12 +1334,12 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
 
     "consent.label": "कुकी विकल्प",
     "consent.body":
-      "हम आपकी विज़िट याद रखना चाहते हैं ताकि यह माप सकें कि फ़ीड वाकई काम करती है या नहीं, और आगे चलकर इसे वैयक्तिकृत कर सकें। आपकी सहेजी ख़बरें और सेटिंग दोनों ही स्थिति में वैसी ही रहेंगी।",
+      "हम याद रखना चाहते हैं कि आप यहाँ क्या पढ़ते हैं, ताकि डिस्कवर को उसके अनुसार ढाल सकें और माप सकें कि फ़ीड काम करती है या नहीं। आपकी सहेजी ख़बरें और सेटिंग दोनों ही स्थिति में वैसी ही रहेंगी।",
     "consent.accept": "स्वीकार करें",
     "consent.decline": "अस्वीकार करें",
     "consent.settings.label": "एनालिटिक्स",
     "consent.settings.currentlyOn":
-      "चालू — हम साइट के इस्तेमाल को मापने के लिए आपकी विज़िट याद रखते हैं।",
+      "चालू — हम याद रखते हैं कि आप क्या पढ़ते हैं, ताकि डिस्कवर को ढाल सकें और साइट के इस्तेमाल को माप सकें।",
     "consent.settings.currentlyOff": "बंद — आपकी विज़िट दर्ज नहीं की जातीं।",
     "consent.settings.turnOn": "चालू करें",
     "consent.settings.turnOff": "बंद करें",
@@ -1399,6 +1406,9 @@ const messages: Record<LocaleCode, Record<MessageKey, string>> = {
     "profile.byTopic": "विषय के अनुसार",
 
     "card.why.followedTopic": "क्योंकि आप {topic} को फ़ॉलो करते हैं",
+    "card.why.followedSource": "उस स्रोत से जिसे आप फ़ॉलो करते हैं",
+    "card.why.followedStory": "आपकी फ़ॉलो की गई ख़बर पर नया",
+    "card.why.similar": "आपकी पढ़ी ख़बरों जैसी",
     "card.why.trending": "अभी ट्रेंड में",
     "card.why.exploration": "जान-बूझकर कुछ अलग",
     "card.timeline.developing": "{time} से विकसित हो रही है",

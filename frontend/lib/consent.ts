@@ -3,6 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 
 import { BROWSING_SESSION_COOKIE } from "@/lib/browsingSession";
+import { READ_HISTORY_COOKIE } from "@/lib/readHistory";
 
 /**
  * Set by a reader's choice on ConsentBanner (or the Settings toggle), never
@@ -34,7 +35,8 @@ export async function getConsentState(): Promise<ConsentState | null> {
  * The only place `jn_consent` is written - see setConsentAction (the
  * Settings toggle) and app/api/consent/route.ts (the banner) for why each
  * caller exists. Sets or deletes jn_sid in the same response, so a grant or
- * a withdrawal takes effect immediately rather than on some later request.
+ * a withdrawal takes effect immediately rather than on some later request;
+ * a withdrawal also deletes this device's read history (lib/readHistory.ts).
  */
 export async function writeConsent(state: ConsentState): Promise<void> {
   const store = await cookies();
@@ -56,6 +58,7 @@ export async function writeConsent(state: ConsentState): Promise<void> {
     });
   } else {
     store.delete(BROWSING_SESSION_COOKIE);
+    store.delete(READ_HISTORY_COOKIE);
   }
 }
 

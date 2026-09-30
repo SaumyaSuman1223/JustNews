@@ -5,6 +5,7 @@ import { BROWSING_SESSION_COOKIE } from "@/lib/browsingSession";
 import { CONSENT_COOKIE } from "@/lib/consent";
 import { defaultLocale, isLocaleCode, t } from "@/lib/i18n";
 import { RENAMED_ROUTES } from "@/lib/navigation";
+import { READ_HISTORY_COOKIE } from "@/lib/readHistory";
 import { isRateLimited } from "@/lib/rateLimit";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -104,6 +105,7 @@ export async function middleware(request: NextRequest) {
     request.cookies.set(BROWSING_SESSION_COOKIE, sessionId);
   } else if (sessionId === null) {
     request.cookies.delete(BROWSING_SESSION_COOKIE);
+    request.cookies.delete(READ_HISTORY_COOKIE);
   }
 
   /**
@@ -158,6 +160,8 @@ export async function middleware(request: NextRequest) {
     });
   } else if (sessionId === null) {
     response.cookies.delete(BROWSING_SESSION_COOKIE);
+    // Observed reading, like the session id: gone with a "no".
+    response.cookies.delete(READ_HISTORY_COOKIE);
   }
   return response;
 }

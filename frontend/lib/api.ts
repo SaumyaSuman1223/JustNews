@@ -60,6 +60,7 @@ export type IssuePageContent = components["schemas"]["PageOut"];
 export type IssueEdition = components["schemas"]["IssueEditionOut"];
 export type SourceFollow = components["schemas"]["SourceFollowOut"];
 export type FeedPage = components["schemas"]["FeedPageOut"];
+export type DiscoverApiPage = components["schemas"]["DiscoverPageOut"];
 export type MeProfile = components["schemas"]["MeOut"];
 export type SaveOut = components["schemas"]["SaveOut"];
 export type SavePage = components["schemas"]["SavePageOut"];
@@ -202,6 +203,112 @@ export function getAcrossLanguages(
 ): Promise<Degradable<AcrossLanguages[]>> {
   const query = new URLSearchParams({ languages, limit: String(limit) });
   return get<AcrossLanguages[]>(`/v1/across-languages?${query}`, [], 120);
+}
+
+/** Who a Discover page is for, as far as the API needs to know: the account
+ * when signed in, the browsing session and consent otherwise. */
+export interface DiscoverContext {
+  auth: AuthContext | null;
+  sessionId: string | null;
+  consented: boolean;
+}
+
+const EMPTY_DISCOVER: DiscoverApiPage = { items: [], next_cursor: null };
+
+/**
+ * One page of a Discover view, ranked by the API's ranker v2 (ADR 0015) -
+ * For You, Top or a topic, for any reader.
+ *
+ * The one page every such reader shares - signed out, no consent, no device
+ * history or picks, first page - goes through Next's fetch cache, as the
+ * article list it replaces did; the API caches it too (ADR 0014). Anything
+ * personal or logged is fetched fresh, with the headers that say who is
+ * reading and whether they consented.
+ */
+export async function getDiscover(
+  context: DiscoverContext,
+  params: {
+    view: "for_you" | "top" | "topic";
+    topic?: string;
+    interests?: string[];
+    history?: number[];
+    languages?: string;
+    locale: string;
+    cursor?: string;
+    pageSize?: number;
+  },
+): Promise<Degradable<DiscoverApiPage>> {
+  const query = new URLSearchParams({ view: params.view, locale: params.locale });
+  if (params.topic) query.set("topic", params.topic);
+  if (params.interests?.length) query.set("interests", params.interests.join(","));
+  if (params.history?.length) query.set("history", params.history.join(","));
+  if (params.languages) query.set("languages", params.languages);
+  if (params.cursor) query.set("cursor", params.cursor);
+  query.set("page_size", String(params.pageSize ?? 20));
+
+  const shared =
+    !context.auth &&
+    !context.consented &&
+    !params.history?.length &&
+    !params.interests?.length &&
+    !params.cursor;
+  if (shared) return get<DiscoverApiPage>(`/v1/discover?${query}`, EMPTY_DISCOVER, 60);
+
+  const headers: Record<string, string> = { ...PROXY_HEADERS };
+  if (context.auth) headers.authorization = `Bearer ${context.auth.accessToken}`;
+  const sessionId = context.auth?.sessionId ?? context.sessionId;
+  if (context.consented && sessionId) {
+    headers["x-session-id"] = sessionId;
+    headers["x-analytics-consent"] = "granted";
+  }
+  try {
+    const response = await fetch(`${API_URL}/v1/discover?${query}`, {
+      headers,
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!response.ok) return { data: EMPTY_DISCOVER, degraded: true };
+    return { data: (await response.json()) as DiscoverApiPage, degraded: false };
+  } catch {
+    return { data: EMPTY_DISCOVER, degraded: true };
+  }
+}
+
+/** Where a click or a view report comes from. Signed-out reports carry the
+ * browsing session alone; both are only ever sent with consent. */
+export interface ReportContext {
+  accessToken: string | null;
+  sessionId: string;
+}
+
+function reportHeaders(context: ReportContext): Record<string, string> {
+  const headers: Record<string, string> = {
+    ...PROXY_HEADERS,
+    "content-type": "application/json",
+    "x-session-id": context.sessionId,
+    "x-analytics-consent": "granted",
+  };
+  if (context.accessToken) headers.authorization = `Bearer ${context.accessToken}`;
+  return headers;
+}
+
+/** Served cards that were on screen (the API's impression views). */
+export async function reportViews(
+  context: ReportContext,
+  views: { impressionId: number; renderedPosition: number; slot: string }[],
+): Promise<void> {
+  await fetch(`${API_URL}/v1/impressions/views`, {
+    method: "POST",
+    headers: reportHeaders(context),
+    body: JSON.stringify({
+      views: views.map((view) => ({
+        impression_id: view.impressionId,
+        rendered_position: view.renderedPosition,
+        slot: view.slot,
+      })),
+    }),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
 }
 
 /** Signed-out "What matters": recency x breadth of coverage x source trust,
@@ -668,23 +775,30 @@ export async function getHistory(
 }
 
 export async function reportClick(
-  auth: AuthContext,
+  context: ReportContext,
   params: {
     articleId: number;
     surface: string;
     position?: number;
     impressionId?: number;
     topicId?: string;
+    locale?: string;
   },
 ): Promise<void> {
-  await authedClient(auth).POST("/v1/history", {
-    body: {
+  // /v1/clicks, not /v1/history: any reader's click, signed in or not (ADR
+  // 0015). The API drops a signed-out click that names no impression of its
+  // own session.
+  await fetch(`${API_URL}/v1/clicks`, {
+    method: "POST",
+    headers: reportHeaders(context),
+    body: JSON.stringify({
       article_id: params.articleId,
       surface: params.surface,
       position: params.position,
       impression_id: params.impressionId,
       topic_id: params.topicId,
-    },
+      locale: params.locale,
+    }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 }
