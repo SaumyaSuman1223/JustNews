@@ -613,12 +613,42 @@ class Impression(Base):
     __table_args__ = (
         CheckConstraint("propensity between 0 and 1", name="ck_impressions_propensity_range"),
         CheckConstraint(
-            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding', 'aquila')",
+            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding', 'aquila', 'top')",
             name="ck_impressions_surface",
         ),
         Index("ix_impressions_user_served", "user_id", served_at.desc()),
         Index("ix_impressions_session_served", "session_id", served_at.desc()),
         Index("ix_impressions_policy_served", "ranking_policy", served_at.desc()),
+    )
+
+
+class ImpressionView(Base):
+    """A served impression that was actually on screen: at least half the card
+    visible for a second (migration 0020). Reported by the client, later, the
+    way an interaction event is - the impression row itself stays exactly
+    what the serving policy wrote.
+
+    ``rendered_position`` is where the card was drawn, which the layout may
+    move a few slots from the served ``Impression.position``; ``slot`` is its
+    shape (a lead card and a list row do not have the same position bias).
+    """
+
+    __tablename__ = "impression_views"
+
+    impression_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("impressions.id", ondelete="CASCADE"), primary_key=True
+    )
+    viewed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=_utcnow()
+    )
+    rendered_position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    slot: Mapped[str] = mapped_column(String(8), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("rendered_position >= 0", name="ck_impression_views_position"),
+        CheckConstraint(
+            "slot in ('lead', 'wide', 'card', 'row', 'page')", name="ck_impression_views_slot"
+        ),
     )
 
 
@@ -661,7 +691,7 @@ class InteractionEvent(Base):
             name="ck_interaction_events_type",
         ),
         CheckConstraint(
-            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding', 'aquila')",
+            "surface in ('feed', 'explore', 'search', 'topic', 'onboarding', 'aquila', 'top')",
             name="ck_interaction_events_surface",
         ),
         Index(

@@ -11,10 +11,18 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, insert, select, tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from justnews_core.models import Article, ArticleTopic, Impression, InteractionEvent, Topic
+from justnews_core.models import (
+    Article,
+    ArticleTopic,
+    Impression,
+    ImpressionView,
+    InteractionEvent,
+    Topic,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +67,56 @@ async def log_impressions(
         ],
     )
     return [row[0] for row in result.all()]
+
+
+async def owned_impression_ids(
+    session: AsyncSession,
+    impression_ids: list[int],
+    *,
+    user_id: UUID | None,
+    session_id: str,
+) -> set[int]:
+    """Which of these impressions were served to this reader: to their
+    account when signed in, to their browsing session when not. A view or a
+    click is only ever recorded against the reporter's own impressions - RLS
+    lets anyone read an anonymous impression row, so this is the check that
+    stops one visitor reporting against another's."""
+    if not impression_ids:
+        return set()
+    query = select(Impression.id).where(Impression.id.in_(impression_ids))
+    if user_id is not None:
+        query = query.where(Impression.user_id == user_id)
+    else:
+        query = query.where(Impression.user_id.is_(None), Impression.session_id == session_id)
+    return set((await session.execute(query)).scalars().all())
+
+
+@dataclass(frozen=True, slots=True)
+class ViewToLog:
+    impression_id: int
+    rendered_position: int
+    slot: str
+
+
+async def record_views(session: AsyncSession, views: list[ViewToLog]) -> None:
+    """At most one view per impression: a card scrolled past twice is still
+    one card seen, so a repeat is ignored rather than counted."""
+    if not views:
+        return
+    await session.execute(
+        pg_insert(ImpressionView)
+        .values(
+            [
+                {
+                    "impression_id": view.impression_id,
+                    "rendered_position": view.rendered_position,
+                    "slot": view.slot,
+                }
+                for view in views
+            ]
+        )
+        .on_conflict_do_nothing(index_elements=["impression_id"])
+    )
 
 
 async def record_event(

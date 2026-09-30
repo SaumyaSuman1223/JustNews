@@ -21,6 +21,7 @@ from justnews_api.services import topics as topics_service
 from justnews_api.services.content import MAX_PAGE_SIZE
 from justnews_api.services.cursor import decode_cursor, encode_cursor
 from justnews_core.errors import NotFoundError, ValidationError
+from justnews_core.language import normalise_language_code
 
 # A real sample, not an exhaustive one - this backs a settings-page section
 # rendered on every visit, not a report. Matches the frontend's earlier
@@ -28,7 +29,13 @@ from justnews_core.errors import NotFoundError, ValidationError
 # work moved server-side into one query instead of several round trips.
 READING_MIX_SAMPLE = 150
 
-VALID_SURFACES = ("feed", "explore", "search", "topic", "onboarding")
+VALID_SURFACES = ("feed", "explore", "search", "topic", "onboarding", "aquila", "top")
+
+#: The card shapes a view can report (migration 0020's CHECK).
+VALID_SLOTS = ("lead", "wide", "card", "row", "page")
+#: One report covers a batch of cards that came on screen together; a page
+#: is 24 cards, so this is several pages' worth, not a limit anyone reaches.
+MAX_VIEWS_PER_REPORT = 100
 
 
 def _validate_surface(surface: str) -> None:
@@ -39,18 +46,35 @@ def _validate_surface(surface: str) -> None:
 async def report_click(
     session: AsyncSession,
     *,
-    user_id: UUID,
+    user_id: UUID | None,
     session_id: str,
     article_id: int,
     surface: str,
     position: int | None,
     impression_id: int | None,
     topic_id: str | None = None,
+    locale: str | None = None,
 ) -> None:
+    """A click on a card. ``locale`` is the interface language the card was
+    shown in - the same meaning as ``Impression.locale`` - and falls back to
+    the article's language for a client that does not send it.
+
+    Signed out (``user_id`` None), a click counts only against an impression
+    this browsing session was served: an anonymous reader has no account to
+    hold the event to, and without that anyone could post clicks to move an
+    article's popularity. Anything else is dropped, not an error - the
+    reader's navigation already happened and there is nothing to tell them.
+    """
     _validate_surface(surface)
     article = await content_repo.get_article(session, article_id)
     if article is None:
         raise NotFoundError(f"No article with id {article_id}.")
+    if user_id is None:
+        owned = await repo.owned_impression_ids(
+            session, [impression_id] if impression_id else [], user_id=None, session_id=session_id
+        )
+        if impression_id not in owned:
+            return
     await repo.record_event(
         session,
         user_id=user_id,
@@ -58,15 +82,62 @@ async def report_click(
         article_id=article_id,
         event_type="click",
         surface=surface,
-        locale=article.language,
+        locale=(normalise_language_code(locale) if locale else None) or article.language,
         impression_id=impression_id,
         position=position,
     )
     # topic_id only ever arrives from the exploration deck (see
     # ArticleCard's onClick) - every other surface leaves it unset, so this
     # is a no-op everywhere else.
-    if surface == exploration_deck.DECK_SURFACE and topic_id:
+    if user_id is not None and surface == exploration_deck.DECK_SURFACE and topic_id:
         await exploration_deck.record_deck_engagement(session, user_id=user_id, topic_id=topic_id)
+
+
+@dataclass(frozen=True, slots=True)
+class ViewReport:
+    impression_id: int
+    rendered_position: int
+    slot: str
+
+
+async def report_views(
+    session: AsyncSession,
+    *,
+    user_id: UUID | None,
+    session_id: str,
+    views: list[ViewReport],
+) -> int:
+    """Cards that were on screen (migration 0020). Only the reporter's own
+    impressions are recorded - see ``repo.owned_impression_ids`` - and the
+    count of those is returned; the rest are ignored rather than refused,
+    since a page can outlive the impressions it was served with (an account
+    deleted mid-visit) and that is not the client's error."""
+    if len(views) > MAX_VIEWS_PER_REPORT:
+        raise ValidationError(f"At most {MAX_VIEWS_PER_REPORT} views per report.")
+    for view in views:
+        if view.slot not in VALID_SLOTS:
+            raise ValidationError(f"slot must be one of {VALID_SLOTS}.")
+        if view.rendered_position < 0:
+            raise ValidationError("rendered_position must not be negative.")
+    owned = await repo.owned_impression_ids(
+        session,
+        [view.impression_id for view in views],
+        user_id=user_id,
+        session_id=session_id,
+    )
+    await repo.record_views(
+        session,
+        [
+            repo.ViewToLog(
+                impression_id=view.impression_id,
+                rendered_position=view.rendered_position,
+                slot=view.slot,
+            )
+            for view in views
+            if view.impression_id in owned
+        ],
+    )
+    return len(owned)
 
 
 async def report_not_interested(
