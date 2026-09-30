@@ -7,6 +7,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from httpx import AsyncClient
 from justnews_testing.beta import make_beta_headers
 from justnews_testing.factories import make_article, make_source, make_topic
@@ -48,6 +49,10 @@ def _article(
         story_cluster_id=story_cluster_id,
         source_trust_score=trust,
     )
+
+
+# Ranker v1, still registered as the rollback (ADR 0015).
+pytestmark = pytest.mark.usefixtures("v1_in_experiment")
 
 
 class TestScoring:

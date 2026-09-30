@@ -4,6 +4,7 @@ import { HalftoneImage } from "@/components/Halftone";
 import type { Issue, IssuePageContent } from "@/lib/api";
 import { curatedTopicLabel } from "@/lib/curatedTopics";
 import { datelineCity, t, tPlural, type LocaleCode } from "@/lib/i18n";
+import { reportClick, useViewReportsOnShow } from "@/lib/track";
 import { useHydrated } from "@/lib/useHydrated";
 
 /** How many section names the masthead prints before "+ N more". Three fit
@@ -47,6 +48,21 @@ export function IssuePaper({
   const secondaries = page.slots.filter((slot) => slot.role === "secondary");
   const briefs = page.slots.filter((slot) => slot.role === "brief");
   const isFront = page.page_no === 1;
+  // A page of the paper is read whole: every slot on it counts as seen once
+  // the page has been open for a second.
+  useViewReportsOnShow(
+    page.slots.flatMap((slot) =>
+      slot.impression_id != null
+        ? [
+            {
+              impressionId: slot.impression_id,
+              renderedPosition: slot.position,
+              slot: "page" as const,
+            },
+          ]
+        : [],
+    ),
+  );
   // Audit §8: the right rail and a lower row of major stories are the same
   // pool of secondaries, split by position - first refusal on the rail,
   // which is also the picture-led one (see the composer's `prefer_image`
@@ -207,7 +223,7 @@ export function IssuePaper({
                     />
                   )}
                   <h3 className="paper__focus-headline">
-                    <Link href={`/${locale}/a/${focus.article.id}`}>{focus.article.title}</Link>
+                    <SlotLink slot={focus} locale={locale} />
                   </h3>
                   <p className="paper__byline">
                     {focus.article.source_name}
@@ -242,7 +258,7 @@ export function IssuePaper({
                             wrap onto its own row instead of sitting beside
                             the headline it belongs to. */}
                         <span className="paper__brief-text">
-                          <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
+                          <SlotLink slot={slot} locale={locale} />
                           <PageRefTag
                             pageRef={slot.page_ref}
                             sectionTitle={sectionTitle(slot.page_ref)}
@@ -272,7 +288,7 @@ export function IssuePaper({
               )}
               <div className="paper__lead-text">
                 <h2 className="paper__lead-headline">
-                  <Link href={`/${locale}/a/${lead.article.id}`}>{lead.article.title}</Link>
+                  <SlotLink slot={lead} locale={locale} />
                 </h2>
                 {lead.article.snippet && <p className="paper__deck">{lead.article.snippet}</p>}
                 <p className="paper__byline">{lead.article.source_name}</p>
@@ -301,7 +317,7 @@ export function IssuePaper({
                       />
                     )}
                     <h3 className="paper__column-headline">
-                      <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
+                      <SlotLink slot={slot} locale={locale} />
                     </h3>
                     {/* On the front page these are highlights - picture,
                         headline, outlet. The deck belongs to a section page,
@@ -329,7 +345,7 @@ export function IssuePaper({
               <div className="paper__lower-stories">
                 {lower.map((slot) => (
                   <p className="paper__lower-story" key={slot.position}>
-                    <Link href={`/${locale}/a/${slot.article.id}`}>{slot.article.title}</Link>
+                    <SlotLink slot={slot} locale={locale} />
                     <PageRefTag
                       pageRef={slot.page_ref}
                       sectionTitle={sectionTitle(slot.page_ref)}
@@ -395,5 +411,32 @@ function PageRefTag({
     >
       {text}
     </button>
+  );
+}
+
+type Slot = IssuePageContent["slots"][number];
+
+/**
+ * A headline on the page, opening the article - and reporting the click
+ * against the slot's impression, so an edition's placements can be learned
+ * from like any other ranked surface (ADR 0015). Aquila logged impressions
+ * but never their clicks until this.
+ */
+function SlotLink({ slot, locale }: { slot: Slot; locale: LocaleCode }) {
+  return (
+    <Link
+      href={`/${locale}/a/${slot.article.id}`}
+      onClick={() =>
+        reportClick({
+          articleId: slot.article.id,
+          surface: "aquila",
+          position: slot.position,
+          impressionId: slot.impression_id ?? undefined,
+          locale,
+        })
+      }
+    >
+      {slot.article.title}
+    </Link>
   );
 }

@@ -26,7 +26,6 @@ import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,16 +35,19 @@ from justnews_api.repositories import flags as flags_repo
 from justnews_api.repositories import follows as follows_repo
 from justnews_api.repositories import interactions as interactions_repo
 from justnews_api.repositories import ranking as ranking_repo
+from justnews_api.repositories import recommend as recommend_repo
 from justnews_api.repositories import users as users_repo
 from justnews_api.repositories.interactions import ImpressionToLog
-from justnews_api.services import exploration_deck, ranking
+from justnews_api.services import exploration_deck, ranking, recommend
 from justnews_api.services.content import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, parse_languages
 from justnews_api.services.cursor import (
     decode_cursor,
+    decode_cursor_served,
     decode_rank_cursor,
     encode_cursor,
     encode_rank_cursor,
 )
+from justnews_api.services.scoring import RankReason
 from justnews_core.errors import ValidationError
 
 PROPENSITY = 1.0
@@ -62,6 +64,12 @@ CANDIDATE_POOL_SIZE = 200
 SEEN_WINDOW = timedelta(days=14)
 
 HEURISTIC_POLICY = "heuristic_v1"
+# Ranker v2 (ADR 0015): services/recommend.py. v1 stays registered, so a
+# rollback is one line in EXPERIMENT_SPLIT, not a revert.
+HEURISTIC_V2_POLICY = recommend.POLICY
+# FINDING's user tower as the reader's profile (ADR 0016). Registered, not in
+# the split: it serves nobody until it beats v2 on the offline replay.
+FINDING_POLICY = "finding_v1"
 CHRONOLOGICAL_POLICY = "chronological"
 
 # The permanent exploration slice mixed into the heuristic policy's own
@@ -94,6 +102,13 @@ class PolicyRequest:
     excluded: set[int]
     cursor: str | None
     page_size: int
+    #: The browsing session, when the reader consented to analytics.
+    session_id: str | None = None
+    #: Whether this page is logged - a policy that samples its order only
+    #: needs to when the propensities it draws will be written down.
+    logged: bool = False
+    #: The interface language, the default reading language.
+    locale: str = "en"
 
 
 RankingPolicy = Callable[[AsyncSession, PolicyRequest], Awaitable["_UnloggedPage"]]
@@ -111,27 +126,22 @@ def assign_policy(user_id: UUID) -> str:
     someone decides it should. Adding one to EXPERIMENT_POLICIES does
     re-bucket every reader, which ends the running experiment - that is
     inherent to changing the split, not something to paper over.
+
+    Weighted by EXPERIMENT_SPLIT: a reader's bucket is a stable number in
+    0-99, and each policy owns a run of those numbers.
     """
     digest = hashlib.sha256(str(user_id).encode("ascii")).digest()
-    return EXPERIMENT_POLICIES[digest[0] % len(EXPERIMENT_POLICIES)]
+    bucket = int.from_bytes(digest[:2], "big") % 100
+    for policy, share in EXPERIMENT_SPLIT:
+        if bucket < share:
+            return policy
+        bucket -= share
+    return EXPERIMENT_SPLIT[-1][0]
 
 
 #: Recent clicks an article needs before "Trending now" is a true thing to say
 #: about it - one or two clicks is noise, not a trend.
 TRENDING_MIN_CLICKS = 3
-
-
-@dataclass(frozen=True, slots=True)
-class RankReason:
-    """Why a card is on the reader's feed, in the one term that actually moved
-    it (design-system.md: "every ranked card can explain itself"). Only
-    factors the ranker really applied: a followed-topic boost, a popularity
-    signal strong enough to call a trend, or an exploration slot. A card the
-    ranker placed on recency and language alone carries no reason rather
-    than an invented one."""
-
-    kind: Literal["followed_topic", "trending", "exploration"]
-    topic_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +153,8 @@ class FeedItem:
     # ever point at.
     impression_id: int | None
     reason: RankReason | None = None
+    #: The item's place in the whole feed, as its impression logs it.
+    position: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +178,15 @@ class _UnloggedPage:
     # Parallel to `articles` when set - see RankReason. The chronological
     # control has nothing to explain and leaves it None.
     reasons: list[RankReason | None] | None = None
+    # The feed position of `articles[0]`: how many items earlier pages of
+    # this feed served. Impressions log `first_position + index`, so a
+    # position means the same thing on page 3 as on page 1 and matches the
+    # position a click reports (ADR 0015).
+    first_position: int = 0
+    # Parallel to `articles` when set: each item's feed position, for a
+    # policy whose page can skip one (ranker v2 drops an article marked not
+    # interesting since the feed was ranked, keeping everyone else's place).
+    positions: list[int] | None = None
 
 
 async def get_feed_page(
@@ -190,9 +211,11 @@ async def get_feed_page(
 
     excluded = await interactions_repo.excluded_article_ids(session, user_id)
     policy = assign_policy(user_id)
-    if policy == HEURISTIC_POLICY and not await flags_repo.is_enabled(
-        session, HEURISTIC_RANKER_FLAG
-    ):
+    if policy in (
+        HEURISTIC_POLICY,
+        HEURISTIC_V2_POLICY,
+        FINDING_POLICY,
+    ) and not await flags_repo.is_enabled(session, HEURISTIC_RANKER_FLAG):
         # The bucketing itself is untouched - a reader stays counted in their
         # assigned experiment arm - but what actually gets served, and what
         # gets logged as having served it, falls back to the control. That is
@@ -209,6 +232,9 @@ async def get_feed_page(
             excluded=excluded,
             cursor=cursor,
             page_size=page_size,
+            session_id=session_id if log_impressions else None,
+            logged=log_impressions,
+            locale=locale,
         ),
     )
 
@@ -218,10 +244,13 @@ async def get_feed_page(
     articles = await content_repo.attach_outlets(session, unlogged.articles)
 
     reasons: list[RankReason | None] = unlogged.reasons or [None] * len(unlogged.articles)
+    positions = unlogged.positions or [
+        unlogged.first_position + index for index in range(len(unlogged.articles))
+    ]
     if not log_impressions:
         items = [
-            FeedItem(article=article, impression_id=None, reason=reason)
-            for article, reason in zip(articles, reasons, strict=True)
+            FeedItem(article=article, impression_id=None, reason=reason, position=position)
+            for article, reason, position in zip(articles, reasons, positions, strict=True)
         ]
         return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
@@ -229,31 +258,36 @@ async def get_feed_page(
         session,
         user_id=user_id,
         session_id=session_id,
+        # After the ranking's own "as of" on the same clock - see
+        # log_impressions.
+        served_at=datetime.now(UTC),
         surface="feed",
         locale=locale,
         ranking_policy=unlogged.ranking_policy_override or policy,
         items=[
             ImpressionToLog(
                 article_id=row.id,
-                position=position,
-                propensity=(
-                    unlogged.propensities[position] if unlogged.propensities else PROPENSITY
-                ),
+                position=positions[index],
+                propensity=(unlogged.propensities[index] if unlogged.propensities else PROPENSITY),
             )
-            for position, row in enumerate(articles)
+            for index, row in enumerate(articles)
         ],
     )
     items = [
-        FeedItem(article=article, impression_id=impression_id, reason=reason)
-        for article, impression_id, reason in zip(articles, impression_ids, reasons, strict=True)
+        FeedItem(article=article, impression_id=impression_id, reason=reason, position=position)
+        for article, impression_id, reason, position in zip(
+            articles, impression_ids, reasons, positions, strict=True
+        )
     ]
     return FeedPage(items=items, next_cursor=unlogged.next_cursor)
 
 
 async def _get_chronological_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
     before_published_at, before_id = (None, None)
+    served = 0
     if request.cursor:
         before_published_at, before_id = decode_cursor(request.cursor)
+        served = decode_cursor_served(request.cursor)
 
     rows = await content_repo.list_articles(
         session,
@@ -266,9 +300,11 @@ async def _get_chronological_page(session: AsyncSession, request: PolicyRequest)
     has_more = len(rows) > request.page_size
     articles = rows[: request.page_size]
     next_cursor = (
-        encode_cursor(articles[-1].published_at, articles[-1].id) if has_more and articles else None
+        encode_cursor(articles[-1].published_at, articles[-1].id, served=served + len(articles))
+        if has_more and articles
+        else None
     )
-    return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+    return _UnloggedPage(articles=articles, next_cursor=next_cursor, first_position=served)
 
 
 async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
@@ -330,6 +366,7 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
             articles=articles,
             next_cursor=next_cursor,
             reasons=[reason_for(article) for article in articles],
+            first_position=offset,
         )
 
     ranked_ids = {article.id for article in articles}
@@ -344,13 +381,16 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
         for article in articles
     ]
     if not mixed:
-        return _UnloggedPage(articles=articles, next_cursor=next_cursor, reasons=reasons)
+        return _UnloggedPage(
+            articles=articles, next_cursor=next_cursor, reasons=reasons, first_position=offset
+        )
     return _UnloggedPage(
         articles=articles,
         next_cursor=next_cursor,
         propensities=propensities,
         ranking_policy_override=HEURISTIC_EXPLORE_MIX_POLICY,
         reasons=reasons,
+        first_position=offset,
     )
 
 
@@ -402,6 +442,60 @@ async def _mix_in_exploration(
     return mixed_articles, propensities, True
 
 
+async def _get_v2_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
+    """Ranker v2 (ADR 0015) behind the same seam as every other policy: the
+    reader's own reading, follows and fatigue, sampled when the page is
+    logged so each position carries its real probability."""
+    page = await recommend.rank(
+        session,
+        recommend.RankRequest(
+            view="for_you",
+            languages=request.languages or [request.locale],
+            user_id=request.user_id,
+            session_id=request.session_id,
+            cursor=request.cursor,
+            page_size=request.page_size,
+            stochastic=request.logged,
+        ),
+    )
+    return _UnloggedPage(
+        articles=[item.article for item in page.items],
+        next_cursor=page.next_cursor,
+        propensities=[item.propensity for item in page.items],
+        reasons=[item.reason for item in page.items],
+        positions=[item.position for item in page.items],
+    )
+
+
+async def _get_finding_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
+    """Ranker v2 with the reader's profile from the FINDING user tower -
+    the vector `justnews-ingest user-vectors` wrote offline, ranked by a dot
+    product (ADR 0004). A reader with no vector yet (too few reads, or not
+    computed since they joined) is ranked by v2's own profile - logged
+    under this policy all the same, since this is the policy that served."""
+    stored = await recommend_repo.user_vector(session, request.user_id)
+    page = await recommend.rank(
+        session,
+        recommend.RankRequest(
+            view="for_you",
+            languages=request.languages or [request.locale],
+            user_id=request.user_id,
+            session_id=request.session_id,
+            cursor=request.cursor,
+            page_size=request.page_size,
+            stochastic=request.logged,
+            profile_override=stored[0] if stored is not None else None,
+        ),
+    )
+    return _UnloggedPage(
+        articles=[item.article for item in page.items],
+        next_cursor=page.next_cursor,
+        propensities=[item.propensity for item in page.items],
+        reasons=[item.reason for item in page.items],
+        positions=[item.position for item in page.items],
+    )
+
+
 # --- the ranking registry -------------------------------------------------
 #
 # The seam this whole module is shaped around. Adding a ranker - Stage 6's
@@ -414,10 +508,22 @@ async def _mix_in_exploration(
 # are resolved when a request is served, not at import.
 POLICIES: dict[str, RankingPolicy] = {
     HEURISTIC_POLICY: _get_heuristic_page,
+    HEURISTIC_V2_POLICY: _get_v2_page,
+    FINDING_POLICY: _get_finding_page,
     CHRONOLOGICAL_POLICY: _get_chronological_page,
 }
 
-# Which of them are currently in front of readers. Deliberately a separate
-# list: a new ranker should be registered, exercised and measured offline
-# before it is added here, and adding it re-buckets every reader.
-EXPERIMENT_POLICIES: tuple[str, ...] = (HEURISTIC_POLICY, CHRONOLOGICAL_POLICY)
+# Which of them are currently in front of readers, and what share of readers
+# each gets (percentages summing to 100). Deliberately separate from
+# POLICIES: a new ranker should be registered, exercised and measured
+# offline before it is added here, and changing the split re-buckets readers.
+#
+# The chronological control is a 10% holdout, not half the beta (ADR 0015):
+# with a few dozen readers a 50/50 split has almost no power and keeps half
+# of them on the weaker feed, while the ranked arm's real propensities let a
+# new ranker be compared offline instead.
+EXPERIMENT_SPLIT: tuple[tuple[str, int], ...] = (
+    (HEURISTIC_V2_POLICY, 90),
+    (CHRONOLOGICAL_POLICY, 10),
+)
+EXPERIMENT_POLICIES: tuple[str, ...] = tuple(policy for policy, _share in EXPERIMENT_SPLIT)

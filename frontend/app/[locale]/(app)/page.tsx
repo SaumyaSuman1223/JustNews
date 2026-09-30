@@ -144,6 +144,7 @@ export default async function DiscoverRoute({
           signedIn={Boolean(reader.auth)}
           canPersonalise={Boolean(reader.auth) && reader.hasBetaAccess}
           hasInterests={reader.interests.length > 0}
+          learnsFromReading={reader.consented}
           initialSaved={saved}
           readLanguages={reader.languages}
           rail={

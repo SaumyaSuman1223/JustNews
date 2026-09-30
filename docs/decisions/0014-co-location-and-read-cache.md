@@ -71,6 +71,9 @@ Option 2:
 | web `GET /api/widgets/weather` (Open-Meteo, Next fetch cache + CDN) | 1800s | 3600s | The forecast updates hourly; keyed by coordinates rounded to ~1 km |
 | web `GET /api/widgets/places` (Open-Meteo geocoding) | 86400s | — | A city does not move |
 | `GET /v1/feed`, `/v1/explore`, anything authenticated | not cached | — | Personal, and logs propensity at serve time; a cached ranking would log a decision no policy made |
+| `GET /v1/discover` (first page; signed out, no consent, no device history, no topic picks) | 60s | 300s | The deterministic ranking is the same for every such reader; it replaces the article list on Discover (ADR 0015) |
+| `GET /v1/discover` (anything else) | not cached | — | Personal, or logs impressions with the probability each placement had |
+| `POST /v1/clicks`, `POST /v1/impressions/views` | not cached | — | Writes |
 
 "Stale" is how long an expired entry may still be served while a single
 request, holding a 30s Redis lock, refreshes it in the background.

@@ -20,6 +20,9 @@ export interface DiscoverItem {
   /** The impression this card was served under, for click attribution;
    * null wherever nothing was logged. */
   impressionId: number | null;
+  /** Its place in the whole feed, as the ranker served it - the position a
+   * click reports, matching its impression. */
+  position: number;
   why: RankReason | null;
 }
 

@@ -529,6 +529,17 @@
             ],
             "title": "Impression Id"
           },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
           "position": {
             "anyOf": [
               {
@@ -753,6 +764,72 @@
         "title": "DeckOut",
         "type": "object"
       },
+      "DiscoverItemOut": {
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/ArticleOut"
+          },
+          "impression_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impression Id"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankReasonOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "article",
+          "impression_id",
+          "position"
+        ],
+        "title": "DiscoverItemOut",
+        "type": "object"
+      },
+      "DiscoverPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoverItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DiscoverPageOut",
+        "type": "object"
+      },
       "EditionOut": {
         "properties": {
           "code": {
@@ -885,6 +962,11 @@
               }
             ],
             "title": "Impression Id"
+          },
+          "position": {
+            "default": 0,
+            "title": "Position",
+            "type": "integer"
           },
           "reason": {
             "anyOf": [
@@ -1825,6 +1907,9 @@
           "kind": {
             "enum": [
               "followed_topic",
+              "followed_source",
+              "followed_story",
+              "similar",
               "trending",
               "exploration"
             ],
@@ -2976,6 +3061,48 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ViewIn": {
+        "properties": {
+          "impression_id": {
+            "title": "Impression Id",
+            "type": "integer"
+          },
+          "rendered_position": {
+            "maximum": 32767.0,
+            "minimum": 0.0,
+            "title": "Rendered Position",
+            "type": "integer"
+          },
+          "slot": {
+            "title": "Slot",
+            "type": "string"
+          }
+        },
+        "required": [
+          "impression_id",
+          "rendered_position",
+          "slot"
+        ],
+        "title": "ViewIn",
+        "type": "object"
+      },
+      "ViewsIn": {
+        "properties": {
+          "views": {
+            "items": {
+              "$ref": "#/components/schemas/ViewIn"
+            },
+            "maxItems": 100,
+            "title": "Views",
+            "type": "array"
+          }
+        },
+        "required": [
+          "views"
+        ],
+        "title": "ViewsIn",
         "type": "object"
       }
     },
@@ -4800,6 +4927,279 @@
         ]
       }
     },
+    "/v1/clicks": {
+      "post": {
+        "description": "A click from any reader, signed in or not (ADR 0015) - the web app's\none click endpoint. POST /v1/history stays for invited readers' older\nclients.\n\nFails closed on consent, like the feed's impressions: without the header\nnothing is recorded. Signed out, a click also needs the impression it\ncame from - see services.interactions.report_click.",
+        "operationId": "report_any_click_v1_clicks_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClickIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report Any Click",
+        "tags": [
+          "interactions"
+        ]
+      }
+    },
+    "/v1/discover": {
+      "get": {
+        "description": "One page of a Discover view, ranked by ranker v2 (ADR 0015), for any\nreader.\n\nCache: the first page for a signed-out reader with no consent, no device\nhistory and no topic picks is the same for everyone who asks - 60s fresh\nand 300s stale, like the article list it replaces (ADR 0014). Everything\nelse is personal or logs impressions, and is never cached.",
+        "operationId": "discover_v1_discover_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "top",
+              "enum": [
+                "for_you",
+                "top",
+                "topic"
+              ],
+              "title": "View",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The topic view's IPTC concept id.",
+            "in": "query",
+            "name": "topic",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The topic view's IPTC concept id.",
+              "title": "Topic"
+            }
+          },
+          {
+            "description": "Signed out: the reader's topic picks, weighed like follows.",
+            "in": "query",
+            "name": "interests",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Signed out: the reader's topic picks, weighed like follows.",
+              "title": "Interests"
+            }
+          },
+          {
+            "description": "Signed out: article ids this device opened recently, newest first.",
+            "in": "query",
+            "name": "history",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Signed out: article ids this device opened recently, newest first.",
+              "title": "History"
+            }
+          },
+          {
+            "in": "query",
+            "name": "languages",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "en,hi"
+              ],
+              "title": "Languages"
+            }
+          },
+          {
+            "description": "UI locale the page is rendered in.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "UI locale the page is rendered in.",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discover",
+        "tags": [
+          "discover"
+        ]
+      }
+    },
     "/v1/editions": {
       "get": {
         "description": "The regional views on offer - Google News' local-news equivalent.",
@@ -5865,6 +6265,80 @@
           }
         ],
         "summary": "Report Click",
+        "tags": [
+          "interactions"
+        ]
+      }
+    },
+    "/v1/impressions/views": {
+      "post": {
+        "description": "Served cards that were actually on screen (migration 0020): the\ndifference between \"shown and passed over\" and \"never scrolled to\".\nConsent-gated and fail-closed like every other logging route; only the\ncaller's own impressions are recorded.",
+        "operationId": "report_views_v1_impressions_views_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-session-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-analytics-consent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Analytics-Consent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report Views",
         "tags": [
           "interactions"
         ]

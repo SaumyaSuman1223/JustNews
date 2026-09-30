@@ -288,12 +288,18 @@ async def ctr_by_surface(
     )
     clicks_query = (
         select(InteractionEvent.surface, func.count().label("n"))
+        .outerjoin(Impression, Impression.id == InteractionEvent.impression_id)
         .where(InteractionEvent.event_type == "click", InteractionEvent.created_at >= since)
         .group_by(InteractionEvent.surface)
     )
     if locale:
         impressions_query = impressions_query.where(Impression.locale == locale)
-        clicks_query = clicks_query.where(InteractionEvent.locale == locale)
+        # An impression's locale is the interface language; older click rows
+        # stored the article's language instead, so a click is filtered by
+        # the impression it came from wherever it has one.
+        clicks_query = clicks_query.where(
+            func.coalesce(Impression.locale, InteractionEvent.locale) == locale
+        )
 
     impressions = {row.surface: row.n for row in (await session.execute(impressions_query)).all()}
     clicks = {row.surface: row.n for row in (await session.execute(clicks_query)).all()}
@@ -332,7 +338,8 @@ async def ctr_by_ranking_policy(
     )
     if locale:
         impressions_query = impressions_query.where(Impression.locale == locale)
-        clicks_query = clicks_query.where(InteractionEvent.locale == locale)
+        # The same locale on both sides: the impression's interface language.
+        clicks_query = clicks_query.where(Impression.locale == locale)
 
     impressions = {
         row.ranking_policy: row.n for row in (await session.execute(impressions_query)).all()

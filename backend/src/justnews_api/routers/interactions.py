@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, Header, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_api.core.auth import require_user
-from justnews_api.core.db import get_beta_session
+from justnews_api.core.auth import optional_user, require_user
+from justnews_api.core.db import get_beta_session, get_public_session
 from justnews_api.routers.content import ArticleOut
 from justnews_api.services import interactions as service
 from justnews_api.services.auth import Principal
@@ -24,6 +24,18 @@ class ClickIn(BaseModel):
     # Only ever sent by the exploration deck (surface="onboarding") - see
     # services.exploration_deck.record_deck_engagement.
     topic_id: str | None = None
+    # The interface language the card was shown in, as on the impression.
+    locale: str | None = None
+
+
+class ViewIn(BaseModel):
+    impression_id: int
+    rendered_position: int = Field(ge=0, le=32767)
+    slot: str
+
+
+class ViewsIn(BaseModel):
+    views: list[ViewIn] = Field(max_length=service.MAX_VIEWS_PER_REPORT)
 
 
 class NotInterestedIn(BaseModel):
@@ -63,6 +75,67 @@ async def report_click(
         position=body.position,
         impression_id=body.impression_id,
         topic_id=body.topic_id,
+        locale=body.locale,
+    )
+
+
+@router.post("/clicks", status_code=status.HTTP_204_NO_CONTENT)
+async def report_any_click(
+    body: ClickIn,
+    principal: Principal | None = Depends(optional_user),
+    session: AsyncSession = Depends(get_public_session),
+    x_session_id: str | None = Header(default=None, alias="x-session-id"),
+    x_analytics_consent: str | None = Header(default=None, alias="x-analytics-consent"),
+) -> None:
+    """A click from any reader, signed in or not (ADR 0015) - the web app's
+    one click endpoint. POST /v1/history stays for invited readers' older
+    clients.
+
+    Fails closed on consent, like the feed's impressions: without the header
+    nothing is recorded. Signed out, a click also needs the impression it
+    came from - see services.interactions.report_click.
+    """
+    if x_analytics_consent != "granted" or not x_session_id:
+        return
+    await service.report_click(
+        session,
+        user_id=principal.user_id if principal else None,
+        session_id=x_session_id,
+        article_id=body.article_id,
+        surface=body.surface,
+        position=body.position,
+        impression_id=body.impression_id,
+        topic_id=body.topic_id,
+        locale=body.locale,
+    )
+
+
+@router.post("/impressions/views", status_code=status.HTTP_204_NO_CONTENT)
+async def report_views(
+    body: ViewsIn,
+    principal: Principal | None = Depends(optional_user),
+    session: AsyncSession = Depends(get_public_session),
+    x_session_id: str | None = Header(default=None, alias="x-session-id"),
+    x_analytics_consent: str | None = Header(default=None, alias="x-analytics-consent"),
+) -> None:
+    """Served cards that were actually on screen (migration 0020): the
+    difference between "shown and passed over" and "never scrolled to".
+    Consent-gated and fail-closed like every other logging route; only the
+    caller's own impressions are recorded."""
+    if x_analytics_consent != "granted" or not x_session_id:
+        return
+    await service.report_views(
+        session,
+        user_id=principal.user_id if principal else None,
+        session_id=x_session_id,
+        views=[
+            service.ViewReport(
+                impression_id=view.impression_id,
+                rendered_position=view.rendered_position,
+                slot=view.slot,
+            )
+            for view in body.views
+        ],
     )
 
 

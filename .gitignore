@@ -44,3 +44,8 @@ pgdata/
 # md files 
 CLAUDE.md
 docs/samarkan-font/
+# FINDING upstream, fetched and patched by ml/finding/reproduce.sh
+ml/finding/.work/
+# training logs (progress bars); the results that matter are the .json files
+ml/finding/results/*.log
+ml/finding/results/*.status

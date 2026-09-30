@@ -43,10 +43,15 @@ export function StoryGrid({
   const blocks = useMemo(
     () =>
       arrange(
-        articles.map((article) => ({ article, impressionId: null, why: null })),
+        articles.map((article, index) => ({
+          article,
+          impressionId: null,
+          position: firstPosition + index,
+          why: null,
+        })),
         { lead, features },
       ),
-    [articles, lead, features],
+    [articles, lead, features, firstPosition],
   );
 
   function onSavedChange(articleId: number, isSaved: boolean) {
@@ -68,7 +73,7 @@ export function StoryGrid({
               item={item}
               variant={block.variant}
               locale={locale}
-              position={firstPosition + position}
+              renderedPosition={firstPosition + position}
               surface={surface}
               signedIn={signedIn}
               canPersonalise={canPersonalise}

@@ -2,6 +2,10 @@ import type { StoryVariant } from "@/components/discover/StoryCard";
 import type { DiscoverItem } from "@/lib/discoverView";
 import { spreadRuns } from "@/lib/spreadRuns";
 
+/** `position` is the card's place in the order it is drawn - which the
+ * layout below may move a few slots from the order served (`item.position`,
+ * what a click reports) - and is what a view report calls its rendered
+ * position. */
 export type Block = { variant: StoryVariant; items: { item: DiscoverItem; position: number }[] };
 
 /**
@@ -16,10 +20,10 @@ export function arrange(
   items: DiscoverItem[],
   { lead = true, features = true }: { lead?: boolean; features?: boolean } = {},
 ): Block[] {
-  // Positions are the order served (they are what a click reports); the
-  // layout then breaks up any run of one source that pages meeting created.
+  // The layout breaks up any run of one source that pages meeting created;
+  // positions are assigned in drawn order once the blocks are built.
   const queue = spreadRuns(
-    items.map((item, position) => ({ item, position })),
+    items.map((item) => ({ item, position: 0 })),
     (entry) => entry.item.article.source_slug,
   );
   const blocks: Block[] = [];
@@ -45,5 +49,9 @@ export function arrange(
     blocks.push({ variant: "card", items: queue.splice(0, 3) });
     if (features && queue.length > 0) blocks.push({ variant: "wide", items: takeWithImage() });
   }
-  return blocks;
+  let drawn = 0;
+  return blocks.map((block) => ({
+    ...block,
+    items: block.items.map(({ item }) => ({ item, position: drawn++ })),
+  }));
 }

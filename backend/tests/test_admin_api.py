@@ -8,7 +8,7 @@ from justnews_testing.factories import make_article, make_source
 from justnews_testing.policy import find_user_id_for_policy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_api.services.feed import HEURISTIC_POLICY
+from justnews_api.services.feed import HEURISTIC_V2_POLICY
 
 
 class TestAdminAccessControl:
@@ -261,7 +261,9 @@ class TestAnalytics:
         article = await make_article(session, source)
         await session.commit()
 
-        reader = await make_beta_headers(session, user_id=find_user_id_for_policy(HEURISTIC_POLICY))
+        reader = await make_beta_headers(
+            session, user_id=find_user_id_for_policy(HEURISTIC_V2_POLICY)
+        )
         reader["x-analytics-consent"] = "granted"
         feed = (await client.get("/v1/feed", headers=reader)).json()
         impression_id = feed["items"][0]["impression_id"]
@@ -279,7 +281,46 @@ class TestAnalytics:
         admin = await make_beta_headers(session, role="admin")
         overview = await client.get("/v1/admin/analytics/overview", headers=admin)
         by_policy = {row["ranking_policy"]: row for row in overview.json()["ctr_by_ranking_policy"]}
-        assert by_policy[HEURISTIC_POLICY]["clicks"] >= 1
+        assert by_policy[HEURISTIC_V2_POLICY]["clicks"] >= 1
+
+    async def test_ctr_by_locale_counts_a_click_in_the_interface_language(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        """An English-interface reader opening a Spanish article is an
+        English-interface click: impressions and clicks filter on the same
+        meaning of locale."""
+        source = await make_source(session)
+        article = await make_article(session, source, language="es")
+        await session.commit()
+
+        reader = await make_beta_headers(
+            session, user_id=find_user_id_for_policy(HEURISTIC_V2_POLICY)
+        )
+        reader["x-analytics-consent"] = "granted"
+        reader["x-session-id"] = "sess-locale"
+        feed = (
+            await client.get("/v1/feed", params={"languages": "es", "locale": "en"}, headers=reader)
+        ).json()
+        await client.post(
+            "/v1/clicks",
+            json={
+                "article_id": article.id,
+                "surface": "feed",
+                "position": 0,
+                "impression_id": feed["items"][0]["impression_id"],
+                "locale": "en",
+            },
+            headers=reader,
+        )
+
+        admin = await make_beta_headers(session, role="admin")
+        overview = (
+            await client.get("/v1/admin/analytics/overview?locale=en", headers=admin)
+        ).json()
+        by_policy = {row["ranking_policy"]: row for row in overview["ctr_by_ranking_policy"]}
+        assert by_policy[HEURISTIC_V2_POLICY]["clicks"] == 1
+        by_surface = {row["surface"]: row for row in overview["ctr_by_surface"]}
+        assert by_surface["feed"]["clicks"] == 1
 
 
 class TestAuditLog:

@@ -18,7 +18,7 @@ from justnews_testing.policy import find_user_id_for_policy
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from justnews_api.services.feed import CHRONOLOGICAL_POLICY, HEURISTIC_POLICY
+from justnews_api.services.feed import CHRONOLOGICAL_POLICY, HEURISTIC_V2_POLICY
 from justnews_core.db import set_current_user
 from justnews_core.models import AdminAuditLog, FeatureFlag, Impression
 
@@ -139,7 +139,7 @@ class TestHeuristicRankerKillSwitch:
             "/v1/admin/feature-flags/heuristic_ranker", json={"enabled": False}, headers=admin
         )
 
-        user_id = find_user_id_for_policy(HEURISTIC_POLICY)
+        user_id = find_user_id_for_policy(HEURISTIC_V2_POLICY)
         headers = await make_beta_headers(session, user_id=user_id)
         headers["x-analytics-consent"] = "granted"
         response = await client.get("/v1/feed", headers=headers)
@@ -160,7 +160,7 @@ class TestHeuristicRankerKillSwitch:
         await make_article(session, source, title="B")
         await session.commit()
 
-        user_id = find_user_id_for_policy(HEURISTIC_POLICY)
+        user_id = find_user_id_for_policy(HEURISTIC_V2_POLICY)
         headers = await make_beta_headers(session, user_id=user_id)
         headers["x-analytics-consent"] = "granted"
         response = await client.get("/v1/feed", headers=headers)
@@ -168,4 +168,4 @@ class TestHeuristicRankerKillSwitch:
 
         await set_current_user(session, user_id)
         rows = (await session.execute(select(Impression))).scalars().all()
-        assert rows and all(row.ranking_policy == HEURISTIC_POLICY for row in rows)
+        assert rows and all(row.ranking_policy == HEURISTIC_V2_POLICY for row in rows)

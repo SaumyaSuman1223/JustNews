@@ -52,9 +52,12 @@ def registered_policy() -> object:
     copy of the mechanism rather than the mechanism.
     """
     feed_service.POLICIES[FAKE_POLICY] = _reverse_alphabetical
+    original_split = feed_service.EXPERIMENT_SPLIT
     original = feed_service.EXPERIMENT_POLICIES
+    feed_service.EXPERIMENT_SPLIT = ((FAKE_POLICY, 100),)
     feed_service.EXPERIMENT_POLICIES = (FAKE_POLICY,)
     yield
+    feed_service.EXPERIMENT_SPLIT = original_split
     feed_service.EXPERIMENT_POLICIES = original
     del feed_service.POLICIES[FAKE_POLICY]
 
@@ -72,6 +75,15 @@ class TestRegistry:
     def test_assign_policy_only_returns_experiment_policies(self) -> None:
         seen = {feed_service.assign_policy(uuid.uuid4()) for _ in range(200)}
         assert seen <= set(feed_service.EXPERIMENT_POLICIES)
+
+    def test_the_split_shares_add_up_to_every_reader(self) -> None:
+        assert sum(share for _policy, share in feed_service.EXPERIMENT_SPLIT) == 100
+
+    def test_the_chronological_control_is_a_small_holdout(self) -> None:
+        # 10% of readers, give or take sampling noise over 4,000 ids.
+        policies = [feed_service.assign_policy(uuid.uuid4()) for _ in range(4000)]
+        share = policies.count(feed_service.CHRONOLOGICAL_POLICY) / len(policies)
+        assert 0.07 < share < 0.13
 
     def test_assign_policy_is_stable_for_a_reader(self) -> None:
         user_id = uuid.uuid4()
