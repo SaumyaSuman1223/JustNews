@@ -48,3 +48,4 @@ docs/samarkan-font/
 ml/finding/.work/
 # training logs (progress bars); the results that matter are the .json files
 ml/finding/results/*.log
+ml/finding/results/*.status
