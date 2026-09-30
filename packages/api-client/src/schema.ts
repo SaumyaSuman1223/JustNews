@@ -513,6 +513,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/clicks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Any Click
+         * @description A click from any reader, signed in or not (ADR 0015) - the web app's
+         *     one click endpoint. POST /v1/history stays for invited readers' older
+         *     clients.
+         *
+         *     Fails closed on consent, like the feed's impressions: without the header
+         *     nothing is recorded. Signed out, a click also needs the impression it
+         *     came from - see services.interactions.report_click.
+         */
+        post: operations["report_any_click_v1_clicks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover
+         * @description One page of a Discover view, ranked by ranker v2 (ADR 0015), for any
+         *     reader.
+         *
+         *     Cache: the first page for a signed-out reader with no consent, no device
+         *     history and no topic picks is the same for everyone who asks - 60s fresh
+         *     and 300s stale, like the article list it replaces (ADR 0014). Everything
+         *     else is personal or logs impressions, and is never cached.
+         */
+        get: operations["discover_v1_discover_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/editions": {
         parameters: {
             query?: never;
@@ -767,6 +819,29 @@ export interface paths {
         put?: never;
         /** Report Click */
         post: operations["report_click_v1_history_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/impressions/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Views
+         * @description Served cards that were actually on screen (migration 0020): the
+         *     difference between "shown and passed over" and "never scrolled to".
+         *     Consent-gated and fail-closed like every other logging route; only the
+         *     caller's own impressions are recorded.
+         */
+        post: operations["report_views_v1_impressions_views_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1507,6 +1582,8 @@ export interface components {
             article_id: number;
             /** Impression Id */
             impression_id?: number | null;
+            /** Locale */
+            locale?: string | null;
             /** Position */
             position?: number | null;
             /** Surface */
@@ -1602,6 +1679,22 @@ export interface components {
             /** Cards */
             cards: components["schemas"]["DeckCardOut"][];
         };
+        /** DiscoverItemOut */
+        DiscoverItemOut: {
+            article: components["schemas"]["ArticleOut"];
+            /** Impression Id */
+            impression_id: number | null;
+            /** Position */
+            position: number;
+            reason?: components["schemas"]["RankReasonOut"] | null;
+        };
+        /** DiscoverPageOut */
+        DiscoverPageOut: {
+            /** Items */
+            items: components["schemas"]["DiscoverItemOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** EditionOut */
         EditionOut: {
             /** Code */
@@ -1653,6 +1746,11 @@ export interface components {
             article: components["schemas"]["ArticleOut"];
             /** Impression Id */
             impression_id: number | null;
+            /**
+             * Position
+             * @default 0
+             */
+            position: number;
             reason?: components["schemas"]["RankReasonOut"] | null;
         };
         /** FeedPageOut */
@@ -2043,7 +2141,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "followed_topic" | "trending" | "exploration";
+            kind: "followed_topic" | "followed_source" | "followed_story" | "similar" | "trending" | "exploration";
             /** Topic Id */
             topic_id?: string | null;
         };
@@ -2465,6 +2563,20 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** ViewIn */
+        ViewIn: {
+            /** Impression Id */
+            impression_id: number;
+            /** Rendered Position */
+            rendered_position: number;
+            /** Slot */
+            slot: string;
+        };
+        /** ViewsIn */
+        ViewsIn: {
+            /** Views */
+            views: components["schemas"]["ViewIn"][];
         };
     };
     responses: never;
@@ -3430,6 +3542,85 @@ export interface operations {
             };
         };
     };
+    report_any_click_v1_clicks_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClickIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discover_v1_discover_get: {
+        parameters: {
+            query?: {
+                view?: "for_you" | "top" | "topic";
+                /** @description The topic view's IPTC concept id. */
+                topic?: string | null;
+                /** @description Signed out: the reader's topic picks, weighed like follows. */
+                interests?: string | null;
+                /** @description Signed out: article ids this device opened recently, newest first. */
+                history?: string | null;
+                languages?: string | null;
+                /** @description UI locale the page is rendered in. */
+                locale?: string;
+                cursor?: string | null;
+                page_size?: number;
+            };
+            header?: {
+                "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverPageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     editions_v1_editions_get: {
         parameters: {
             query?: {
@@ -3989,6 +4180,40 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ClickIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_views_v1_impressions_views_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-session-id"?: string | null;
+                "x-analytics-consent"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ViewsIn"];
             };
         };
         responses: {
