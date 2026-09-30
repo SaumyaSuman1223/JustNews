@@ -18,12 +18,18 @@ from justnews_core.errors import ValidationError
 _CURSOR_VERSION = 1
 
 
-def encode_cursor(published_at: datetime, article_id: int) -> str:
-    payload = {
+def encode_cursor(published_at: datetime, article_id: int, *, served: int | None = None) -> str:
+    """``served`` is how many items came before the next page - only the
+    feed's chronological policy sets it, so an impression's ``position`` is
+    its place in the whole feed rather than restarting at 0 on every page
+    (ADR 0015). Readers of the cursor that do not log positions ignore it."""
+    payload: dict[str, object] = {
         "v": _CURSOR_VERSION,
         "p": published_at.astimezone(UTC).isoformat(),
         "i": article_id,
     }
+    if served is not None:
+        payload["n"] = served
     raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
@@ -44,6 +50,20 @@ def decode_cursor(cursor: str) -> tuple[datetime, int]:
     if published_at.tzinfo is None:
         raise ValidationError("Cursor timestamp must be timezone-aware.")
     return published_at, article_id
+
+
+def decode_cursor_served(cursor: str) -> int:
+    """How many items came before this cursor's page; 0 for a cursor
+    written before positions ran across pages."""
+    padding = "=" * (-len(cursor) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        served = int(payload.get("n", 0))
+    except (ValueError, TypeError, AttributeError, binascii.Error, UnicodeDecodeError) as exc:
+        raise ValidationError("Cursor is not valid.") from exc
+    if served < 0:
+        raise ValidationError("Cursor is not valid.")
+    return served
 
 
 _RANK_CURSOR_VERSION = 2

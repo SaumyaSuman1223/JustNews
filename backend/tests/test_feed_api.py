@@ -64,6 +64,34 @@ class TestFeed:
         assert all(row.session_id == "sess-1" for row in rows)
         assert all(row.ranking_policy == CHRONOLOGICAL_POLICY for row in rows)
 
+    async def test_positions_run_on_across_pages(
+        self, client: AsyncClient, session: AsyncSession
+    ) -> None:
+        """Page 2's first item is feed position 2, not 0 - the same number a
+        click on it reports, so impressions and clicks join on position."""
+        source = await make_source(session)
+        for index in range(3):
+            await make_article(session, source, title=f"Story {index}", minutes_ago=index)
+        await session.commit()
+
+        user_id = find_user_id_for_policy(CHRONOLOGICAL_POLICY)
+        headers = await make_beta_headers(session, user_id=user_id)
+        headers["x-session-id"] = "sess-1"
+        headers["x-analytics-consent"] = "granted"
+        first = (await client.get("/v1/feed", params={"page_size": 2}, headers=headers)).json()
+        second = (
+            await client.get(
+                "/v1/feed",
+                params={"page_size": 2, "cursor": first["next_cursor"]},
+                headers=headers,
+            )
+        ).json()
+        assert [item["article"]["title"] for item in second["items"]] == ["Story 2"]
+
+        await set_current_user(session, user_id)
+        rows = (await session.execute(select(Impression))).scalars().all()
+        assert sorted(row.position for row in rows) == [0, 1, 2]
+
     async def test_not_interested_articles_are_excluded(
         self, client: AsyncClient, session: AsyncSession
     ) -> None:

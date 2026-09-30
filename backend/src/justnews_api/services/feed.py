@@ -42,6 +42,7 @@ from justnews_api.services import exploration_deck, ranking
 from justnews_api.services.content import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, parse_languages
 from justnews_api.services.cursor import (
     decode_cursor,
+    decode_cursor_served,
     decode_rank_cursor,
     encode_cursor,
     encode_rank_cursor,
@@ -111,9 +112,17 @@ def assign_policy(user_id: UUID) -> str:
     someone decides it should. Adding one to EXPERIMENT_POLICIES does
     re-bucket every reader, which ends the running experiment - that is
     inherent to changing the split, not something to paper over.
+
+    Weighted by EXPERIMENT_SPLIT: a reader's bucket is a stable number in
+    0-99, and each policy owns a run of those numbers.
     """
     digest = hashlib.sha256(str(user_id).encode("ascii")).digest()
-    return EXPERIMENT_POLICIES[digest[0] % len(EXPERIMENT_POLICIES)]
+    bucket = int.from_bytes(digest[:2], "big") % 100
+    for policy, share in EXPERIMENT_SPLIT:
+        if bucket < share:
+            return policy
+        bucket -= share
+    return EXPERIMENT_SPLIT[-1][0]
 
 
 #: Recent clicks an article needs before "Trending now" is a true thing to say
@@ -166,6 +175,11 @@ class _UnloggedPage:
     # Parallel to `articles` when set - see RankReason. The chronological
     # control has nothing to explain and leaves it None.
     reasons: list[RankReason | None] | None = None
+    # The feed position of `articles[0]`: how many items earlier pages of
+    # this feed served. Impressions log `first_position + index`, so a
+    # position means the same thing on page 3 as on page 1 and matches the
+    # position a click reports (ADR 0015).
+    first_position: int = 0
 
 
 async def get_feed_page(
@@ -237,10 +251,12 @@ async def get_feed_page(
                 article_id=row.id,
                 position=position,
                 propensity=(
-                    unlogged.propensities[position] if unlogged.propensities else PROPENSITY
+                    unlogged.propensities[position - unlogged.first_position]
+                    if unlogged.propensities
+                    else PROPENSITY
                 ),
             )
-            for position, row in enumerate(articles)
+            for position, row in enumerate(articles, start=unlogged.first_position)
         ],
     )
     items = [
@@ -252,8 +268,10 @@ async def get_feed_page(
 
 async def _get_chronological_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
     before_published_at, before_id = (None, None)
+    served = 0
     if request.cursor:
         before_published_at, before_id = decode_cursor(request.cursor)
+        served = decode_cursor_served(request.cursor)
 
     rows = await content_repo.list_articles(
         session,
@@ -266,9 +284,11 @@ async def _get_chronological_page(session: AsyncSession, request: PolicyRequest)
     has_more = len(rows) > request.page_size
     articles = rows[: request.page_size]
     next_cursor = (
-        encode_cursor(articles[-1].published_at, articles[-1].id) if has_more and articles else None
+        encode_cursor(articles[-1].published_at, articles[-1].id, served=served + len(articles))
+        if has_more and articles
+        else None
     )
-    return _UnloggedPage(articles=articles, next_cursor=next_cursor)
+    return _UnloggedPage(articles=articles, next_cursor=next_cursor, first_position=served)
 
 
 async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
@@ -330,6 +350,7 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
             articles=articles,
             next_cursor=next_cursor,
             reasons=[reason_for(article) for article in articles],
+            first_position=offset,
         )
 
     ranked_ids = {article.id for article in articles}
@@ -344,13 +365,16 @@ async def _get_heuristic_page(session: AsyncSession, request: PolicyRequest) -> 
         for article in articles
     ]
     if not mixed:
-        return _UnloggedPage(articles=articles, next_cursor=next_cursor, reasons=reasons)
+        return _UnloggedPage(
+            articles=articles, next_cursor=next_cursor, reasons=reasons, first_position=offset
+        )
     return _UnloggedPage(
         articles=articles,
         next_cursor=next_cursor,
         propensities=propensities,
         ranking_policy_override=HEURISTIC_EXPLORE_MIX_POLICY,
         reasons=reasons,
+        first_position=offset,
     )
 
 
@@ -417,7 +441,17 @@ POLICIES: dict[str, RankingPolicy] = {
     CHRONOLOGICAL_POLICY: _get_chronological_page,
 }
 
-# Which of them are currently in front of readers. Deliberately a separate
-# list: a new ranker should be registered, exercised and measured offline
-# before it is added here, and adding it re-buckets every reader.
-EXPERIMENT_POLICIES: tuple[str, ...] = (HEURISTIC_POLICY, CHRONOLOGICAL_POLICY)
+# Which of them are currently in front of readers, and what share of readers
+# each gets (percentages summing to 100). Deliberately separate from
+# POLICIES: a new ranker should be registered, exercised and measured
+# offline before it is added here, and changing the split re-buckets readers.
+#
+# The chronological control is a 10% holdout, not half the beta (ADR 0015):
+# with a few dozen readers a 50/50 split has almost no power and keeps half
+# of them on the weaker feed, while the ranked arm's real propensities let a
+# new ranker be compared offline instead.
+EXPERIMENT_SPLIT: tuple[tuple[str, int], ...] = (
+    (HEURISTIC_POLICY, 90),
+    (CHRONOLOGICAL_POLICY, 10),
+)
+EXPERIMENT_POLICIES: tuple[str, ...] = tuple(policy for policy, _share in EXPERIMENT_SPLIT)
