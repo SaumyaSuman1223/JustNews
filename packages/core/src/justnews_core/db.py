@@ -85,3 +85,12 @@ async def set_current_user(session: AsyncSession, user_id: str | None) -> None:
         text("SELECT set_config('app.user_id', :user_id, true)"),
         {"user_id": str(user_id) if user_id else ""},
     )
+
+
+async def set_job(session: AsyncSession, job: str) -> None:
+    """Declare, for this transaction, that a scheduled job is the caller -
+    ``app.job``, which the policies of migration 0021 let read and write
+    what that one job needs across readers. The same footing as
+    ``app.user_id``: set by our own code, on our own connection, as defence
+    in depth rather than an authorization boundary (ADR 0007)."""
+    await session.execute(text("SELECT set_config('app.job', :job, true)"), {"job": job})
