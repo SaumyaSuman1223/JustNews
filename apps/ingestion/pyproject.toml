@@ -15,6 +15,9 @@ dependencies = [
 
 [project.optional-dependencies]
 embeddings = ["sentence-transformers>=3.3"]
+# `user-vectors` runs the exported FINDING user tower (ADR 0016). Replaces
+# nothing; removing it removes that one command.
+finding = ["onnxruntime>=1.20"]
 
 [project.scripts]
 justnews-ingest = "justnews_ingestion.__main__:main"

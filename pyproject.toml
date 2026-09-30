@@ -57,7 +57,7 @@ plugins = []
 exclude = ["migrations/", "ml/", "\\.venv"]
 
 [[tool.mypy.overrides]]
-module = ["feedparser.*", "py3langid.*", "pgvector.*", "bs4.*", "sentence_transformers.*"]
+module = ["feedparser.*", "py3langid.*", "pgvector.*", "bs4.*", "sentence_transformers.*", "onnxruntime.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

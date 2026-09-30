@@ -14,6 +14,7 @@ import asyncio
 import json
 import sys
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from justnews_core.db import dispose_engine, init_engine, session_scope
@@ -22,6 +23,7 @@ from justnews_core.logging import configure_logging, get_logger
 from justnews_core.settings import get_settings
 from justnews_ingestion import markets, retention
 from justnews_ingestion.aquila import compose_issue, current_slot, repair_edition_times
+from justnews_ingestion.behaviours import export_behaviours
 from justnews_ingestion.classify import reclassify_untagged
 from justnews_ingestion.content import repair_snippets
 from justnews_ingestion.dedup import repair_cluster_counts, repair_programme_episodes
@@ -30,6 +32,7 @@ from justnews_ingestion.images import repair_images
 from justnews_ingestion.pipeline import run_ingestion
 from justnews_ingestion.rss import PROGRAMME_PATH_MARKERS
 from justnews_ingestion.seed import retire_unshipped_languages, seed_all
+from justnews_ingestion.user_vectors import compute_user_vectors, load_model
 
 log = get_logger(__name__)
 
@@ -167,6 +170,19 @@ async def _cmd_repair_programme_episodes(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _cmd_user_vectors(args: argparse.Namespace) -> int:
+    model = load_model(Path(args.model_dir))
+    async with session_scope() as session:
+        _print(await compute_user_vectors(session, model, dry_run=args.dry_run))
+    return 0
+
+
+async def _cmd_export_behaviours(args: argparse.Namespace) -> int:
+    async with session_scope() as session:
+        _print(await export_behaviours(session, Path(args.out)))
+    return 0
+
+
 async def _cmd_stats(_: argparse.Namespace) -> int:
     from justnews_api.repositories.content import corpus_stats
 
@@ -290,6 +306,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_parser("stats", help="corpus size, language spread and quota usage")
 
+    vectors = sub.add_parser(
+        "user-vectors",
+        help="every active reader's vector from an exported FINDING user tower (ADR 0016)",
+    )
+    vectors.add_argument("--model-dir", required=True, help="an ml/export/<version> directory")
+    vectors.add_argument("--dry-run", action="store_true", help="compute, write nothing")
+
+    export = sub.add_parser(
+        "export-behaviours",
+        help="consented impressions, views and reads, for the offline replay (ADR 0016)",
+    )
+    export.add_argument("--out", required=True, help="a directory, e.g. ml/data/justnews")
+
     gnews = sub.add_parser("gnews", help="one GNews search (costs one call from today's budget)")
     gnews.add_argument("query")
     gnews.add_argument("--language", default="en")
@@ -312,6 +341,8 @@ _COMMANDS = {
     "repair-cluster-counts": _cmd_repair_cluster_counts,
     "repair-programme-episodes": _cmd_repair_programme_episodes,
     "stats": _cmd_stats,
+    "user-vectors": _cmd_user_vectors,
+    "export-behaviours": _cmd_export_behaviours,
     "gnews": _cmd_gnews,
 }
 
