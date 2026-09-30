@@ -285,3 +285,36 @@ MMR runs only over the top ~300 scored candidates, so it stays inside the reques
    - Both, or neither.
 2. **The A/B split.** Keep 50/50, or move to a small chronological holdout (about 10%) and rely on offline replay over the new propensities.
 3. **Where to start.**
+
+## 9. What was done (same day)
+
+Decisions taken:
+- **Signed-out readers:** on-device history, plus consented logging.
+- **The A/B test:** a 10% chronological holdout.
+- **Order of work:** logging, then v2, then FINDING.
+
+| Finding | Now |
+|---|---|
+| R1 personalisation reaches almost no one | Ranker v2 ranks For You, Top and topics for every reader (`GET /v1/discover`). Signed-out readers are ranked from their device's last 30 reads, with consent |
+| R2 half the beta on chronology | A 10% holdout (`EXPERIMENT_SPLIT`) |
+| R3 "newest 200" | A time window (36 hours; 7 days for a topic), at most 40 per source, plus the 150 articles nearest the reader's profile and new reports on followed stories |
+| R4 learns nothing from reading | A profile vector from opens, shares and saves, with "not interested" subtracted; topic and source lifts; follows of sources and stories count |
+| R5 no fatigue | Shown-and-unopened in the last 72 hours demotes a card |
+| R6 Top ranked for one page | Every page of every view is one ranking, cut at the cursor |
+| R7 diversity by label | MMR on vector cosine and same-source; at most 5 per source in any 24; never three in a row |
+| R8 raw clicks | Click-through per view, against a 5% base rate |
+| R9, R10 topics, language detection | Not done. Recorded for a later ingest slice |
+| (new) second language drowned | A language share: at most 70% of any 24 cards for two languages |
+| D1 negatives not seen | `impression_views`: seen means at least half on screen for a second |
+| D2 positions don't join | Feed-wide positions, plus the drawn position and slot |
+| D3 propensity 1.0 | Logged pages are sampled step by step and log each placement's probability |
+| D4 one surface logs | Top and topic log (the new `top` surface). Signed-out and non-invited readers' clicks are recorded |
+| D5 Aquila half-logged | Aquila's clicks and page views are reported |
+| D6 only clicks | Saves and shares feed the profile |
+| D7 CTR by locale | Clicks carry the interface locale; CTR filters on the impression's locale |
+
+FINDING (ADRs 0015 and 0016):
+- **Part A:** reproduced with the original code on Adressa-1week, not MIND-small, because MIND's mirror is gated. See `ml/finding/PORTING-NOTES.md`.
+- **Part B:** the user tower and FINDING's procedure, over the frozen multilingual encoder.
+- **Serving:** offline vectors (`user-vectors`), the `finding_v1` policy (not in the split), and the replay against logged pages (`export-behaviours` and `jnfinding.replay`).
+- **Numbers:** in `ml/finding/RESULTS.md`.
