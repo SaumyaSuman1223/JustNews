@@ -10,6 +10,7 @@ import type { Article } from "@/lib/api";
 import type { DiscoverItem } from "@/lib/discoverView";
 import { formatRelativeTime, languageName, locales, t, tPlural, type LocaleCode } from "@/lib/i18n";
 import { formatRankReason } from "@/lib/rankReason";
+import { reportClick as sendClick, useViewReport } from "@/lib/track";
 import { useHydrated } from "@/lib/useHydrated";
 
 export type StoryVariant = "lead" | "card" | "wide";
@@ -18,8 +19,10 @@ export interface StoryCardProps {
   item: DiscoverItem;
   variant: StoryVariant;
   locale: LocaleCode;
-  position: number;
-  surface: "feed" | "topic";
+  /** Where the card is drawn, in the layout's order - for view reports. The
+   * position a click reports is the one served, on `item`. */
+  renderedPosition: number;
+  surface: "feed" | "top" | "topic";
   signedIn: boolean;
   canPersonalise: boolean;
   saved: boolean;
@@ -44,7 +47,7 @@ export function StoryCard({
   item,
   variant,
   locale,
-  position,
+  renderedPosition,
   surface,
   signedIn,
   canPersonalise,
@@ -61,19 +64,24 @@ export function StoryCard({
   const direct = openAtPublisher || opensAtPublisher(article);
   const href = direct ? article.url : `/${locale}/a/${article.id}`;
 
+  const cardRef = useRef<HTMLElement>(null);
+  // Seen, not merely served: only a card that was on screen counts as passed
+  // over (ADR 0015). Nothing to report for a card no impression was logged for.
+  useViewReport(
+    cardRef,
+    item.impressionId !== null
+      ? { impressionId: item.impressionId, renderedPosition, slot: variant }
+      : null,
+  );
+
   function reportClick() {
-    // Fire-and-forget, never delaying the navigation. Anonymous reads are a
-    // no-op server-side.
-    void fetch("/api/click", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        articleId: article.id,
-        surface,
-        position,
-        impressionId: item.impressionId ?? undefined,
-      }),
-      keepalive: true,
+    // Never delaying the navigation; dropped server-side without consent.
+    sendClick({
+      articleId: article.id,
+      surface,
+      position: item.position,
+      impressionId: item.impressionId ?? undefined,
+      locale,
     });
   }
 
@@ -101,7 +109,7 @@ export function StoryCard({
         : "(max-width: 40rem) 100vw, 24rem";
 
   return (
-    <article className={`story story--${variant}`}>
+    <article className={`story story--${variant}`} ref={cardRef}>
       {article.image_url && !imageFailed && (
         <div className="story__media">
           <Image
@@ -403,7 +411,7 @@ function MoreMenu({
 }: {
   locale: LocaleCode;
   article: Article;
-  surface: "feed" | "topic";
+  surface: "feed" | "top" | "topic";
   canPersonalise: boolean;
   onHidden: () => void;
 }) {
@@ -527,7 +535,7 @@ function UndoHide({
 }: {
   locale: LocaleCode;
   articleId: number;
-  surface: "feed" | "topic";
+  surface: "feed" | "top" | "topic";
   onRestored: () => void;
 }) {
   async function undo() {

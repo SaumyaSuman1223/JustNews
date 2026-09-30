@@ -73,7 +73,7 @@ export function StoryGrid({
               item={item}
               variant={block.variant}
               locale={locale}
-              position={firstPosition + position}
+              renderedPosition={firstPosition + position}
               surface={surface}
               signedIn={signedIn}
               canPersonalise={canPersonalise}

@@ -3,6 +3,7 @@
 import { OutletIcon, originOf } from "@/components/discover/OutletIcon";
 import type { Article } from "@/lib/api";
 import { formatRelativeTime, t, tPlural, type LocaleCode } from "@/lib/i18n";
+import { reportClick as sendClick } from "@/lib/track";
 
 export interface CoverageColumn {
   language: string;
@@ -34,13 +35,8 @@ export function StoryCoverage({
   let position = 0;
 
   function reportClick(article: Article, at: number) {
-    // Fire-and-forget; anonymous reads are a no-op server-side.
-    void fetch("/api/click", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ articleId: article.id, surface: "topic", position: at }),
-      keepalive: true,
-    });
+    // Also how a signed-out reader's device remembers the read (ADR 0015).
+    sendClick({ articleId: article.id, surface: "topic", position: at, locale });
   }
 
   return (

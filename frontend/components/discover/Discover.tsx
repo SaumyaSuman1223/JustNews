@@ -244,7 +244,8 @@ export function Discover({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, nextCursor, load]);
 
-  const surface = view.kind === "topic" ? "topic" : "feed";
+  // The impression surface each view logs under (the API's surface_for).
+  const surface = view.kind === "topic" ? "topic" : view.kind === "top" ? "top" : "feed";
   const blocks = useMemo(() => arrange(entry?.items ?? []), [entry?.items]);
   const feedClass = switched ? "discover__feed discover__feed--enter" : "discover__feed";
 
@@ -257,7 +258,7 @@ export function Discover({
             item={item}
             variant={block.variant}
             locale={locale}
-            position={position}
+            renderedPosition={position}
             surface={surface}
             signedIn={signedIn}
             canPersonalise={canPersonalise}
