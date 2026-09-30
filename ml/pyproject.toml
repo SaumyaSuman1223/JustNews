@@ -1,0 +1,43 @@
+[project]
+name = "justnews-ml"
+version = "0.1.0"
+description = "FINDING (Yu et al., CIKM '23) for JustNews: the reproduction and the frozen-encoder user tower. Offline only - apps/ never imports this."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "torch>=2.5",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+    "scipy>=1.14",
+    "nltk>=3.9",
+    "tqdm>=4.66",
+    "tensorboard>=2.18",
+    "sentence-transformers>=3.3",
+    "onnx>=1.17",
+    "onnxruntime>=1.20",
+    "onnxscript>=0.1",
+    "psycopg[binary]>=3.2",
+    "pytest>=8.3",
+    # The original FINDING code imports these as it stands (Part A runs it
+    # unmodified wherever it can).
+    "coloredlogs>=15.0",
+    "matplotlib>=3.9",
+    "swifter>=1.4",
+    "phe>=1.5",
+]
+
+[tool.uv]
+package = false
+
+# CUDA 12.4 wheels; the driver here reports CUDA 13.0, which runs them.
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["finding"]

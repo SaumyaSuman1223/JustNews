@@ -1,0 +1,63 @@
+
+--- a/fednewsrec/dataset.py
++++ b/fednewsrec/dataset.py
+@@ -252,7 +252,10 @@
+                            split_count):
+         behaviors = pd.read_table(behaviors_path,
+                                   usecols=args.dataset_attributes['behaviors'])
+-        behaviors = np.array_split(behaviors, split_count)[split_index]
++        # PORTING: np.array_split on a DataFrame returns bare arrays with
++        # current pandas/NumPy; the same positional split, kept a DataFrame.
++        behaviors = behaviors.iloc[np.array_split(np.arange(len(behaviors)),
++                                                  split_count)[split_index]]
+ 
+         columns = list(behaviors.columns)
+         for x in ['positive_candidates', 'negative_candidates']:
+
+--- a/fednewsrec/model/general/trainer/federated_group.py
++++ b/fednewsrec/model/general/trainer/federated_group.py
+@@ -26,7 +26,10 @@
+         self.num_clusters = num_clusters
+         if len(method) == 1:
+             if method[0] == 'kmeans':
+-                self.clusterer = KMeans(n_clusters=num_clusters)
++                # PORTING: scikit-learn 1.4 changed the default n_init from
++                # 10 to 'auto' (a single run for k-means++); 10 is what this
++                # code ran with when the paper's numbers were produced.
++                self.clusterer = KMeans(n_clusters=num_clusters, n_init=10)
+             elif method[0] == 'dbscan':
+                 # TODO the parameters for DBSCAN
+                 # TODO -1 (noise) just use the global model?
+
+--- a/fednewsrec/parameters.py
++++ b/fednewsrec/parameters.py
+@@ -1,6 +1,15 @@
+ import argparse
+ 
+-from distutils.util import strtobool
++
++
++# PORTING: distutils was removed in Python 3.12; this is its strtobool.
++def strtobool(value):
++    value = value.lower()
++    if value in ('y', 'yes', 't', 'true', 'on', '1'):
++        return 1
++    if value in ('n', 'no', 'f', 'false', 'off', '0'):
++        return 0
++    raise ValueError(f'invalid truth value {value!r}')
+ 
+ 
+ def str2bool(x):
+
+--- a/fednewsrec/utils.py
++++ b/fednewsrec/utils.py
+@@ -204,7 +204,8 @@
+     def __init__(self, patience=5):
+         self.patience = patience
+         self.counter = 0
+-        self.best_loss = np.Inf
++        # PORTING: np.Inf was removed in NumPy 2.0.
++        self.best_loss = np.inf
+ 
+     def __call__(self, val_loss):
+         """
