@@ -7,6 +7,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from httpx import AsyncClient
 from justnews_testing.auth import make_access_token
 from justnews_testing.beta import make_beta_headers
@@ -257,3 +258,47 @@ class TestFeedV2:
         rows = (await session.execute(select(Impression))).scalars().all()
         assert sorted(row.position for row in rows) == list(range(24))
         assert {row.ranking_policy for row in rows} == {HEURISTIC_V2_POLICY}
+
+
+class TestFindingPolicy:
+    async def test_ranks_by_the_stored_user_vector(
+        self, client: AsyncClient, session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """No reading history at all: the tower's vector alone - pointing
+        at cricket - puts the cricket story first."""
+        from justnews_api.services import feed
+        from justnews_core.embedding import HashingEmbedder, embed_article_text
+        from justnews_core.models import UserVector
+
+        monkeypatch.setattr(feed, "EXPERIMENT_SPLIT", ((feed.FINDING_POLICY, 100),))
+        source = await make_source(session)
+        await make_article(session, source, title="Cricket test match India draw", minutes_ago=60)
+        other = await make_source(session, slug="other")
+        for index in range(4):
+            await make_article(
+                session, other, title=f"Parliament budget vote {index}", minutes_ago=5
+            )
+        await session.commit()
+
+        user_id = find_user_id_for_policy(feed.FINDING_POLICY)
+        headers = {**(await make_beta_headers(session, user_id=user_id)), **CONSENTED}
+        direction = embed_article_text(HashingEmbedder(), "Cricket test match India", None)
+        session.add(
+            UserVector(
+                user_id=uuid.UUID(user_id),
+                model_version="test",
+                group_id=0,
+                vector=[3.0 * x for x in direction],  # not unit length, as Wᵀu is not
+                history_count=5,
+            )
+        )
+        await session.commit()
+
+        body = (await client.get("/v1/feed", headers=headers)).json()
+        assert body["items"][0]["article"]["title"] == "Cricket test match India draw"
+        assert body["items"][0]["reason"]["kind"] == "similar"
+        await set_current_user(session, user_id)
+        policies = {
+            row.ranking_policy for row in (await session.execute(select(Impression))).scalars()
+        }
+        assert policies == {feed.FINDING_POLICY}

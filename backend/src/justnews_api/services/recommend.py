@@ -108,6 +108,9 @@ class RankRequest:
     #: Sample the order (and so log real propensities). Only worth it when
     #: the page is logged; otherwise the argmax, which is cacheable.
     stochastic: bool = False
+    #: A profile computed elsewhere - the FINDING user tower's vector for
+    #: `finding_v1` (ADR 0016) - in place of the mean of what was read.
+    profile_override: scoring.Vector | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -301,7 +304,11 @@ async def _reader(session: AsyncSession, request: RankRequest, cursor: FeedCurso
     negative_vectors = [
         vector for a in negatives if (vector := vectors.get(a, (0, None))[1]) is not None
     ]
-    profile = scoring.profile_vector(positive_vectors, negative_vectors)
+    profile = (
+        _unit(request.profile_override)
+        if request.profile_override is not None
+        else scoring.profile_vector(positive_vectors, negative_vectors)
+    )
 
     topics = await ranking_repo.topic_ids_by_article(session, [a for a, _w in positives])
     total = sum(w for _a, w in positives)
@@ -399,6 +406,14 @@ async def _candidates(
         )
         for row in ordered
     ]
+
+
+def _unit(vector: scoring.Vector) -> scoring.Vector | None:
+    norm = float(np.linalg.norm(vector))
+    if norm == 0.0:
+        return None
+    unit: scoring.Vector = (vector / norm).astype(np.float32)
+    return unit
 
 
 def _with_popularity(signals: Signals, counts: dict[int, tuple[int, int]]) -> Signals:

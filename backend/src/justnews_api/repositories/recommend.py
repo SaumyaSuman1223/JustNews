@@ -37,6 +37,7 @@ from justnews_core.models import (
     UserSave,
     UserSourceFollow,
     UserStoryFollow,
+    UserVector,
 )
 
 
@@ -384,3 +385,18 @@ async def views_and_clicks(
     seen = {row[0]: int(row[1]) for row in views.all()}
     opened = {row[0]: int(row[1]) for row in clicks.all()}
     return {i: (seen.get(i, 0), opened.get(i, 0)) for i in set(seen) | set(opened)}
+
+
+async def user_vector(
+    session: AsyncSession, user_id: UUID
+) -> tuple[npt.NDArray[np.float32], str] | None:
+    """The reader's FINDING vector and the model version that wrote it."""
+    row = (
+        await session.execute(
+            select(UserVector.vector, UserVector.model_version).where(UserVector.user_id == user_id)
+        )
+    ).first()
+    if row is None:
+        return None
+    vector = _as_array(row[0])
+    return (vector, row[1]) if vector is not None else None

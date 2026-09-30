@@ -35,6 +35,7 @@ from justnews_api.repositories import flags as flags_repo
 from justnews_api.repositories import follows as follows_repo
 from justnews_api.repositories import interactions as interactions_repo
 from justnews_api.repositories import ranking as ranking_repo
+from justnews_api.repositories import recommend as recommend_repo
 from justnews_api.repositories import users as users_repo
 from justnews_api.repositories.interactions import ImpressionToLog
 from justnews_api.services import exploration_deck, ranking, recommend
@@ -66,6 +67,9 @@ HEURISTIC_POLICY = "heuristic_v1"
 # Ranker v2 (ADR 0015): services/recommend.py. v1 stays registered, so a
 # rollback is one line in EXPERIMENT_SPLIT, not a revert.
 HEURISTIC_V2_POLICY = recommend.POLICY
+# FINDING's user tower as the reader's profile (ADR 0016). Registered, not in
+# the split: it serves nobody until it beats v2 on the offline replay.
+FINDING_POLICY = "finding_v1"
 CHRONOLOGICAL_POLICY = "chronological"
 
 # The permanent exploration slice mixed into the heuristic policy's own
@@ -207,9 +211,11 @@ async def get_feed_page(
 
     excluded = await interactions_repo.excluded_article_ids(session, user_id)
     policy = assign_policy(user_id)
-    if policy in (HEURISTIC_POLICY, HEURISTIC_V2_POLICY) and not await flags_repo.is_enabled(
-        session, HEURISTIC_RANKER_FLAG
-    ):
+    if policy in (
+        HEURISTIC_POLICY,
+        HEURISTIC_V2_POLICY,
+        FINDING_POLICY,
+    ) and not await flags_repo.is_enabled(session, HEURISTIC_RANKER_FLAG):
         # The bucketing itself is untouched - a reader stays counted in their
         # assigned experiment arm - but what actually gets served, and what
         # gets logged as having served it, falls back to the control. That is
@@ -461,6 +467,35 @@ async def _get_v2_page(session: AsyncSession, request: PolicyRequest) -> _Unlogg
     )
 
 
+async def _get_finding_page(session: AsyncSession, request: PolicyRequest) -> _UnloggedPage:
+    """Ranker v2 with the reader's profile from the FINDING user tower -
+    the vector `justnews-ingest user-vectors` wrote offline, ranked by a dot
+    product (ADR 0004). A reader with no vector yet (too few reads, or not
+    computed since they joined) is ranked by v2's own profile - logged
+    under this policy all the same, since this is the policy that served."""
+    stored = await recommend_repo.user_vector(session, request.user_id)
+    page = await recommend.rank(
+        session,
+        recommend.RankRequest(
+            view="for_you",
+            languages=request.languages or [request.locale],
+            user_id=request.user_id,
+            session_id=request.session_id,
+            cursor=request.cursor,
+            page_size=request.page_size,
+            stochastic=request.logged,
+            profile_override=stored[0] if stored is not None else None,
+        ),
+    )
+    return _UnloggedPage(
+        articles=[item.article for item in page.items],
+        next_cursor=page.next_cursor,
+        propensities=[item.propensity for item in page.items],
+        reasons=[item.reason for item in page.items],
+        positions=[item.position for item in page.items],
+    )
+
+
 # --- the ranking registry -------------------------------------------------
 #
 # The seam this whole module is shaped around. Adding a ranker - Stage 6's
@@ -474,6 +509,7 @@ async def _get_v2_page(session: AsyncSession, request: PolicyRequest) -> _Unlogg
 POLICIES: dict[str, RankingPolicy] = {
     HEURISTIC_POLICY: _get_heuristic_page,
     HEURISTIC_V2_POLICY: _get_v2_page,
+    FINDING_POLICY: _get_finding_page,
     CHRONOLOGICAL_POLICY: _get_chronological_page,
 }
 
