@@ -285,6 +285,17 @@ class Sampling:
 DETERMINISTIC = Sampling(temperature=0.0, epsilon=0.0)
 
 
+def language_share(reading: int) -> float | None:
+    """The most of any window one language may take, for a reader of
+    `reading` languages - None for one. A constant penalty on a second
+    language does not make a mix when the first has stories to spare: at
+    0.85 an English and Hindi reader's Top was 47 English of 50. A share
+    guarantees the languages they chose each get a real part of the page."""
+    if reading < 2:
+        return None
+    return 0.7 if reading == 2 else 0.6
+
+
 @dataclass(frozen=True, slots=True)
 class Placement:
     #: Into the candidate list given to `arrange`.
@@ -307,6 +318,8 @@ def arrange(
     rng: np.random.Generator | None,
     explorable: npt.NDArray[np.bool_] | None = None,
     exploration_every: int | None = None,
+    languages: Sequence[str] | None = None,
+    max_language_share: float | None = None,
 ) -> list[Placement]:
     """The served order: greedy MMR - relevance traded against redundancy
     with what is already placed - sampled step by step when `rng` is given.
@@ -321,18 +334,34 @@ def arrange(
     fixed position in every run of that many, so exploration is spread
     through the feed rather than parked at its end, and its propensity is
     exactly 1 / how many were eligible.
+
+    With `max_language_share`, no one of `languages` (each candidate's) takes
+    more than that share of any `source_window` in a row. The rules relax in
+    order - the language share first, then the source rule - only when
+    nothing else is left.
     """
     size = len(source_ids)
     if size == 0 or count <= 0:
         return []
     sources = np.asarray(source_ids)
+    tongues = np.asarray(languages) if languages is not None else None
+    language_cap = (
+        math.ceil(max_language_share * sampling.source_window)
+        if max_language_share is not None and tongues is not None
+        else None
+    )
     remaining = np.ones(size, dtype=bool)
     redundancy = np.zeros(size, dtype=np.float64)
     placed: list[Placement] = []
     stochastic = rng is not None and sampling.temperature > 0
 
     for position in range(min(count, size)):
-        eligible = remaining & _source_allows(placed, sources, sampling)
+        by_source = remaining & _source_allows(placed, sources, sampling)
+        eligible = by_source
+        if language_cap is not None and tongues is not None:
+            eligible = by_source & _language_allows(placed, tongues, language_cap, sampling)
+            if not eligible.any():
+                eligible = by_source
         if not eligible.any():
             eligible = remaining.copy()
 
@@ -381,4 +410,16 @@ def _source_allows(
             allowed &= sources != source
     if len(placed) >= 2 and sources[placed[-1].index] == sources[placed[-2].index]:
         allowed &= sources != sources[placed[-1].index]
+    return allowed
+
+
+def _language_allows(
+    placed: list[Placement], languages: npt.NDArray[np.str_], cap: int, sampling: Sampling
+) -> npt.NDArray[np.bool_]:
+    """Which candidates the language share still allows at the next position."""
+    allowed = np.ones(len(languages), dtype=bool)
+    window = [languages[p.index] for p in placed[-(sampling.source_window - 1) :]]
+    for language in set(window):
+        if window.count(language) >= cap:
+            allowed &= languages != language
     return allowed

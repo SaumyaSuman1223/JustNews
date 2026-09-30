@@ -226,6 +226,44 @@ class TestArrange:
         assert exploring[0][1].propensity == pytest.approx(1 / (10 - before))
 
 
+class TestLanguageShare:
+    def test_one_language_has_no_share(self) -> None:
+        assert scoring.language_share(1) is None
+
+    def test_a_second_language_gets_a_real_part_of_the_page(self) -> None:
+        # English is more relevant everywhere and there is plenty of it.
+        size = 60
+        languages = ["en"] * 40 + ["hi"] * 20
+        placed = scoring.arrange(
+            np.array([1.0] * 40 + [0.5] * 20),
+            np.zeros((size, 8), dtype=np.float32),
+            list(range(size)),
+            count=24,
+            mmr_lambda=1.0,
+            sampling=scoring.DETERMINISTIC,
+            rng=None,
+            languages=languages,
+            max_language_share=scoring.language_share(2),
+        )
+        served = [languages[p.index] for p in placed]
+        assert served.count("en") == 17
+        assert served.count("hi") == 7
+
+    def test_relaxes_when_only_one_language_is_left(self) -> None:
+        placed = scoring.arrange(
+            np.linspace(1.0, 0.5, 10),
+            np.zeros((10, 8), dtype=np.float32),
+            list(range(10)),
+            count=10,
+            mmr_lambda=1.0,
+            sampling=scoring.DETERMINISTIC,
+            rng=None,
+            languages=["en"] * 10,
+            max_language_share=0.7,
+        )
+        assert len(placed) == 10
+
+
 def test_importance_matches_v1s_breadth_and_reach() -> None:
     candidate = _candidate(1, sources=4, languages=3)
     expected = math.log1p(0.5 * 2) + math.log1p(0.35 * 2)

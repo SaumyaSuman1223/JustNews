@@ -218,6 +218,8 @@ async def rank(session: AsyncSession, request: RankRequest) -> RankedPage:
         rng=rng,
         explorable=explorable,
         exploration_every=weights.exploration_every,
+        languages=[c.language for c in pooled],
+        max_language_share=scoring.language_share(len(request.languages)),
     )
     page = list(enumerate(placements))[cursor.offset : wanted]
     has_more = len(placements) > wanted
