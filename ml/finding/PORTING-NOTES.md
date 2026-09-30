@@ -22,6 +22,7 @@ Every change is in `porting.patch` and marked `PORTING` in the code. None change
 | `parameters.py` | `strtobool` defined locally instead of imported from `distutils` | `distutils` was removed in Python 3.12 |
 | `utils.py` | `np.Inf` becomes `np.inf` | `np.Inf` was removed in NumPy 2.0 |
 | `dataset.py` | The evaluation split uses `iloc` over `np.array_split` of the row indexes | `np.array_split` on a DataFrame now returns plain arrays. The split is the same |
+| `test.py` | The vectors given to the scoring worker processes are CPU copies | CUDA tensors reach spawned processes through CUDA IPC, which WSL2 doesn't support. The workers died at start ("invalid resource handle") and evaluation waited on them forever, with no error shown, because the code sends worker output to `/dev/null`. The dot products are the same on CPU |
 | `model/general/trainer/federated_group.py` | `KMeans(n_clusters, n_init=10)` | scikit-learn 1.4 changed the default `n_init` from 10 to `'auto'` (a single k-means++ run). Leaving it would quietly change FINDING's clustering |
 
 ## Changes to the environment only

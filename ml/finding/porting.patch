@@ -49,6 +49,21 @@
  
  def str2bool(x):
 
+--- a/fednewsrec/test.py
++++ b/fednewsrec/test.py
+@@ -204,6 +204,11 @@
+     result_queue = SimpleQueue()
+ 
+     scoring_workers = []
++    # PORTING: CUDA tensors reach spawned workers through CUDA IPC, which
++    # WSL2 does not support ("invalid resource handle") - the workers die
++    # at start and this process waits on them forever. CPU copies give the
++    # same dot products.
++    news_vectors, user_vectors = news_vectors.cpu(), user_vectors.cpu()
+     for i in range(args.num_scoring_workers):
+         worker = Process(target=scoring_worker_fn,
+                          args=(i, task_queue, mode, news_vectors, user_vectors,
+
 --- a/fednewsrec/utils.py
 +++ b/fednewsrec/utils.py
 @@ -204,7 +204,8 @@

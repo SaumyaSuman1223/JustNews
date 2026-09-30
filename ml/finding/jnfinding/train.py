@@ -76,19 +76,25 @@ def _write(name: str, payload: dict[str, object]) -> None:
     sys.stdout.write(json.dumps(payload, indent=2, default=str) + "\n")
 
 
-def centralised(dataset: str, device: torch.device) -> None:
+def _suffix(seed: int) -> str:
+    """Seed 0 keeps the unsuffixed names the first runs were written under."""
+    return "" if seed == 0 else f"-seed{seed}"
+
+
+def centralised(dataset: str, device: torch.device, seed: int = 0) -> None:
     news, train, val, test, samples = _load(dataset, device)
     started = time.time()
-    model, best_val, log = trainer.train_centralised(news, train, samples, val, device)
+    model, best_val, log = trainer.train_centralised(news, train, samples, val, device, seed=seed)
     everyone = np.zeros(len(test), dtype=np.int64)
     test_report = trainer.score_impressions({0: model}, everyone, news, test, device)
     CHECKPOINTS.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), CHECKPOINTS / f"tower-centralised-{dataset}.pt")
+    torch.save(model.state_dict(), CHECKPOINTS / f"tower-centralised-{dataset}{_suffix(seed)}.pt")
     _write(
-        f"tower-centralised-{dataset}",
+        f"tower-centralised-{dataset}{_suffix(seed)}",
         {
             "model": "UserTower (frozen MiniLM news vectors), centralised",
             "dataset": dataset,
+            "seed": seed,
             "train_samples": len(samples),
             "val": best_val.as_dict(),
             "test": test_report.as_dict(),
@@ -98,9 +104,11 @@ def centralised(dataset: str, device: torch.device) -> None:
     )
 
 
-def finding(dataset: str, device: torch.device, rounds: int | None) -> None:
+def finding(dataset: str, device: torch.device, rounds: int | None, seed: int = 0) -> None:
     news, train, val, test, samples = _load(dataset, device)
-    config = trainer.Config() if rounds is None else trainer.Config(rounds=rounds)
+    config = (
+        trainer.Config(seed=seed) if rounds is None else trainer.Config(rounds=rounds, seed=seed)
+    )
     model = trainer.Finding(config, news, train, samples, device)
     started = time.time()
     best: tuple[float, dict[str, object], dict[str, float]] | None = None
@@ -131,9 +139,9 @@ def finding(dataset: str, device: torch.device, rounds: int | None) -> None:
     personal = model.evaluate(test)
     shared = model.evaluate(test, personal=False)
     CHECKPOINTS.mkdir(parents=True, exist_ok=True)
-    torch.save(state, CHECKPOINTS / f"tower-finding-{dataset}.pt")
+    torch.save(state, CHECKPOINTS / f"tower-finding-{dataset}{_suffix(seed)}.pt")
     _write(
-        f"tower-finding-{dataset}",
+        f"tower-finding-{dataset}{_suffix(seed)}",
         {
             "model": "UserTower (frozen MiniLM news vectors), FINDING",
             "dataset": dataset,
@@ -153,14 +161,15 @@ def main() -> None:
     parser.add_argument("command", choices=["embed", "centralised", "finding"])
     parser.add_argument("dataset")
     parser.add_argument("--rounds", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if args.command == "embed":
         embed(args.dataset)
     elif args.command == "centralised":
-        centralised(args.dataset, device)
+        centralised(args.dataset, device, args.seed)
     else:
-        finding(args.dataset, device, args.rounds)
+        finding(args.dataset, device, args.rounds, args.seed)
 
 
 if __name__ == "__main__":
