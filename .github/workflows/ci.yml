@@ -18,6 +18,10 @@ env:
 jobs:
   python:
     runs-on: ubuntu-latest
+    # The whole job takes a few minutes; a step that hangs (a slow apt mirror
+    # under `playwright install --with-deps`, a server that never answers)
+    # fails here instead of holding the check open for GitHub's six hours.
+    timeout-minutes: 20
     services:
       postgres:
         # pgvector's own image so `halfvec` exists in CI as it does on
@@ -77,6 +81,10 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    # The whole job takes a few minutes; a step that hangs (a slow apt mirror
+    # under `playwright install --with-deps`, a server that never answers)
+    # fails here instead of holding the check open for GitHub's six hours.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -107,9 +115,11 @@ jobs:
         # reuseExistingServer, unconditional) rather than building the app a
         # second time.
         run: |
-          pnpm --filter @justnews/web start &
+          # Its own process group, so the trap stops `next start` too, not
+          # just the pnpm wrapper that launched it.
+          setsid pnpm --filter @justnews/web start &
           server=$!
-          trap 'kill $server' EXIT
+          trap 'kill -- -$server' EXIT
           timeout 60 bash -c 'until curl -sf http://127.0.0.1:3000/en > /dev/null; do sleep 1; done'
           bash scripts/smoke-web.sh
           pnpm --filter @justnews/web test:e2e
@@ -130,6 +140,10 @@ jobs:
     # without `make generate-client` being run and committed is caught here,
     # not by whatever broke silently in the web app three stages from now.
     runs-on: ubuntu-latest
+    # The whole job takes a few minutes; a step that hangs (a slow apt mirror
+    # under `playwright install --with-deps`, a server that never answers)
+    # fails here instead of holding the check open for GitHub's six hours.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
