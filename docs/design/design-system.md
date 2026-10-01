@@ -1,7 +1,10 @@
 # Design system — direction
 
 **Status:** direction agreed; visual system revised 2026-09-04 to implement
-[`../JustNews_Design_and_Product_Direction.md`](../JustNews_Design_and_Product_Direction.md).
+[`../JustNews_Design_and_Product_Direction.md`](../JustNews_Design_and_Product_Direction.md);
+typography, colour and surfaces replaced 2026-10-01
+([ADR 0017](../decisions/0017-visual-identity-anek-ink-pink.md),
+[audit](../DESIGN_AUDIT_2026-10-01.md)).
 That document is the product and design brief; this one is the system that
 implements it and holds the engineering constraints it does not cover.
 
@@ -34,8 +37,8 @@ and density, never in visual system.
 | **Aquila** | Editorial, immersive, curated | A published newspaper |
 | **My Desk** | Personal, analytical | A research workspace |
 
-Aquila additionally takes a **dark immersive shell** (Deep Charcoal ground,
-paper sheet floating in it). This is a route-level surface treatment, not the
+Aquila additionally takes a **dark immersive shell** (the blue-black night
+ground, a newsprint sheet floating in it). This is a route-level surface treatment, not the
 application's dark mode; both exist, and the token layer must keep them
 separate.
 
@@ -74,40 +77,51 @@ component is specified with its skeleton state and its reserved space.
 
 ## Foundations
 
-**Typography.** *(Latin-script primary; per-script stacks below.)* A serif for
-headlines — it signals journalism and reads better at length — paired with a
-sans for UI, metadata and labels. **Cormorant Garamond** for display,
-**IBM Plex Sans** for interface. One display family only; a second would read
-as indecision. Self-hosted at build time via `next/font` and subsetted, with a
+**Typography.** *(ADR 0017.)* **Anek** (Ek Type) sets headlines and the
+interface: one design drawn for Latin and Devanagari together, so an English
+and a Hindi headline on one page share a voice - the product's one structural
+difference, made visible. Its width axis is the second half of the type
+scale: the lead, page titles and mastheads run at 78% width, every other
+headline at 86%, the interface at 100%, so a label never reads as a headline.
+**Literata** sets reading text - snippets, decks, long-form pages. Both are
+self-hosted via `next/font` and subsetted by script, each with a
 metric-matched fallback so there is no layout shift.
 
-The scale is named by role, not size — Display XL (front-page lead) / Display L
-(section) / Display M (story) / Body L / Body M / Body S / Label / Micro — so a
+The scale is named by role, not size - Display XL (front-page lead) / Display L
+(section) / Display M (story) / Body L / Body M / Body S / Label / Micro - so a
 component picks the step for what it *is* and hierarchy cannot drift into
-ad-hoc font sizes. Headlines are sentence case or editorial title case; ALL
-CAPS is for small letterspaced labels only.
+ad-hoc font sizes. Width (`--stretch-*`), weight (`--weight-*`) and leading
+(`--leading-*`) are tokens too. Headlines are sentence case; ALL CAPS is for
+mastheads and small letterspaced labels only.
 
-**Colour.** Warm paper and ink, not cool grey. Paper `#F5F1E8` as the ground,
-Paper Bright `#FBF9F4` for reading surfaces, Ink `#171717` for text, Warm Gray
-`#D8D2C7` for rules and borders, Muted `#77736C` for metadata, Deep Charcoal
-`#20211F` for Aquila's immersive shell.
+**Colour.** Ink on porcelain. Porcelain `#F3F3F5` as the ground, white for
+reading surfaces and panels, blue-black Ink `#12131C` for text, `#5C5F72` for
+metadata, `#DCDCE3` for rules. Dark is a designed blue-black night
+(`#0E0F15`), not an inversion.
 
-One accent — **Aquila Brass `#A28B68`** — for the active navigation indicator,
-edition markers, focus and small editorial highlights. Never as a large fill.
-No rainbow category colours, no purple AI gradients. Semantic colours (success,
-warning, error, info) stay muted and communicate state only; they are not part
-of the decorative palette.
+One brand colour - **pink**: `#E5196F` (`--mark`) for large and decorative
+use, `#C4105C` (`--accent`) for links, focus and active labels. It is the
+colour both of the product's non-English audiences claim - *rani* pink in
+Hindi, *rosa mexicano* in Spanish - and it is spent only on what is
+JustNews's own: the wordmark's "News", where you are (the sidebar and tab
+marks), a story's reach across languages, the most-read ranks, Aquila's
+section labels. Never as a page ground, never as decoration. Primary buttons
+are ink and turn pink under the pointer. No rainbow category colours, no
+purple AI gradients. Semantic colours (success, warning, error) stay muted
+and communicate state only.
 
-Semantic tokens only (`--surface`, `--surface-raised`, `--text`,
-`--text-muted`, `--border`, `--accent`, `--live`, `--danger`) so light and dark
-are two values of one system rather than two designs. Every pairing verified at
-WCAG AA — 4.5:1 for body, 3:1 for large text and UI boundaries. Warm low-contrast
-palettes fail this easily; verify rather than assume.
+Semantic tokens only (`--ground`, `--surface`, `--text`, `--text-muted`,
+`--border`, `--mark`, `--accent`, `--button`, `--danger`) so light and dark
+are two values of one system rather than two designs. Every pairing is
+verified at WCAG AA - 4.5:1 for body, 3:1 for large text and UI boundaries -
+and the ratio is recorded beside the token.
 
-**Surfaces.** Borders before shadows. `1px solid` warm gray separates; a shadow
-is reserved for something genuinely lifted off the page. Radius 0–4px on
-editorial surfaces, 6–10px on interface controls, larger only on mobile
-touch controls. Not every story is a floating rounded card.
+**Surfaces.** Borders and rules before shadows. A story card is a piece of the
+page, not a box on it: no border, no fill; a card without a picture stands
+under a 3px ink rule where the picture's edge would be. Rail modules sit under
+a 2px ink rule. Editorial surfaces are square; interface controls take a 4px
+corner. Nothing is a pill. The rail's one raised object is Today's Aquila, set
+on Aquila's own night ground.
 
 **Script coverage.** A Latin pairing cannot carry Arabic or Chinese. Each script
 gets a stack chosen for coverage and rendering quality, matched to the Latin faces
@@ -163,7 +177,7 @@ cookie/consent banner that is not a dark pattern.
 Aquila: masthead, volume/date rule, front-page composition (lead, in-focus
 column, the brief, pull quote), section-page templates, page navigation
 (prev/next, `1 / 12` indicator, contents panel, page thumbnails), edition
-selector, and the paper sheet itself — a warm surface with a subtle
+selector, and the paper sheet itself — a cool newsprint surface with a subtle
 stacked-edge treatment. Never a photographic paper texture and never simulated
 page physics; the direction doc rules both out and they read as pastiche.
 
