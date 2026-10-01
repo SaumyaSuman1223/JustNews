@@ -12,51 +12,51 @@
  *    whole layout mirrors under dir="rtl" with no locale-specific CSS.
  */
 
+/* --- the system, in one paragraph (ADR 0017) ---------------------------------
+ *
+ * Ink on porcelain, with one brand pink. The pink is the colour the product's
+ * readers share across their languages - rani pink in Hindi, rosa mexicano
+ * in Spanish - and it is spent on what makes JustNews itself: the wordmark,
+ * the active place in the app, and a story's reach across languages. Never
+ * on decoration, never as a page ground. Headlines are Anek, one design for
+ * Latin and Devanagari, set condensed; reading text is Literata. Rules and
+ * type do the separating; a raised card is rare.
+ */
 :root {
   color-scheme: light dark;
 
   /* --- palette -------------------------------------------------------------
-   *
-   * Warm paper and ink (docs/design/design-system.md). Two values deviate
-   * from the direction document, both because the document's value fails
-   * WCAG AA against Paper and the system's contrast rule outranks its colour
-   * suggestion:
-   *
-   * - Muted text: the document proposes #77736C, which is 4.18:1 on Paper.
-   *   Metadata is small text and needs 4.5:1. #6b675f is 4.99:1.
-   * - Accent: brand brass #a28b68 is 2.90:1 on Paper - fine as a mark, not
-   *   as a link or a focus ring. So the brass splits in two: `--brass` is
-   *   the decorative mark (indicator bars, rules, dots, never text), and
-   *   `--accent` is the interactive one at 4.99:1. Redefining `--accent` as
-   *   the accessible value means every existing link and focus ring in the
-   *   product stays compliant without touching a single component.
-   */
-  --ground: #f5f1e8; /* Paper */
-  --surface: #fbf9f4; /* Paper Bright - cards, reading surfaces */
-  --surface-sub: #efeadf;
-  --text: #171717; /* Ink */
-  --text-mid: #333333; /* Soft Ink */
-  --text-muted: #6b675f;
-  --border: #d8d2c7; /* Warm Gray - decorative rules and hairlines */
-  --border-strong: #8e8778; /* control boundaries, 3.16:1 - inputs, buttons */
-  --brass: #a28b68; /* Aquila Brass, decorative only */
-  --accent: #7a6444; /* interactive brass: links, focus, active state */
-  /* Light enough that --accent still clears 4.5:1 *on it* (4.66:1), which the
-     obvious tint of the brass did not - accent-on-accent-soft is the active
-     locale chip, and it failed axe at 4.42:1. A token pair has to be verified
-     against each other, not each against the page ground. */
-  --accent-soft: #f0e9dc;
-  --danger: #9a3b2e;
+   * Every text pairing is verified at WCAG AA against every ground it sits on
+   * (4.5:1 body, 3:1 large text and control boundaries); the ratios are noted
+   * where a value was chosen to clear one. */
+  --ground: #f3f3f5; /* porcelain - the page */
+  --surface: #ffffff; /* reading surfaces, panels */
+  --surface-sub: #e9e9ee; /* wells, hover, skeletons */
+  --text: #12131c; /* ink, blue-black */
+  --text-mid: #33354a;
+  --text-muted: #5c5f72; /* 5.68:1 on ground, 5.20:1 on surface-sub */
+  --border: #dcdce3; /* decorative rules and hairlines */
+  --border-strong: #84879a; /* control boundaries, 3.2:1 on ground */
+  /* The brand pink at full strength: the wordmark, active indicators, fills
+     behind white bold text (4.47:1 - large and bold only). Never small text. */
+  --mark: #e5196f;
+  /* The interactive pink: links, focus rings, active labels. 5.30:1 on
+     ground, 5.87:1 white-on-it, 4.89:1 on --accent-soft. */
+  --accent: #c4105c;
+  --accent-soft: #fce4ee;
+  /* Primary buttons are ink, not pink: the brand colour marks what is
+     JustNews's own, and "Save" is not that. */
+  --button: #12131c;
+  --button-text: #ffffff;
+  --danger: #b42318;
   /* Market moves: semantic, separate from the accent, and never the only
      signal - every change also carries its sign and an arrow. */
   --gain: #1d7048;
   --loss: #a8322a;
 
   /* Aquila's immersive ground. Fixed in both themes - it is a route-level
-     surface treatment, not the application's dark mode (ADR 0011 / the design
-     system's "one language, three personalities"). Kept here so Chunk 4 reads
-     a token rather than inventing a hex. */
-  --charcoal: #20211f;
+     surface treatment, not the application's dark mode (ADR 0011). */
+  --charcoal: #14151d;
 
   /* 4px base, through to the editorial steps. Named by multiple of 4, so
      --space-16 is unambiguously 64px and a new step cannot collide. */
@@ -74,37 +74,28 @@
   --space-24: 6rem; /* 96 - editorial section separation */
 
   --measure: 68ch;
-  /* Two radii, because the spec asks for two. Editorial surfaces - a card
-     that is really a piece of a page - stay nearly square; interface
-     controls get the softer corner. One token cannot serve both, and the
-     failure mode of trying is `rounded-2xl` on everything. */
-  --radius-editorial: 3px;
+  /* Two radii. Editorial surfaces - a card that is really a piece of a page -
+     are square; interface controls get a small corner. Nothing is a pill. */
+  --radius-editorial: 0px;
   /* The phone tab bar's height, shared with what must sit above it. */
   --tabbar-block-size: 4.25rem;
-  --radius: 6px;
+  --radius: 4px;
 
-  /* Modular scale, named by role rather than by size, in the vocabulary
-     docs/design/design-system.md uses: Display XL / L / M, Body L / M / S,
-     Label, Micro. Naming by role is what keeps hierarchy structural - a
-     component picks the step for what it *is*, so the scale cannot drift
-     into ad-hoc font sizes.
-
-     Display steps are fluid: a fixed 3.4rem front-page headline is a wall on
-     a 360px phone. Cormorant runs small for its point size, so these sit a
-     step above where the same numbers would land in a system serif. */
-  --type-display-xl: clamp(2.2rem, 1.3rem + 4vw, 3.6rem); /* front-page lead */
-  --type-display-l: clamp(1.7rem, 1.2rem + 2.2vw, 2.4rem); /* section headline */
-  --type-display-m: 1.32rem; /* story headline */
+  /* Modular scale, named by role rather than by size: Display XL / L / M,
+     Body L / M / S, Label, Micro. A component picks the step for what it
+     *is*, so hierarchy cannot drift into ad-hoc font sizes. Display steps
+     are fluid: a fixed front-page headline is a wall on a 360px phone. */
+  --type-display-xl: clamp(2.1rem, 1.2rem + 3.6vw, 3.4rem); /* front-page lead */
+  --type-display-l: clamp(1.65rem, 1.15rem + 2vw, 2.3rem); /* section headline */
+  --type-display-m: 1.22rem; /* story headline */
   --type-body-l: 1.06rem; /* standfirst, deck */
   --type-body-m: 0.95rem; /* reading text */
   --type-body-s: 0.875rem; /* supporting text */
-  --type-label: 0.76rem; /* category, source, timestamp */
+  --type-label: 0.78rem; /* category, source, timestamp */
   --type-micro: 0.7rem; /* edition, page number - 11.2px, above the 11px floor */
 
-  /* Previous names, kept as aliases so this chunk changes the system without
-     rewriting every component that references the old step. Components move
-     to the role names as they are rebuilt in later chunks; nothing should
-     reference these in new code. */
+  /* Previous names, kept as aliases so components that reference the old
+     step still resolve. New code names the role. */
   --type-lead: var(--type-display-l);
   --type-section: var(--type-display-m);
   --type-card: var(--type-display-m);
@@ -112,20 +103,28 @@
   --type-body: var(--type-body-m);
   --type-meta: var(--type-label);
 
+  /* Anek's width axis is the second half of the type scale: the bigger and
+     more important the line, the more condensed it runs. The interface sits
+     at normal width so a label never reads as a headline. */
+  --stretch-display: 78%; /* page titles, the lead, mastheads */
+  --stretch-headline: 86%; /* every other headline */
+  --stretch-ui: 100%;
+  --weight-display: 720;
+  --weight-headline: 620;
+
   /* Leading is a token, not a per-component value, because it is exactly what
      has to change per script. See the :lang(hi) override below. */
-  --leading-tight: 1.16;
-  --leading-snug: 1.32;
-  --leading-body: 1.65;
+  --leading-display: 1.02; /* the lead, page titles, mastheads */
+  --leading-tight: 1.08;
+  --leading-snug: 1.22;
+  --leading-body: 1.6;
 
   /* Motion in three tiers, one curve. Decelerating, because every transition
      here reports a state that has already happened. A component picks the
      tier by what it is reporting, not by how it wants to feel:
        micro     - the element itself changed (hover, toggle, bookmark)
        standard  - part of the page changed (nav, panel, menu, filter)
-       editorial - the page changed (Aquila page turn, full-screen overlay)
-     The editorial tier is the only one long enough to be felt, and it exists
-     for exactly one interaction. */
+       editorial - the page changed (Aquila page turn, full-screen overlay) */
   --dur-micro: 160ms;
   --dur-standard: 240ms;
   --dur-editorial: 450ms;
@@ -136,49 +135,51 @@
   --dur: var(--dur-micro);
 
   /* Per-script coverage, not a Latin list with a generic keyword on the end.
-     CSS font fallback resolves per *glyph*, so Latin text takes Cormorant or
-     Plex while Devanagari falls through to the first face that actually
-     contains it - the self-hosted Noto Serif / Plex Devanagari from
-     lib/fonts.ts, then the platform faces: Nirmala UI (Windows),
-     Kohinoor/Devanagari Sangam (Apple), Noto (Android, ChromeOS, Linux).
-     Without those entries a Hindi headline renders in whatever the generic
-     keyword resolves to, which is not a design decision and on some systems
-     is tofu.
-
-     The `--font-*-latin` and `--font-*-deva` variables are injected on <html>
-     by next/font; each already carries its own metric-matched local fallback,
+     CSS font fallback resolves per *glyph*, so Latin takes Anek or Literata
+     and Devanagari falls through to Anek Devanagari (lib/fonts.ts), then the
+     platform faces: Nirmala UI (Windows), Kohinoor/Devanagari Sangam
+     (Apple), Noto (Android, ChromeOS, Linux). Display and interface are one
+     family; width and weight tell them apart. The `--font-*` variables are
+     injected on <html> by next/font, each with its metric-matched fallback,
      which is what makes the swap shift-free. */
   --font-display:
-    var(--font-display-latin), var(--font-display-latin-ext), var(--font-display-deva), ui-serif,
-    Georgia, "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
-  --font-ui:
-    var(--font-ui-latin), var(--font-ui-latin-ext), var(--font-ui-deva), system-ui, -apple-system,
-    "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
+    var(--font-sans-latin), var(--font-sans-latin-ext), var(--font-sans-deva), system-ui,
+    -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN",
+    sans-serif;
+  --font-ui: var(--font-display);
+  --font-text:
+    var(--font-serif-latin), var(--font-serif-latin-ext), var(--font-sans-deva), Georgia,
+    "Noto Serif Devanagari", "Kohinoor Devanagari", "Times New Roman", serif;
+  /* Language pickers only - see `endonym` in lib/fonts.ts. */
+  --font-endonym:
+    var(--font-sans-latin), var(--font-sans-latin-ext), var(--font-endonym-deva), system-ui,
+    "Noto Sans Devanagari", "Nirmala UI", "Devanagari Sangam MN", sans-serif;
 }
 
-/* Designed, not inverted. Warm dark: the ground is a shade below Deep
-   Charcoal so surfaces can sit *at* it and still read as raised, and the text
-   is a warm off-white rather than the cool grey an inversion of Paper would
-   produce. The brass brightens here - the light theme's interactive brass is
-   dark enough to disappear on charcoal, so dark gets the brighter tone for
-   both roles. */
-/* An explicit choice on the Display page (fifth pass F8) wins over the
-   system: `data-theme` on <html>, set server-side from the reader's cookie so
-   the first paint is already right. No attribute means "follow the system". */
+/* Designed, not inverted. A blue-black night: the ground is darkest, raised
+   surfaces step up toward the ink's hue rather than toward grey, and the pink
+   lifts to stay at the same visual weight on the dark ground (6.22:1 for the
+   mark, 7.37:1 for the interactive pink). Primary buttons flip to porcelain.
+
+   An explicit choice on the Display page wins over the system: `data-theme`
+   on <html>, set server-side from the reader's cookie so the first paint is
+   already right. No attribute means "follow the system". */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: #1a1b19;
-    --surface: #20211f;
-    --surface-sub: #2a2b28;
-    --text: #ede9e0;
-    --text-mid: #c6c1b6;
-    --text-muted: #96918a;
-    --border: #34352f;
-    --border-strong: #55564e;
-    --brass: #c9ae83;
-    --accent: #c9ae83;
-    --accent-soft: #33301f;
-    --danger: #e39385;
+    --ground: #0e0f15;
+    --surface: #16171f;
+    --surface-sub: #1f2029;
+    --text: #eeeef3;
+    --text-mid: #c5c6d2;
+    --text-muted: #9a9cad;
+    --border: #2a2b36;
+    --border-strong: #6a6d82;
+    --mark: #ff4f98;
+    --accent: #ff6fa8;
+    --accent-soft: #3a1628;
+    --button: #eeeef3;
+    --button-text: #0e0f15;
+    --danger: #ff8a7a;
     --gain: #5cc48f;
     --loss: #ef8a80;
   }
@@ -190,18 +191,20 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ground: #1a1b19;
-  --surface: #20211f;
-  --surface-sub: #2a2b28;
-  --text: #ede9e0;
-  --text-mid: #c6c1b6;
-  --text-muted: #96918a;
-  --border: #34352f;
-  --border-strong: #55564e;
-  --brass: #c9ae83;
-  --accent: #c9ae83;
-  --accent-soft: #33301f;
-  --danger: #e39385;
+  --ground: #0e0f15;
+  --surface: #16171f;
+  --surface-sub: #1f2029;
+  --text: #eeeef3;
+  --text-mid: #c5c6d2;
+  --text-muted: #9a9cad;
+  --border: #2a2b36;
+  --border-strong: #6a6d82;
+  --mark: #ff4f98;
+  --accent: #ff6fa8;
+  --accent-soft: #3a1628;
+  --button: #eeeef3;
+  --button-text: #0e0f15;
+  --danger: #ff8a7a;
   --gain: #5cc48f;
   --loss: #ef8a80;
 }
@@ -228,17 +231,25 @@ html[dir="rtl"] {
 }
 
 /* Devanagari's ascenders and descenders overshoot Latin's at the same font
-   size, so the Latin default crowds it. Set on :lang rather than a locale
-   class, so a Hindi headline inside an English page gets it too - which the
-   story page and the blindspot rail both produce. */
-:lang(hi) {
+   size, so the Latin default crowds it. Set on the `lang` attribute rather
+   than a locale class, so a Hindi headline inside an English page gets it
+   too - which the story page and the blindspot rail both produce.
+
+   On the attribute, not on `:lang(hi)`: `:lang()` matches every descendant
+   too, so it set 1.75 directly on the link inside each headline and
+   overrode the headline's own leading - a four-line Hindi lead stood a full
+   line apart. Here an element that carries `lang` takes the body leading,
+   and everything inside it inherits whatever its own rule sets. */
+[lang|="hi"] {
   line-height: 1.75;
   /* Overriding the tokens rather than the components: Devanagari's matras sit
-     above the headline's cap height, so the Latin `tight` step clips them.
-     One override here fixes every headline in the product at once, which is
-     the point of leading being a token in the first place. */
-  --leading-tight: 1.4;
-  --leading-snug: 1.5;
+     above the headline's cap height and its conjuncts hang below the
+     baseline, so the Latin steps clip both. One override here fixes every
+     headline in the product at once, which is the point of leading being a
+     token in the first place. */
+  --leading-display: 1.3;
+  --leading-tight: 1.36;
+  --leading-snug: 1.45;
 }
 
 /* Buttons and fields default to the platform's font, not the page's: a
@@ -358,9 +369,10 @@ a {
 
 .wordmark {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: 1.6rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-display);
+  letter-spacing: -0.005em;
   transition: opacity var(--dur) var(--ease);
 }
 
@@ -377,18 +389,11 @@ a {
   padding: 0;
 }
 
-/* Audit §40. Measured, tried, and deliberately not taken: the Devanagari UI
-   webfont downloads on every English and Spanish page - 51KB, a fifth of the
-   page's font weight - to draw the six characters of "हिन्दी" here. Dropping
-   `--font-ui-deva` from the stack removes that download, and the label then
-   renders from whatever Devanagari the operating system has.
-
-   It renders as five empty boxes when the operating system has none, which is
-   not rare: the headless browser these pages were measured in has no
-   Devanagari face at all. "Every script is a first-class script" is not a
-   rule that survives a reader seeing tofu where a language name should be, so
-   the 51KB stays. Recorded here so the next person to spot it does not spend
-   the afternoon rediscovering why. */
+/* Audit §40: the Devanagari webfont used to download on every English and
+   Spanish page to draw the six characters of "हिन्दी" here, and relying on
+   the operating system's Devanagari instead showed tofu where it had none.
+   The endonym stack at the end of this file settles both: those six
+   characters come from a 5.5 KB cut of the same face (lib/fonts.ts). */
 .locale-switcher a {
   font-size: 0.82rem;
   padding: 0.15rem var(--space-2);
@@ -474,10 +479,11 @@ a {
 
 .card__title {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-card);
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-snug);
-  letter-spacing: -0.011em;
+  letter-spacing: -0.005em;
   margin: 0;
   text-wrap: balance;
 }
@@ -510,6 +516,7 @@ a {
   -webkit-line-clamp: 3;
   line-clamp: 3;
   overflow: hidden;
+  font-family: var(--font-text);
 }
 
 .card--lead .card__snippet {
@@ -648,8 +655,9 @@ a.card__source:focus-visible {
 
 .followed-stories a {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-body-l);
-  font-weight: 600;
+  font-weight: var(--weight-headline);
 }
 
 .followed-stories__count {
@@ -681,6 +689,7 @@ a.card__source:focus-visible {
 
 .shortcuts h2 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
   margin: 0 0 var(--space-4);
 }
@@ -720,6 +729,7 @@ a.card__source:focus-visible {
 
 .how__section h2 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
   margin: 0 0 var(--space-2);
 }
@@ -728,6 +738,7 @@ a.card__source:focus-visible {
   margin: 0;
   max-inline-size: var(--measure);
   line-height: 1.7;
+  font-family: var(--font-text);
 }
 
 .how__more {
@@ -759,13 +770,16 @@ a.card__source:focus-visible {
   text-decoration: none;
 }
 
-.not-found__wordmark span {
-  color: var(--accent);
+/* "News" in the brand pink wherever the wordmark is set: the sign-in card,
+   the 404, the sidebar, the phone's top bar, Aquila's reader nav. */
+.wordmark span {
+  color: var(--mark);
 }
 
 .not-found__title {
   margin: 0 0 var(--space-3);
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: var(--type-lead);
   line-height: var(--leading-tight);
 }
@@ -801,6 +815,7 @@ a.card__source:focus-visible {
 
 .prose h1 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: var(--type-lead);
   line-height: var(--leading-tight);
   margin-block: var(--space-6) var(--space-4);
@@ -809,14 +824,16 @@ a.card__source:focus-visible {
 .prose h2 {
   margin-block: var(--space-8) var(--space-3);
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-tight);
 }
 
 .prose p,
 .prose li {
   color: var(--text-mid);
+  font-family: var(--font-text);
 }
 
 .display-form {
@@ -839,7 +856,7 @@ a.card__source:focus-visible {
 }
 
 .display-form__group legend {
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: var(--type-section);
   margin-block-end: var(--space-2);
 }
@@ -1110,6 +1127,7 @@ a.card__source:focus-visible {
   color: var(--text-mid);
   font-size: var(--type-meta);
   font-style: italic;
+  font-family: var(--font-text);
 }
 
 /* §19's `perspective` card: text-only, like `cluster` and `timeline`, since
@@ -1166,6 +1184,7 @@ a.card__source:focus-visible {
   font-size: var(--type-meta);
   font-style: italic;
   margin: 0;
+  font-family: var(--font-text);
 }
 
 .card__actions {
@@ -1260,17 +1279,19 @@ a.card__source:focus-visible {
   border: 1px solid transparent;
 }
 
+/* Ink, turning pink under the pointer: the one moment a primary action
+   borrows the brand colour is the moment it is about to be taken. */
 .button--primary {
-  background: var(--accent);
-  color: var(--ground);
+  background: var(--button);
+  color: var(--button-text);
 }
 
 .button--primary:hover {
-  filter: brightness(1.08);
+  background: var(--accent);
 }
 
 .button--primary:active {
-  filter: brightness(0.96);
+  filter: brightness(0.94);
 }
 
 .button--secondary {
@@ -1299,8 +1320,14 @@ a.card__source:focus-visible {
   transform: scale(0.98);
 }
 
-.button:disabled {
-  opacity: 0.6;
+/* Disabled reads as unavailable, not as a faded brand colour. */
+.button:disabled,
+.button:disabled:hover {
+  background: var(--surface-sub);
+  border-color: var(--border);
+  color: var(--text-muted);
+  filter: none;
+  transform: none;
   cursor: default;
 }
 
@@ -1384,9 +1411,10 @@ a.card__source:focus-visible {
 
 .page-header h1 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: var(--type-lead);
   line-height: var(--leading-tight);
-  letter-spacing: -0.022em;
+  letter-spacing: -0.005em;
   margin: 0 0 var(--space-2);
   text-wrap: balance;
 }
@@ -1444,8 +1472,9 @@ a.card__source:focus-visible {
 
 .auth-card__header h1 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   margin: 0 0 var(--space-2);
 }
 
@@ -1581,7 +1610,7 @@ a.card__source:focus-visible {
 }
 
 .tabbar__link[aria-current="page"] .tabbar__icon {
-  color: var(--brass);
+  color: var(--mark);
 }
 
 /* 56.25rem (900px): the sidebar replaces the tab bar. */
@@ -1691,7 +1720,7 @@ a.card__source:focus-visible {
   font-size: 0.85rem;
   padding: 0.4rem var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius);
   color: var(--text-mid);
   background: var(--surface);
 }
@@ -1726,7 +1755,7 @@ a.chip:active {
 .topic-chip {
   display: inline-flex;
   align-items: baseline;
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: 1.05rem;
   padding-block: var(--space-1);
   border: none;
@@ -1786,9 +1815,10 @@ a.chip:active {
 
 .article-header h1 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: var(--type-lead);
   line-height: var(--leading-tight);
-  letter-spacing: -0.022em;
+  letter-spacing: -0.005em;
   margin: 0 0 var(--space-3);
   text-wrap: balance;
 }
@@ -1805,6 +1835,7 @@ a.chip:active {
   color: var(--text-mid);
   line-height: var(--leading-body);
   max-width: var(--measure);
+  font-family: var(--font-text);
 }
 
 .article-media {
@@ -1842,6 +1873,7 @@ a.chip:active {
 
 .related-heading {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
   margin-block: var(--space-8) var(--space-4);
 }
@@ -1856,6 +1888,7 @@ a.chip:active {
   color: var(--text-muted);
   font-size: var(--type-body-s);
   font-style: italic;
+  font-family: var(--font-text);
 }
 
 /* Reserved for something being wrong - it carries the danger rule. Anything
@@ -1955,6 +1988,7 @@ a.chip:active {
 
 .empty__title {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
   line-height: var(--leading-snug);
   color: var(--text);
@@ -2016,8 +2050,9 @@ a.chip:active {
 
 .admin-header .wordmark {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: var(--weight-display);
 }
 
 .admin-nav {
@@ -2088,7 +2123,7 @@ a.chip:active {
 .pill {
   display: inline-block;
   padding: 0.1rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius);
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2150,7 +2185,7 @@ a.chip:active {
 .chip__count {
   margin-inline-start: var(--space-2);
   padding-inline: 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: var(--surface-sub);
   color: var(--text-mid);
   font-size: 0.78rem;
@@ -2314,7 +2349,7 @@ a.chip:active {
   inset-inline: 0;
   z-index: 45;
   background: var(--surface);
-  border-block-start: 3px solid var(--accent);
+  border-block-start: 3px solid var(--mark);
   padding: var(--space-4);
 }
 
@@ -2455,12 +2490,12 @@ a.card__source,
      leaving that at the light value put #ede9e0 text on a #fbf9f4 card at
      1.15:1. The paper itself is unaffected: `.aquila__sheet` carries its own
      --paper-* set and never reads --surface. */
-  --surface: #20211f;
-  --surface-sub: #2a2b28;
-  --text: #ede9e0;
-  --text-mid: #c6c1b6;
-  --text-muted: #98938a;
-  --border: #34352f;
+  --surface: #16171f;
+  --surface-sub: #1f2029;
+  --text: #eeeef3;
+  --text-mid: #c5c6d2;
+  --text-muted: #9a9cad;
+  --border: #2a2b36;
   color: var(--text);
 }
 
@@ -2537,20 +2572,19 @@ a.card__source,
      document's. Hardcoding #77736c and #a28b68 straight from the brief is
      what axe caught at 4.48:1 and 3.1:1 on this surface; these are the same
      corrections the root palette already carries, scoped to the sheet. */
-  --paper: #fbf9f4;
-  --paper-ink: #171717;
-  --paper-mid: #333333;
-  --paper-muted: #6b675f;
+  --paper: #f7f7f4;
+  --paper-ink: #12131c;
+  --paper-mid: #33354a;
+  --paper-muted: #5c5f72;
   /* Audit §18's rule colour. The old value is demoted to the hairline, which
      is what it always was: a rule you can barely see is a hairline whatever
      it is called, and a printed page needs both weights. */
-  --paper-rule: #a8a197;
-  --paper-hair: #d8d2c7;
-  --paper-brass: #7a6444;
-  /* Audit §18's primary accent, scoped to the sheet - the application keeps
-     its brass. Measured at 6.6:1 on this paper, so it carries small type
-     (the section labels are 11px) rather than only decoration. */
-  --paper-accent: #a52e2a;
+  --paper-rule: #a3a5b3;
+  --paper-hair: #dcdce3;
+  /* The application's interactive pink, at 5.47:1 on this paper, so it
+     carries small type (the section labels are 11px) rather than only
+     decoration. One brand colour, inside the newspaper and outside it. */
+  --paper-accent: #c4105c;
   background: var(--paper);
   color: var(--paper-ink);
   border-radius: var(--radius-editorial);
@@ -2558,9 +2592,9 @@ a.card__source,
     0 1px 0 rgba(0, 0, 0, 0.28),
     /* Two offset edges, which is what a small stack of pages looks like from
        above. Cheap, and it stops at two - a deeper stack reads as a prop. */
-    6px 6px 0 -1px #f2eee3,
+    6px 6px 0 -1px #ecece8,
     6px 6px 0 0 rgba(0, 0, 0, 0.22),
-    12px 12px 0 -1px #ece7db,
+    12px 12px 0 -1px #e3e3de,
     12px 12px 0 0 rgba(0, 0, 0, 0.16),
     0 18px 40px -24px rgba(0, 0, 0, 0.6);
 }
@@ -2639,17 +2673,19 @@ a.card__source,
 
 .paper__title {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   /* Audit §9 asks for 78-100px, overriding the earlier spec's 70-90px
-     masthead block; the newer brief wins for Aquila specifically. Cormorant
-     Garamond at its heaviest weight, tracked tight - no second display face
-     was added for this, and none should be.
+     masthead block; the newer brief wins for Aquila specifically. Anek at
+     its most condensed and heaviest, the way Hindi and European dailies set
+     a nameplate - no second display face was added for this, and none
+     should be.
 
      Sized in cqi, not vw: the sheet's width is set by the workspace, not by
      the window, so a viewport unit here sizes the type against something the
      paper cannot see. Every fluid size on the paper follows this rule. */
   font-size: clamp(2.2rem, 8.6cqi, 5.4rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-display);
+  letter-spacing: -0.005em;
   text-transform: uppercase;
   line-height: 0.94;
   margin: 0;
@@ -2665,9 +2701,10 @@ a.card__source,
 
 .paper__sectionhead h2 {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   /* Audit §17's major headline, 30-42px. */
   font-size: clamp(1.6rem, 3.6cqi, 2.6rem);
-  font-weight: 600;
+  font-weight: var(--weight-display);
   margin: 0;
 }
 
@@ -2970,8 +3007,9 @@ a.card__source,
     padding-inline-start: var(--space-4);
     border-inline-start: 1px solid var(--paper-hair);
     font-family: var(--font-display);
+    font-stretch: var(--stretch-headline);
     font-size: var(--type-body-s);
-    font-weight: 600;
+    font-weight: var(--weight-headline);
     line-height: 1.25;
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -2994,11 +3032,12 @@ a.card__source,
 
 .paper__focus-headline {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   /* Small headline, 15-20px: it sits in a ~190px rail, so it takes the
      bottom of §17's secondary range rather than the top. */
   font-size: clamp(1.1rem, 1.9cqi, 1.35rem);
-  font-weight: 600;
-  line-height: 1.15;
+  font-weight: var(--weight-headline);
+  line-height: var(--leading-tight);
   margin: 0 0 var(--space-2);
 }
 
@@ -3114,13 +3153,14 @@ a.card__source,
 
 .paper__lead-headline {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   /* Audit §17: 48-64px, line-height 0.90-1.00. A lead headline is the one
      place a display face earns tight leading - three lines at 0.95 read as
      one block rather than three sentences. */
   font-size: clamp(1.9rem, 5.4cqi, 4rem);
-  font-weight: 600;
-  line-height: 0.96;
-  letter-spacing: -0.018em;
+  font-weight: var(--weight-display);
+  line-height: var(--leading-display);
+  letter-spacing: -0.005em;
   margin: 0 0 var(--space-3);
   text-wrap: balance;
 }
@@ -3135,6 +3175,7 @@ a.card__source,
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-family: var(--font-text);
 }
 
 .paper__columns {
@@ -3154,10 +3195,11 @@ a.card__source,
 
 .paper__column-headline {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   /* Audit §17's secondary headline, 20-30px. */
   font-size: clamp(1.15rem, 2.2cqi, 1.7rem);
-  font-weight: 600;
-  line-height: 1.14;
+  font-weight: var(--weight-headline);
+  line-height: var(--leading-tight);
   margin: 0 0 var(--space-1);
 }
 
@@ -3172,6 +3214,7 @@ a.card__source,
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-family: var(--font-text);
 }
 
 .paper__byline {
@@ -3329,7 +3372,7 @@ span.paper__pageref {
 }
 
 .aquila__arrow:hover:not(:disabled) {
-  border-color: var(--brass);
+  border-color: var(--mark);
 }
 
 .aquila__arrow:disabled {
@@ -3363,7 +3406,7 @@ span.paper__pageref {
 }
 
 .aquila__contents-toggle:hover {
-  border-color: var(--brass);
+  border-color: var(--mark);
 }
 
 .aquila__contents {
@@ -3427,7 +3470,7 @@ span.paper__pageref {
   inline-size: 19rem;
   padding: var(--space-6);
   overflow-y: auto;
-  background: #101110;
+  background: #0b0c11;
   border-inline-start: 1px solid var(--border);
   transform: translateX(100%);
   visibility: hidden;
@@ -3454,8 +3497,9 @@ span.paper__pageref {
 
 .reader-utility__heading {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   margin: var(--space-6) 0 var(--space-3);
 }
 
@@ -3497,7 +3541,7 @@ span.paper__pageref {
 
 .reader-utility__pages button[aria-current="true"],
 .reader-utility__editions a[aria-current="true"] {
-  color: var(--brass);
+  color: var(--mark);
 }
 
 .reader-utility__no,
@@ -3634,11 +3678,11 @@ span.paper__pageref {
   inset: 0;
   transform: rotateY(180deg);
   border-radius: var(--radius-editorial);
-  background: linear-gradient(to right, #e6e0d2, #f1ede3 70%);
+  background: linear-gradient(to right, #e2e2dd, #efefeb 70%);
 }
 
 [dir="rtl"] .aquila__leaf-back {
-  background: linear-gradient(to left, #e6e0d2, #f1ede3 70%);
+  background: linear-gradient(to left, #e2e2dd, #efefeb 70%);
 }
 
 /* Shade on the rising face, deepest as it stands on edge, and on the back as
@@ -3649,7 +3693,7 @@ span.paper__pageref {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(to left, rgba(20, 16, 10, 0.34), rgba(20, 16, 10, 0.06) 70%);
+  background: linear-gradient(to left, rgba(12, 13, 28, 0.34), rgba(12, 13, 28, 0.06) 70%);
   opacity: 0;
   animation: aquila-leaf-shade-front var(--dur-turn) cubic-bezier(0.55, 0.05, 0.3, 1) both;
 }
@@ -3691,12 +3735,12 @@ span.paper__pageref {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(to right, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
+  background: linear-gradient(to right, rgba(12, 13, 28, 0.3), rgba(12, 13, 28, 0) 55%);
   animation: aquila-under-shade var(--dur-turn) ease-out both;
 }
 
 [dir="rtl"] .aquila__book[data-turning] > .aquila__sheet::after {
-  background: linear-gradient(to left, rgba(20, 16, 10, 0.3), rgba(20, 16, 10, 0) 55%);
+  background: linear-gradient(to left, rgba(12, 13, 28, 0.3), rgba(12, 13, 28, 0) 55%);
 }
 
 .aquila__book[data-turning="back"] > .aquila__sheet::after {
@@ -3758,20 +3802,20 @@ span.paper__pageref {
      the ground showing through where the paper used to be. */
   .aquila__corner--forward::before {
     inset-inline-end: 0;
-    background: linear-gradient(135deg, #e3dccd 0 50%, var(--charcoal) 50%);
+    background: linear-gradient(135deg, #dededa 0 50%, var(--charcoal) 50%);
   }
 
   .aquila__corner--back::before {
     inset-inline-start: 0;
-    background: linear-gradient(225deg, #e3dccd 0 50%, var(--charcoal) 50%);
+    background: linear-gradient(225deg, #dededa 0 50%, var(--charcoal) 50%);
   }
 
   [dir="rtl"] .aquila__corner--forward::before {
-    background: linear-gradient(225deg, #e3dccd 0 50%, var(--charcoal) 50%);
+    background: linear-gradient(225deg, #dededa 0 50%, var(--charcoal) 50%);
   }
 
   [dir="rtl"] .aquila__corner--back::before {
-    background: linear-gradient(135deg, #e3dccd 0 50%, var(--charcoal) 50%);
+    background: linear-gradient(135deg, #dededa 0 50%, var(--charcoal) 50%);
   }
 
   .aquila__corner:hover::before {
@@ -3841,7 +3885,7 @@ span.paper__pageref {
   block-size: 100%;
   inline-size: 15rem;
   padding: var(--space-6);
-  background: #101110;
+  background: #0b0c11;
   border-inline-end: 1px solid var(--border);
   /* Translated rather than unmounted, so the toggle's aria-controls always
      points at something real. Hidden from assistive tech and from the tab
@@ -3864,13 +3908,14 @@ span.paper__pageref {
 
 .reader-nav__wordmark {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: 1.25rem;
   color: var(--text);
   margin: 0 0 var(--space-6);
 }
 
 .reader-nav__wordmark span {
-  color: var(--brass);
+  color: var(--mark);
 }
 
 .reader-nav__panel ul {
@@ -4041,8 +4086,6 @@ span.paper__pageref {
   text-decoration: underline;
 }
 
-/* The standing label above each of Home's three levels. A rule and a line of
-   small caps, in the application's brass - Aquila's red stays in Aquila. */
 /* A section of a page - "More from BBC News", "Latest reporting",
    "Stories" - set as the rail sets its modules: a heavy rule, then the
    heading in the display face. One style for every list in the product,
@@ -4055,8 +4098,9 @@ span.paper__pageref {
   padding-block-start: var(--space-3);
   border-block-start: 2px solid var(--text);
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: var(--type-section);
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-tight);
   color: var(--text);
 }
@@ -4135,8 +4179,9 @@ span.paper__pageref {
 
 .coverage-row__title {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.12rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-snug);
   text-wrap: pretty;
 }
@@ -4231,6 +4276,7 @@ span.paper__pageref {
   align-items: baseline;
   gap: var(--space-2);
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.05rem;
   color: var(--text);
 }
@@ -4371,8 +4417,9 @@ span.paper__pageref {
 
 .perspectives__heading {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   margin: 0 0 var(--space-1);
 }
 
@@ -4496,7 +4543,7 @@ span.paper__pageref {
   position: fixed;
   inset: 0;
   z-index: 55;
-  background: rgba(10, 10, 9, 0.45);
+  background: rgba(8, 9, 14, 0.45);
   animation: fade-in var(--dur-standard) var(--ease);
 }
 
@@ -4521,9 +4568,10 @@ html[data-drawer-open] {
 
 .sidebar__wordmark {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: 1.45rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: var(--weight-display);
+  letter-spacing: -0.005em;
   color: var(--text);
   text-decoration: none;
   white-space: nowrap;
@@ -4531,7 +4579,7 @@ html[data-drawer-open] {
 
 .sidebar__wordmark-full span,
 .topbar__wordmark span {
-  color: var(--accent);
+  color: var(--mark);
 }
 
 .sidebar__wordmark-mark {
@@ -4546,7 +4594,7 @@ html[data-drawer-open] {
   block-size: 2.25rem;
   flex: none;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -4583,7 +4631,7 @@ html[data-drawer-open] {
   color: var(--text);
   background: var(--ground);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius);
   transition: border-color var(--dur-micro) var(--ease);
 }
 
@@ -4622,11 +4670,12 @@ html[data-drawer-open] {
 }
 
 .sidebar__link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: 0.55rem 0.7rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text-mid);
   font-size: var(--type-body-m);
   font-weight: 500;
@@ -4642,10 +4691,21 @@ html[data-drawer-open] {
   color: var(--text);
 }
 
+/* Where you are: ink type and a pink bar on the reading-start edge, the
+   same mark the Discover tabs use. */
 .sidebar__link[aria-current="page"] {
-  background: var(--accent-soft);
+  background: var(--surface-sub);
   color: var(--text);
   font-weight: 600;
+}
+
+.sidebar__link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.45rem;
+  inset-inline-start: 0;
+  inline-size: 3px;
+  background: var(--mark);
 }
 
 .sidebar__link[aria-current="page"] .sidebar__icon {
@@ -4700,7 +4760,7 @@ html[data-drawer-open] {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 0.55rem 0.7rem;
 }
 
@@ -4782,8 +4842,9 @@ html[data-topbar-hidden] .topbar {
 
 .topbar__wordmark {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
   font-size: 1.3rem;
-  font-weight: 600;
+  font-weight: var(--weight-display);
   color: var(--text);
   text-decoration: none;
 }
@@ -4858,9 +4919,11 @@ html[data-topbar-hidden] .topbar {
 
 .discover__title {
   margin: 0;
-  font-family: var(--font-ui);
-  font-size: var(--type-body-l);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-stretch: var(--stretch-display);
+  font-size: 1.45rem;
+  font-weight: var(--weight-display);
+  line-height: 1;
 }
 
 .discover__tabs {
@@ -4882,7 +4945,7 @@ html[data-topbar-hidden] .topbar {
   text-decoration: none;
   background: none;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--dur-micro) var(--ease);
@@ -4902,9 +4965,8 @@ html[data-topbar-hidden] .topbar {
   position: absolute;
   inset-inline: 0.8rem;
   inset-block-end: calc(var(--space-2) * -1 - 1px);
-  block-size: 2px;
-  border-radius: 2px;
-  background: var(--text);
+  block-size: 3px;
+  background: var(--mark);
 }
 
 .discover__chevron {
@@ -4955,7 +5017,7 @@ html[data-topbar-hidden] .topbar {
 .discover__topic {
   display: block;
   padding: 0.55rem 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text-mid);
   font-size: var(--type-body-s);
   text-decoration: none;
@@ -5076,8 +5138,9 @@ html[data-topbar-hidden] .topbar {
 .story__title {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 500;
-  line-height: 1.16;
+  font-stretch: var(--stretch-headline);
+  font-weight: var(--weight-headline);
+  line-height: var(--leading-snug);
   text-wrap: balance;
 }
 
@@ -5119,8 +5182,11 @@ html[data-topbar-hidden] .topbar {
   font-variant-numeric: tabular-nums;
 }
 
+/* A story's reach across languages is the thing only this product shows,
+   so it is the one line of card metadata in the brand's colour. */
 .story__langs {
-  color: var(--text-mid);
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .story__snippet {
@@ -5133,12 +5199,15 @@ html[data-topbar-hidden] .topbar {
   -webkit-line-clamp: 3;
   line-clamp: 3;
   overflow: hidden;
+  font-family: var(--font-text);
 }
 
+/* Why the ranker placed this card. Mid-ink, not pink: pink on a card means
+   the story's reach across languages, and the two must not be confused. */
 .story__why {
   margin: 0;
   font-size: var(--type-label);
-  color: var(--accent);
+  color: var(--text-mid);
 }
 
 .story__foot {
@@ -5286,12 +5355,14 @@ html[data-topbar-hidden] .topbar {
 }
 
 .story--lead .story__title {
-  font-size: clamp(1.75rem, 1.2rem + 1.7vw, 2.45rem);
-  line-height: 1.1;
+  font-size: clamp(1.9rem, 1.2rem + 2.2vw, 2.9rem);
+  font-stretch: var(--stretch-display);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-display);
 }
 
 .story--lead .story__snippet {
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: var(--type-body-l);
   -webkit-line-clamp: 4;
   line-clamp: 4;
@@ -5329,28 +5400,19 @@ html[data-topbar-hidden] .topbar {
   }
 }
 
-/* A card in a row of three. */
+/* A card in a row of three: a piece of the page, not a box on it. No
+   border, no fill - the picture's edge and the type separate it, and a
+   short card never stretches into an empty white panel beside a tall one. */
 .story--card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-editorial);
-  overflow: hidden;
-  transition:
-    border-color var(--dur-micro) var(--ease),
-    box-shadow var(--dur-standard) var(--ease);
-}
-
-.story--card:hover {
-  border-color: var(--border-strong);
-  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.35);
+  gap: var(--space-3);
 }
 
 .story--card .story__media {
-  border-radius: 0;
+  border-radius: var(--radius-editorial);
 }
 
 .story--card .story__body {
-  padding: var(--space-4);
+  padding: 0;
 }
 
 /* Headlines are never clipped - a snippet can be, a headline cut off
@@ -5358,7 +5420,6 @@ html[data-topbar-hidden] .topbar {
    made. */
 .story--card .story__title {
   font-size: var(--type-card);
-  font-weight: 600;
 }
 
 /* A wide feature: picture beside text. */
@@ -5369,13 +5430,14 @@ html[data-topbar-hidden] .topbar {
 
 .story--wide .story__title {
   font-size: clamp(1.35rem, 1.1rem + 0.9vw, 1.75rem);
-  font-weight: 600;
 }
 
-/* A card with no picture carries its snippet instead, so it is not a
-   headline floating in an empty box beside two illustrated ones. */
+/* A card with no picture carries its snippet instead, under a heavy ink
+   rule standing where the picture's top edge would be - a text item on a
+   printed page, not a headline floating where an image failed to arrive. */
 .story--card:not(:has(.story__media)) .story__body {
-  padding-block-start: var(--space-6);
+  border-block-start: 3px solid var(--text);
+  padding-block-start: var(--space-3);
 }
 
 @media (min-width: 48rem) {
@@ -5557,7 +5619,7 @@ html[data-topbar-hidden] .topbar {
   color: var(--text-mid);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition:
     border-color var(--dur-micro) var(--ease),
@@ -5759,8 +5821,9 @@ html[data-topbar-hidden] .topbar {
 .rail-widget__title {
   margin: 0 0 var(--space-3);
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-tight);
 }
 
@@ -5830,8 +5893,9 @@ html[data-topbar-hidden] .topbar {
 
 .across__headline {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-snug);
   color: var(--text);
   text-decoration: none;
@@ -5846,6 +5910,7 @@ html[data-topbar-hidden] .topbar {
 .across__alt {
   margin: 0;
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1rem;
   line-height: var(--leading-snug);
   color: var(--text-mid);
@@ -5859,7 +5924,7 @@ html[data-topbar-hidden] .topbar {
 }
 
 .across__count {
-  color: var(--text);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -5875,29 +5940,28 @@ html[data-topbar-hidden] .topbar {
   white-space: nowrap;
 }
 
+/* Set on Aquila's own night ground in both themes - a window into the
+   reader, the rail's one dark object - so its colours are fixed rather than
+   inherited, exactly as `.reader`'s are. */
 .aquila-teaser {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
   text-align: center;
-  color: var(--text);
+  color: #eeeef3;
   text-decoration: none;
-  background: var(--surface);
+  background: var(--charcoal);
   border: 1px solid var(--border);
   border-radius: var(--radius-editorial);
-  box-shadow:
-    0 3px 0 -1px var(--surface),
-    0 4px 0 -1px var(--border),
-    0 7px 0 -3px var(--surface),
-    0 8px 0 -3px var(--border);
 }
 
 .aquila-teaser__masthead {
   padding-block-end: var(--space-2);
-  border-block-end: 3px double var(--text);
+  border-block-end: 3px double #eeeef3;
   font-family: var(--font-display);
-  font-size: 1.55rem;
-  font-weight: 700;
+  font-stretch: var(--stretch-display);
+  font-size: 1.7rem;
+  font-weight: var(--weight-display);
   line-height: 1;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -5907,26 +5971,27 @@ html[data-topbar-hidden] .topbar {
   font-size: var(--type-micro);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: #9a9cad;
 }
 
 .aquila-teaser__lead {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-tight);
   text-wrap: balance;
 }
 
 .aquila-teaser__sections {
   font-size: var(--type-label);
-  color: var(--text-muted);
+  color: #9a9cad;
 }
 
 .aquila-teaser__open {
   font-size: var(--type-body-s);
   font-weight: 600;
-  color: var(--accent);
+  color: #ff6fa8;
 }
 
 .aquila-teaser:hover .aquila-teaser__open {
@@ -5954,17 +6019,19 @@ html[data-topbar-hidden] .topbar {
   content: counter(most-read);
   grid-row: span 2;
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  line-height: 1.05;
-  color: var(--brass);
+  font-stretch: var(--stretch-headline);
+  font-size: 1.6rem;
+  font-weight: var(--weight-display);
+  line-height: 1;
+  color: var(--mark);
   font-variant-numeric: lining-nums;
 }
 
 .most-read__title {
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.02rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-snug);
   color: var(--text);
   text-decoration: none;
@@ -6005,8 +6072,9 @@ html[data-topbar-hidden] .topbar {
   margin: 0 0 var(--space-1);
   padding-inline-end: var(--space-8);
   font-family: var(--font-display);
+  font-stretch: var(--stretch-headline);
   font-size: 1.35rem;
-  font-weight: 600;
+  font-weight: var(--weight-headline);
   line-height: var(--leading-tight);
 }
 
@@ -6161,7 +6229,7 @@ html[data-topbar-hidden] .topbar {
   color: var(--text);
   background: var(--ground);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 .weather__results {
@@ -6313,7 +6381,7 @@ html[data-topbar-hidden] .topbar {
   gap: var(--space-3);
   padding: 0.5rem;
   margin-inline: -0.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text);
   text-decoration: none;
 }
@@ -6328,7 +6396,7 @@ html[data-topbar-hidden] .topbar {
   place-items: center;
   inline-size: 2rem;
   block-size: 2rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--surface-sub);
   overflow: hidden;
 }
@@ -6484,31 +6552,26 @@ html[data-topbar-hidden] .topbar {
   letter-spacing: normal;
 }
 
-/* Latin figures inside a Hindi headline come from Cormorant, whose default
-   old-style figures sit small and low beside Devanagari. */
+/* Latin figures inside a Hindi headline should stand at Devanagari's
+   height, never as old-style figures beside it. Anek's are lining by
+   default; this keeps it so whatever face a figure falls back to. */
 :lang(hi) {
   font-variant-numeric: lining-nums;
 }
 
-/* Noto Serif Devanagari at a given weight is far darker than Cormorant at
-   the same number, so a mixed feed read Hindi as bold and English as light.
-   A step lighter puts the two on one colour. */
-:is(
-  .story--card .story__title,
-  .story--wide .story__title,
-  .across__headline,
-  .coverage-row__title,
-  .aquila-teaser__lead,
-  .most-read__title
-):lang(hi) {
-  font-weight: 500;
-}
+/* No weight override for Hindi headlines: Anek Devanagari and Anek Latin
+   are one design, drawn to the same colour at the same weight, so a mixed
+   feed reads as one page without the per-script corrections Noto Serif
+   Devanagari beside Cormorant needed. */
 
-.story--lead .story__title:lang(hi) {
-  font-weight: 400;
-}
-
-/* A page title is set bold (the browser's h1 weight) in Latin. */
-.page-header h1:lang(hi) {
-  font-weight: 500;
+/* Language pickers name each language in its own script. This stack draws
+   "हिन्दी" from a 5.5 KB cut of Anek Devanagari instead of the whole file,
+   which an English page would otherwise download for six characters
+   (lib/fonts.ts `endonym`). Only on elements whose text is a language's
+   name and nothing else. */
+.locale-switcher a,
+.read-in__long [lang],
+.read-in__option [lang],
+.checkbox-grid label:has(input[name="languages"]) {
+  font-family: var(--font-endonym);
 }

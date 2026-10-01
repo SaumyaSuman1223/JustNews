@@ -13,11 +13,11 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/en",
     scope: "/",
     display: "standalone",
-    // Matches the warm-paper token set in globals.css (--ground, --accent) -
-    // an installed app's splash screen and status bar should not be the old
-    // cool green this product no longer uses anywhere else.
-    background_color: "#f5f1e8",
-    theme_color: "#7a6444",
+    // The app icon's own ground (lib/icon.tsx), so the splash screen an OS
+    // builds from the icon and this colour is one object, and the status bar
+    // is the page's porcelain (globals.css --ground).
+    background_color: "#12131c",
+    theme_color: "#f3f3f5",
     icons: [
       { src: "/icon-192", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512", sizes: "512x512", type: "image/png", purpose: "any" },
