@@ -2496,6 +2496,14 @@ a.card__source,
   --text-mid: #c5c6d2;
   --text-muted: #9a9cad;
   --border: #2a2b36;
+  --border-strong: #6a6d82;
+  /* The pinks too: the light theme's are tuned for porcelain, and the
+     wordmark's "News" in the reader nav fell to 4.37:1 on this ground. */
+  --mark: #ff4f98;
+  --accent: #ff6fa8;
+  --accent-soft: #3a1628;
+  --button: #eeeef3;
+  --button-text: #0e0f15;
   color: var(--text);
 }
 
