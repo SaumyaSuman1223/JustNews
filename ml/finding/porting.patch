@@ -1,4 +1,3 @@
-
 --- a/fednewsrec/dataset.py
 +++ b/fednewsrec/dataset.py
 @@ -252,7 +252,10 @@
@@ -48,6 +47,16 @@
  
  
  def str2bool(x):
+@@ -107,6 +116,9 @@
+     parser.add_argument('--logging_level', type=str, default='INFO')
+     parser.add_argument('--show_similarity', type=str2bool, default=True)
+     parser.add_argument('--dry_run', type=str2bool, default=False)
++    # PORTING: train.py reads args.save_gpu_memory, which upstream never defines.
++    # False keeps every group model on the GPU: where they live, not what they compute.
++    parser.add_argument('--save_gpu_memory', type=str2bool, default=False)
+ 
+     parser.add_argument('--mute_fedgroup_evaluation',
+                         type=str2bool,
 
 --- a/fednewsrec/test.py
 +++ b/fednewsrec/test.py
@@ -76,3 +85,4 @@
  
      def __call__(self, val_loss):
          """
+

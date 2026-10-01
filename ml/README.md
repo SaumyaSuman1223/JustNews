@@ -9,6 +9,7 @@ Research code lives here and is **never imported by anything under `apps/`**. Th
 | `finding/PORTING-NOTES.md` | Every change made to run it, and where the data comes from |
 | `finding/jnfinding/` | Part B: the user tower over the frozen encoder, FINDING's training procedure, our metrics, the ONNX export and the offline replay |
 | `finding/results/` | What each run produced |
+| `finding/RESULTS.md` | The runs side by side with the paper's Table 1, and what they say |
 | `tests/` | Metrics against hand calculations; FINDING's mechanisms; export parity; the replay |
 | `data/` | Git-ignored. MIND and Adressa are research-licensed; do not redistribute |
 | `export/` | Exported models (`*.onnx` is git-ignored) |
