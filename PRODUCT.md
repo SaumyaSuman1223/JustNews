@@ -48,9 +48,9 @@ Cross-lingual story clustering in one shared vector space: articles about the sa
 
 ## Brand Commitments
 
-- Name: **JustNews**, wordmark set as "Just" + accent-colored "News" (`.wordmark span`).
+- Name: **JustNews**, wordmark set in Anek condensed as "Just" in ink + "News" in the brand pink (`.wordmark span`, `--mark`). App icon: "JN" on ink, the N pink.
 - Honesty statement (from `CLAUDE.md`, binding on all copy/UI/commits): training will implement FINDING's fine-grained interpolation and dynamic clustering over *simulated* clients replayed from production logs; serving is centralised. Never describe this as a federated production system, anywhere.
-- Visual direction confirmed for this work: **push the current identity further, not replace it** — the serif-headline / near-black-on-off-white / one-accent / ordered-density direction in `docs/design/design-system.md` stays the anti-reference-free baseline. This is refinement, not redesign.
+- Visual direction: **replaced on 2026-10-01 at the owner's request** ("stale, off, not very interesting"). The cream / Cormorant / brass look was the category default. It is now Anek condensed headlines (one design for Latin and Devanagari) with Literata for reading text, ink on porcelain, and one brand pink (rani pink / rosa mexicano) spent only on what is JustNews's own (ADR 0017, `docs/DESIGN_AUDIT_2026-10-01.md`). The non-negotiables in `docs/design/design-system.md` still hold: the headline is the interface, ordered density, AA everywhere, zero CLS.
 
 ## Evidence on Hand
 

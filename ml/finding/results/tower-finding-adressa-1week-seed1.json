@@ -1,0 +1,50 @@
+{
+  "model": "UserTower (frozen MiniLM news vectors), FINDING",
+  "dataset": "adressa-1week",
+  "config": {
+    "groups": 8,
+    "rounds": 12000,
+    "users_per_round": 50,
+    "interpolate_every": 10,
+    "cluster_every": 100,
+    "alpha": 1.0003,
+    "beta": 0.5,
+    "learning_rate": 0.0001,
+    "validate_every": 600,
+    "patience": 3,
+    "seed": 1,
+    "history": 50
+  },
+  "train_samples": 125097,
+  "val": {
+    "AUC": 0.7261522140862555,
+    "MRR": 0.324469045576616,
+    "nDCG@5": 0.3492935993343182,
+    "nDCG@10": 0.41994104919768427,
+    "impressions": 21257.0
+  },
+  "test_group_models": {
+    "AUC": 0.7307422756840544,
+    "MRR": 0.2606349073765334,
+    "nDCG@5": 0.3152683485930035,
+    "nDCG@10": 0.3768297037996017,
+    "impressions": 43599.0
+  },
+  "test_global_model": {
+    "AUC": 0.7299043662207125,
+    "MRR": 0.2590815488098073,
+    "nDCG@5": 0.31335269338334026,
+    "nDCG@10": 0.3746092290897787,
+    "impressions": 43599.0
+  },
+  "minutes": 15.7,
+  "log": [
+    "round 600 loss 0.4097 val {'AUC': 0.7189730609046913, 'MRR': 0.32362240476364845, 'nDCG@5': 0.3482780519837421, 'nDCG@10': 0.41293735208903454, 'impressions': 21257.0}",
+    "round 1200 loss 0.3047 val {'AUC': 0.7178893613676814, 'MRR': 0.3380875023327628, 'nDCG@5': 0.363398326498456, 'nDCG@10': 0.42720410182069213, 'impressions': 21257.0}",
+    "round 1800 loss 0.4522 val {'AUC': 0.7261522140862555, 'MRR': 0.324469045576616, 'nDCG@5': 0.3492935993343182, 'nDCG@10': 0.41994104919768427, 'impressions': 21257.0}",
+    "round 2400 loss 0.3811 val {'AUC': 0.7211315289311773, 'MRR': 0.34129909350267607, 'nDCG@5': 0.3611915783529326, 'nDCG@10': 0.43145488461326836, 'impressions': 21257.0}",
+    "round 3000 loss 0.4013 val {'AUC': 0.7224803565461909, 'MRR': 0.3386484464103887, 'nDCG@5': 0.3612622523816822, 'nDCG@10': 0.42997309202666856, 'impressions': 21257.0}",
+    "round 3600 loss 0.3284 val {'AUC': 0.7048505842123991, 'MRR': 0.32070861611267953, 'nDCG@5': 0.3352466261553443, 'nDCG@10': 0.40627108528972783, 'impressions': 21257.0}",
+    "early stop at round 3600"
+  ]
+}

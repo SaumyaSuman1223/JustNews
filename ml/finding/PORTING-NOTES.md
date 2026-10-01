@@ -20,6 +20,7 @@ Every change is in `porting.patch` and marked `PORTING` in the code. None change
 | File | Change | Why |
 |---|---|---|
 | `parameters.py` | `strtobool` defined locally instead of imported from `distutils` | `distutils` was removed in Python 3.12 |
+| `parameters.py` | `--save_gpu_memory` defined, default `False` | `train.py` reads `args.save_gpu_memory` in FINDING's training loop, but the upstream code never defines it, so FindingNRMS crashed on its first round. `False` keeps every group model on the GPU; it changes where the models live, not what they compute |
 | `utils.py` | `np.Inf` becomes `np.inf` | `np.Inf` was removed in NumPy 2.0 |
 | `dataset.py` | The evaluation split uses `iloc` over `np.array_split` of the row indexes | `np.array_split` on a DataFrame now returns plain arrays. The split is the same |
 | `test.py` | The vectors given to the scoring worker processes are CPU copies | CUDA tensors reach spawned processes through CUDA IPC, which WSL2 doesn't support. The workers died at start ("invalid resource handle") and evaluation waited on them forever, with no error shown, because the code sends worker output to `/dev/null`. The dot products are the same on CPU |
@@ -64,10 +65,10 @@ Every change is in `porting.patch` and marked `PORTING` in the code. None change
   - interpolation every 10 rounds, of parameters and Adam moments;
   - re-clustering every 100 rounds, with a Hungarian relabel and a transfer-matrix remix;
   - validation every 600 rounds, with patience 3 on AUC.
-  - All defaults are the paper's.
+  - All defaults are the reference code's. They match the paper's text except in one place: the paper says it re-clusters every 500 rounds (§5.1.3), and the code's default is 100. Part B uses 100, the value Part A's run actually trains with.
   - The layers for the depth coefficient are the adapter, the self-attention and the additive attention (n = 3).
 - **The metrics** (`jnfinding/metrics.py`) are our own: AUC, MRR and nDCG@5/10 as MIND defines them, tested against hand calculations (`ml/tests/test_metrics.py`).
 
 ## Results
 
-Filled in from `ml/finding/results/*.json` and the original code's logs; see `RESULTS.md`.
+In `RESULTS.md`: the original code's runs and our tower's (three seeds) beside the paper's Table 1, from `results/*.json` and the original code's logs in `results/`.

@@ -1,0 +1,52 @@
+{
+  "model": "NRMS (original FINDING code at be9bb78 + porting.patch)",
+  "dataset": "adressa-1week",
+  "runs": 1,
+  "validation": [
+    {
+      "epoch": 0,
+      "elapsed": "00:07:46",
+      "AUC": 0.6849,
+      "MRR": 0.3601,
+      "nDCG@5": 0.3794,
+      "nDCG@10": 0.4327
+    },
+    {
+      "epoch": 1,
+      "elapsed": "00:15:33",
+      "AUC": 0.6656,
+      "MRR": 0.3511,
+      "nDCG@5": 0.3728,
+      "nDCG@10": 0.4222
+    },
+    {
+      "epoch": 2,
+      "elapsed": "00:23:22",
+      "AUC": 0.6665,
+      "MRR": 0.342,
+      "nDCG@5": 0.3639,
+      "nDCG@10": 0.4161
+    },
+    {
+      "epoch": 3,
+      "elapsed": "00:31:57",
+      "AUC": 0.6493,
+      "MRR": 0.3391,
+      "nDCG@5": 0.3617,
+      "nDCG@10": 0.4068
+    }
+  ],
+  "early_stopped": true,
+  "best_val": {
+    "AUC": 0.6849,
+    "MRR": 0.3601,
+    "nDCG@5": 0.3794,
+    "nDCG@10": 0.4327
+  },
+  "test": {
+    "AUC": 0.6873,
+    "MRR": 0.295,
+    "nDCG@5": 0.3685,
+    "nDCG@10": 0.4102
+  }
+}

@@ -14,12 +14,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Matches globals.css's --ground in each theme (#f5f1e8 light, #1a1b19
-  // dark) - the browser chrome/status bar should read as this product's
-  // own paper or ink, not the old cool green.
+  // Matches globals.css's --ground in each theme (#f3f3f5 light, #0e0f15
+  // dark) - the browser chrome/status bar should read as this product's own
+  // porcelain or night, not a colour the page does not use.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f1e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1b19" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f3f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0f15" },
   ],
 };
 
