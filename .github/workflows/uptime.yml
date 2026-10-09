@@ -25,7 +25,29 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      API_URL: ${{ secrets.STAGING_API_URL }}
+      # A variable, but read from a secret of the same name too: it is not
+      # sensitive, and saving it under the Secrets tab instead of Variables
+      # is an easy slip that left it empty - curl then fails with "No host
+      # part in the URL", which reads like an outage.
+      SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
     steps:
+      - name: Settings are set
+        # Without this, a missing setting fails the first curl that uses it,
+        # indistinguishable at a glance from the service being down.
+        run: |
+          missing=0
+          if [ -z "$API_URL" ]; then
+            echo "::error::STAGING_API_URL is not set: Settings > Secrets and variables > Actions > Secrets"
+            missing=1
+          fi
+          if [ -z "$SITE_URL" ]; then
+            echo "::error::SITE_URL is not set: Settings > Secrets and variables > Actions > Variables"
+            missing=1
+          fi
+          exit $missing
+
       - name: API liveness (/health)
         # No -f: the point is to parse the body and report *why* it failed,
         # not just that curl saw a non-2xx. A non-JSON or connection-level
@@ -39,7 +61,7 @@ jobs:
         # real outage.
         run: |
           curl -sS --max-time 60 --retry 3 --retry-all-errors --retry-delay 10 \
-            "${{ secrets.STAGING_API_URL }}/health" -o response.json || true
+            "${API_URL%/}/health" -o response.json || true
           status=$(jq -r '.status // empty' response.json 2>/dev/null)
           if [ "$status" != "ok" ]; then
             echo "::error::/health did not return status=ok (got: ${status:-<unreadable>})"
@@ -54,7 +76,7 @@ jobs:
         # itself being down.
         run: |
           curl -sS --max-time 60 --retry 3 --retry-all-errors --retry-delay 10 \
-            "${{ secrets.STAGING_API_URL }}/health/ready" -o response.json || true
+            "${API_URL%/}/health/ready" -o response.json || true
           status=$(jq -r '.status // empty' response.json 2>/dev/null)
           if [ "$status" != "ready" ]; then
             echo "::error::/health/ready did not return status=ready (got: ${status:-<unreadable>})"
@@ -65,4 +87,4 @@ jobs:
       - name: Web app
         run: |
           curl -fsS --max-time 60 --retry 3 --retry-all-errors --retry-delay 10 \
-            "${{ vars.SITE_URL }}/en" -o /dev/null
+            "${SITE_URL%/}/en" -o /dev/null
