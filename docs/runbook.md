@@ -34,10 +34,10 @@ Two things worth knowing before trusting it:
   repo.** A quiet monitor is not the same as a healthy one — if nobody has
   pushed in two months, check `Actions` → `uptime` is still listed as
   scheduled, not just check that it hasn't failed.
-- It needs `STAGING_API_URL` (secret) and `SITE_URL` (variable) set in the
-  repo's Actions settings. Without them the curl calls hit an empty string
-  and fail immediately, which reads exactly like a real outage the first
-  time anyone looks.
+- It needs `STAGING_API_URL` (a secret) and `SITE_URL` (a variable, though a
+  secret of that name also works) in the repo's Actions settings. Its first
+  step, "Settings are set", fails with the name of whichever is missing, so
+  a missing setting no longer reads like an outage.
 
 ## Common failures
 
