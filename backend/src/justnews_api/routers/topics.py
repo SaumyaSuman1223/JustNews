@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from justnews_api.core import cache
 from justnews_api.core.db import get_session
 from justnews_api.repositories import topics as repo
 from justnews_api.routers.content import PerspectiveGroupOut, PerspectiveSourceOut, StoryOut
@@ -25,15 +28,29 @@ async def list_topics(
     session: AsyncSession = Depends(get_session),
     language: str = Query(default="en"),
 ) -> list[TopicOut]:
+    """The top of the taxonomy, labelled in ``language``.
+
+    Every Discover page asks for this (its topic menu), so it is cached: 600s
+    fresh + 3600s stale (ADR 0014). The list changes only when the taxonomy
+    is seeded or an admin edits a label.
+    """
     code = normalise_language_code(language)
     if code is None:
         raise ValidationError(f"Not a language code: {language!r}")
 
-    topics = await repo.list_top_level_topics(session)
-    return [
-        TopicOut(id=topic.id, slug=topic.slug, label=service.label_for(topic, code))
-        for topic in topics
-    ]
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        topics = await repo.list_top_level_topics(s)
+        return [
+            TopicOut(id=topic.id, slug=topic.slug, label=service.label_for(topic, code)).model_dump(
+                mode="json"
+            )
+            for topic in topics
+        ]
+
+    payload = await cache.read_through(
+        f"topics:{code}", ttl=600, stale=3600, session=session, load=load
+    )
+    return [TopicOut.model_validate(item) for item in payload]
 
 
 class TopicOverviewOut(BaseModel):

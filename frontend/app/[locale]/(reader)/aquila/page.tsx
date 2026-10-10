@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { IssueReader } from "@/components/IssueReader";
 import { getIssue, getIssueEditions, getIssuePage, getLatestIssue } from "@/lib/api";
 import { getBrowsingSessionId } from "@/lib/browsingSession";
-import { getLocale, isLocaleCode, t } from "@/lib/i18n";
+import { getLocale, isLocaleCode, t, type LocaleCode } from "@/lib/i18n";
 import { getSession } from "@/lib/session";
 
 export async function generateMetadata({
@@ -38,6 +39,51 @@ export default async function AquilaPage({
   const active = getLocale(locale);
   const { issue: issueParam } = await searchParams;
 
+  // The sheet and its masthead go out at once; the edition streams into
+  // them (ADR 0014, "Rendering"). Before this the page sent nothing until
+  // the session, the issue and its first page had all come back in turn.
+  return (
+    <>
+      <meta name="description" content={t(active.code, "site.description")} />
+      <Suspense fallback={<AquilaLoading locale={active.code} />}>
+        <AquilaEdition locale={active.code} dir={active.dir} issueParam={issueParam} />
+      </Suspense>
+    </>
+  );
+}
+
+/** The paper before its edition arrives: the masthead, which is the same on
+ * every front page, on an empty sheet. */
+function AquilaLoading({ locale }: { locale: LocaleCode }) {
+  return (
+    <div className="aquila" aria-busy="true">
+      <div className="aquila__stage">
+        <div className="aquila__sheet aquila__sheet--loading">
+          <div className="paper">
+            <header className="paper__masthead">
+              <p className="paper__masthead-side" />
+              <div className="paper__masthead-centre">
+                <h1 className="paper__title">{t(locale, "aquila.title")}</h1>
+                <p className="paper__strap">{t(locale, "aquila.strap")}</p>
+              </div>
+              <p className="paper__masthead-side paper__masthead-side--end" />
+            </header>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function AquilaEdition({
+  locale,
+  dir,
+  issueParam,
+}: {
+  locale: LocaleCode;
+  dir: ReturnType<typeof getLocale>["dir"];
+  issueParam: string | undefined;
+}) {
   // Aquila has no beta gate and no sign-in requirement: it is the same paper
   // for every reader in a locale, and a signed-out visitor is exactly who a
   // publication is for.
@@ -51,31 +97,27 @@ export default async function AquilaPage({
   const requested = Number(issueParam);
   const issue =
     Number.isInteger(requested) && requested > 0
-      ? await getIssue(auth, { issueId: requested, locale: active.code })
-      : await getLatestIssue(auth, { locale: active.code });
+      ? await getIssue(auth, { issueId: requested, locale })
+      : await getLatestIssue(auth, { locale });
 
-  return (
-    <>
-      <meta name="description" content={t(active.code, "site.description")} />
-      {issue === null ? (
-        // Not an error state. A publication that has not published yet is a
-        // real thing, and this is what it looks like.
-        <div className="narrow">
-          <div className="page-header">
-            <p className="eyebrow">{t(active.code, "aquila.strap")}</p>
-            <h1>{t(active.code, "aquila.title")}</h1>
-          </div>
-          <EmptyState
-            title={t(active.code, "aquila.none.title")}
-            body={t(active.code, "aquila.none.body")}
-            action={{ href: `/${active.code}`, label: t(active.code, "aquila.none.action") }}
-          />
+  if (issue === null) {
+    // Not an error state. A publication that has not published yet is a
+    // real thing, and this is what it looks like.
+    return (
+      <div className="narrow">
+        <div className="page-header">
+          <p className="eyebrow">{t(locale, "aquila.strap")}</p>
+          <h1>{t(locale, "aquila.title")}</h1>
         </div>
-      ) : (
-        <AquilaIssue issue={issue} locale={active.code} dir={active.dir} auth={auth} />
-      )}
-    </>
-  );
+        <EmptyState
+          title={t(locale, "aquila.none.title")}
+          body={t(locale, "aquila.none.body")}
+          action={{ href: `/${locale}`, label: t(locale, "aquila.none.action") }}
+        />
+      </div>
+    );
+  }
+  return <AquilaIssue issue={issue} locale={locale} dir={dir} auth={auth} />;
 }
 
 async function AquilaIssue({

@@ -139,11 +139,25 @@ class Settings(BaseSettings):
     upstash_redis_rest_url: str | None = None
     upstash_redis_rest_token: str | None = None
     rate_limit_requests_per_minute: int = 120
+    # --- read cache (ADR 0014) ---
+    # The in-process layer in front of Upstash. Unset means "on wherever
+    # readers are served, off locally": in development and in tests a
+    # response that outlives the write before it only hides bugs. Upstash
+    # itself stays optional - one API process is its own complete cache.
+    read_cache_in_process: bool | None = None
+    read_cache_max_entries: int = 256
+
     # Shared with the web tier (its API_PROXY_SECRET). Its anonymous reads all
     # arrive from the web server's address, so an IP bucket would put every
     # reader in one; a request carrying this key is the web tier, which
     # limits each reader by their own address before calling here.
     web_proxy_secret: str | None = None
+
+    @property
+    def in_process_cache(self) -> bool:
+        if self.read_cache_in_process is not None:
+            return self.read_cache_in_process
+        return self.app_env != "local"
 
     @property
     def supabase_jwks_url(self) -> str | None:
