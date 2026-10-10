@@ -5202,7 +5202,7 @@
     },
     "/v1/editions": {
       "get": {
-        "description": "The regional views on offer - Google News' local-news equivalent.",
+        "description": "The regional views on offer - Google News' local-news equivalent.\n\nCache: 600s fresh + 3600s stale (ADR 0014); editions are seeded, not\nedited.",
         "operationId": "editions_v1_editions_get",
         "parameters": [
           {
@@ -7540,6 +7540,7 @@
     },
     "/v1/topics": {
       "get": {
+        "description": "The top of the taxonomy, labelled in ``language``.\n\nEvery Discover page asks for this (its topic menu), so it is cached: 600s\nfresh + 3600s stale (ADR 0014). The list changes only when the taxonomy\nis seeded or an admin edits a label.",
         "operationId": "list_topics_v1_topics_get",
         "parameters": [
           {

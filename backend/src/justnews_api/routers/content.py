@@ -528,18 +528,29 @@ async def editions(
     session: AsyncSession = Depends(get_session),
     languages: str | None = Query(default=None, examples=["es"]),
 ) -> list[EditionOut]:
-    """The regional views on offer - Google News' local-news equivalent."""
-    rows = await service.list_editions(session, languages=service.parse_languages(languages))
-    return [
-        EditionOut(
-            code=row.code,
-            name=row.name,
-            language=row.language,
-            country=row.country,
-            is_default=row.is_default,
-        )
-        for row in rows
-    ]
+    """The regional views on offer - Google News' local-news equivalent.
+
+    Cache: 600s fresh + 3600s stale (ADR 0014); editions are seeded, not
+    edited.
+    """
+
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        rows = await service.list_editions(s, languages=service.parse_languages(languages))
+        return [
+            EditionOut(
+                code=row.code,
+                name=row.name,
+                language=row.language,
+                country=row.country,
+                is_default=row.is_default,
+            ).model_dump(mode="json")
+            for row in rows
+        ]
+
+    payload = await cache.read_through(
+        f"editions:{languages or ''}", ttl=600, stale=3600, session=session, load=load
+    )
+    return [EditionOut.model_validate(item) for item in payload]
 
 
 class SourceOut(BaseModel):
@@ -562,15 +573,26 @@ async def sources(
         ),
     ),
 ) -> list[SourceOut]:
-    rows = (
-        await service.list_sources_for_language(session, language=language)
-        if language is not None
-        else await service.list_all_sources(session)
+    # Cache: 600s fresh + 3600s stale (ADR 0014) - the catalogue changes when
+    # an admin adds or retires a source, and search's filter asks on every load.
+
+    async def load(s: AsyncSession) -> list[dict[str, Any]]:
+        rows = (
+            await service.list_sources_for_language(s, language=language)
+            if language is not None
+            else await service.list_all_sources(s)
+        )
+        return [
+            SourceOut(
+                id=row.id, name=row.name, slug=row.slug, homepage_url=row.homepage_url
+            ).model_dump(mode="json")
+            for row in rows
+        ]
+
+    payload = await cache.read_through(
+        f"sources:{language or ''}", ttl=600, stale=3600, session=session, load=load
     )
-    return [
-        SourceOut(id=row.id, name=row.name, slug=row.slug, homepage_url=row.homepage_url)
-        for row in rows
-    ]
+    return [SourceOut.model_validate(item) for item in payload]
 
 
 class SourceDetailOut(BaseModel):

@@ -575,6 +575,9 @@ export interface paths {
         /**
          * Editions
          * @description The regional views on offer - Google News' local-news equivalent.
+         *
+         *     Cache: 600s fresh + 3600s stale (ADR 0014); editions are seeded, not
+         *     edited.
          */
         get: operations["editions_v1_editions_get"];
         put?: never;
@@ -1231,7 +1234,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Topics */
+        /**
+         * List Topics
+         * @description The top of the taxonomy, labelled in ``language``.
+         *
+         *     Every Discover page asks for this (its topic menu), so it is cached: 600s
+         *     fresh + 3600s stale (ADR 0014). The list changes only when the taxonomy
+         *     is seeded or an admin edits a label.
+         */
         get: operations["list_topics_v1_topics_get"];
         put?: never;
         post?: never;
