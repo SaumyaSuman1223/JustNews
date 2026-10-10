@@ -2607,6 +2607,12 @@ a.card__source,
     0 18px 40px -24px rgba(0, 0, 0, 0.6);
 }
 
+/* The sheet while its edition is on the way (aquila/page.tsx): the masthead
+   on an otherwise empty page, about the height a front page takes. */
+.aquila__sheet--loading .paper {
+  min-block-size: min(70vw, 47rem);
+}
+
 /* --- the paper itself ------------------------------------------------------ */
 
 .paper {
@@ -5549,7 +5555,8 @@ html[data-topbar-hidden] .topbar {
 .skel__media,
 .skel__line {
   display: block;
-  border-radius: 10px;
+  /* The pictures these stand in for are square-cornered (ADR 0017). */
+  border-radius: var(--radius-editorial);
   background: linear-gradient(
     90deg,
     var(--surface-sub) 0%,
@@ -5578,6 +5585,16 @@ html[data-topbar-hidden] .topbar {
 
 .skel__line--short {
   inline-size: 60%;
+}
+
+/* The rail while its reads are on the way (DiscoverSkeleton.tsx): three
+   modules under their rules, tall enough that the real ones arriving do not
+   push the rest of a phone's feed far. */
+.rail-widget--loading {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  min-block-size: 9rem;
 }
 
 @keyframes shimmer {

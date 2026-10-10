@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { FeedSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { ReadingLanguages } from "@/components/discover/ReadingLanguages";
 import { StoryCard } from "@/components/discover/StoryCard";
 import { arrange, type Block } from "@/components/discover/storyLayout";
@@ -461,31 +462,6 @@ function DiscoverTabs({
       </nav>
       <div className="discover__tools">
         <ReadingLanguages locale={locale} selected={readLanguages} />
-      </div>
-    </div>
-  );
-}
-
-function FeedSkeleton() {
-  return (
-    <div className="discover__skeleton" aria-hidden="true">
-      <div className="skel skel--lead">
-        <div className="skel__text">
-          <span className="skel__line skel__line--xl" />
-          <span className="skel__line skel__line--xl" />
-          <span className="skel__line" />
-          <span className="skel__line" />
-        </div>
-        <span className="skel__media" />
-      </div>
-      <div className="skel__row">
-        {[0, 1, 2].map((index) => (
-          <div className="skel skel--card" key={index}>
-            <span className="skel__media" />
-            <span className="skel__line" />
-            <span className="skel__line skel__line--short" />
-          </div>
-        ))}
       </div>
     </div>
   );

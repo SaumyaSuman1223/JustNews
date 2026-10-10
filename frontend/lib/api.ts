@@ -496,6 +496,18 @@ export async function getIssue(
 }
 
 /**
+ * The latest edition for Discover's "Today's Aquila", shared by every reader
+ * in a locale. `getLatestIssue` goes through the typed client with no cache
+ * setting, which Next 15 treats as "never cache": used for the teaser, it
+ * put one API round trip in front of every Discover page, however warm the
+ * rest was. Same 60s the API itself keeps this answer for (ADR 0014).
+ */
+export async function getTodaysIssue(locale: string): Promise<Issue | null> {
+  const query = new URLSearchParams({ locale });
+  return (await get<Issue | null>(`/v1/issues/latest?${query}`, null, 60)).data;
+}
+
+/**
  * An edition's front page for Discover's "Today's Aquila" - read without the
  * consent header, so it logs no impressions (it is not the reader opening
  * Aquila) and is the cacheable, unconsented read (ADR 0014).
